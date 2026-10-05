@@ -397,7 +397,7 @@ export function App() {
 
   const handleExportArchive = () => {
     const archive = {
-      app: "sidenotes",
+      app: "noticed",
       version: "1.0",
       exportedAt: new Date().toISOString(),
       user: userName,
@@ -411,7 +411,7 @@ export function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `sidenotes-atelier-archive-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `noticed-archive-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     setFlyoutMessage("Archive exported (JSON)");
@@ -1079,7 +1079,7 @@ export function App() {
                   })}
 
                   <div className="pt-8 pb-4 text-center text-xs text-[var(--text-tertiary)] italic select-none opacity-50">
-                    ¹ captured with sidenotes
+                    ¹ captured with noticed — for things you don't want to forget
                   </div>
                 </div>
               )}

@@ -1,4 +1,4 @@
-# Noticed (Sidenotes Atelier)
+# Noticed — for things you don't want to forget
 
 A mindful, minimalist field notebook and quiet personal editorial space engineered with bespoke Apple-Style High-Density Liquid Glass aesthetics and offline-first persistence.
 

@@ -247,7 +247,7 @@ export function BookshelfFolio({
               className="font-serif italic font-medium"
               style={{ color: foil, opacity: 0.85 }}
             >
-              sidenotes
+              noticed
             </span>
           </div>
 

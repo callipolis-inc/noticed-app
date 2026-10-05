@@ -200,7 +200,7 @@ export function NotebookCover({
             className="font-serif italic opacity-80"
             style={{ color: foil }}
           >
-            sidenotes
+            noticed
           </span>
         </div>
       </div>

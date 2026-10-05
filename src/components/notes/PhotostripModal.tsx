@@ -434,7 +434,7 @@ export function PhotostripModal({
       ctx.font = "600 18px 'Urbanist', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(
-        "SIDENOTES   ·   NOTES FOR NOTICING",
+        "NOTICED   ·   FOR THINGS YOU DON'T WANT TO FORGET",
         width / 2,
         height - 64,
       );
@@ -443,14 +443,14 @@ export function PhotostripModal({
         if (!blob) return;
 
         if (mode === "share" && navigator.share && navigator.canShare) {
-          const file = new File([blob], `sidenotes-excerpt-${note.id}.png`, {
+          const file = new File([blob], `noticed-excerpt-${note.id}.png`, {
             type: "image/png",
           });
           if (navigator.canShare({ files: [file] })) {
             try {
               await navigator.share({
-                title: space?.name || "Sidenotes Excerpt",
-                text: note.content || "Notes for noticing",
+                title: space?.name || "Noticed Excerpt",
+                text: note.content || "for things you don't want to forget",
                 files: [file],
               });
               triggerSuccessHaptic();
@@ -468,7 +468,7 @@ export function PhotostripModal({
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `sidenotes-${aspectRatio.replace(":", "x")}-${note.id.substring(0, 6)}.png`;
+        a.download = `noticed-${aspectRatio.replace(":", "x")}-${note.id.substring(0, 6)}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -812,8 +812,8 @@ export function PhotostripModal({
                   color: activePalette.muted,
                 }}
               >
-                <span>SIDENOTES</span>
-                <span>NOTES FOR NOTICING</span>
+                <span>NOTICED</span>
+                <span>FOR THINGS YOU DON'T WANT TO FORGET</span>
               </div>
             </motion.div>
           </div>

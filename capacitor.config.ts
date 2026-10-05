@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.syntheticae.sidenotes',
-  appName: 'Sidenotes',
+  appId: 'com.callipolis.noticed',
+  appName: 'Noticed',
   webDir: 'dist',
   backgroundColor: '#121214',
   ios: {

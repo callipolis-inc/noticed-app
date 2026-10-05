@@ -155,7 +155,7 @@ export function AtelierLockScreen({
 
           {/* Footer Safe Note */}
           <div className="text-[10.5px] font-mono text-[var(--text-tertiary)] uppercase tracking-wider opacity-60">
-            Sidenotes Archival Security
+            Noticed Archival Security
           </div>
         </motion.div>
       )}

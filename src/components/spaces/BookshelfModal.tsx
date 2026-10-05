@@ -809,7 +809,7 @@ export function BookshelfView({
                           className="font-serif italic opacity-75"
                           style={{ color: foil }}
                         >
-                          sidenotes
+                          noticed
                         </span>
                       </div>
 
@@ -940,7 +940,7 @@ export function BookshelfView({
 
                 <div className="z-10 flex items-center justify-between text-[9px] font-mono tracking-wider opacity-75 pt-2 border-t border-current/15">
                   <span>{notesCountMap[activeSelected.id] || 0} NOTICES</span>
-                  <span className="font-serif italic">sidenotes</span>
+                  <span className="font-serif italic">noticed</span>
                 </div>
               </div>
             </motion.div>
