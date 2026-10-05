@@ -7,7 +7,15 @@ import {
   processPhotoFile,
   processVideoFile,
   processAudioBlob,
+  processAudioFile,
 } from "@/lib/mediaStorage";
+import {
+  isProUser,
+  canUseFeature,
+  FREE_MAX_PHOTOS,
+  type ProFeature,
+} from "@/lib/proManager";
+import { AtelierProModal } from "@/components/ui/AtelierProModal";
 import { TactileAudioRecorder, RecordedAudio } from "@/lib/audioRecorder";
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import {
@@ -18,6 +26,7 @@ import {
   Image as ImageIcon,
   Video,
   Mic,
+  Upload,
   Square,
   Play,
   Pause,
@@ -109,7 +118,7 @@ export function CreateNoteSheet({
   const [citationText, setCitationText] = useState("");
   const marginaliaTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Audio recording state
+  // Audio recording state & popover menu
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(Array(14).fill(15));
@@ -118,6 +127,12 @@ export function CreateNoteSheet({
   );
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [showAudioMenu, setShowAudioMenu] = useState(false);
+
+  // Atelier Pro membership modal state
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [proTriggerFeature, setProTriggerFeature] =
+    useState<ProFeature | null>(null);
 
   // Rich text formatting & Preview state
   const [isFormattingOpen, setIsFormattingOpen] = useState(false);
@@ -126,6 +141,7 @@ export function CreateNoteSheet({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const audioFileInputRef = useRef<HTMLInputElement>(null);
   const audioRecorderRef = useRef<TactileAudioRecorder | null>(null);
   const recordingTimerRef = useRef<number | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -210,11 +226,60 @@ export function CreateNoteSheet({
   const currentSpace =
     spaces.find((s) => s.id === selectedSpaceId) || spaces[0];
 
+  const handleTriggerPhotoSelect = () => {
+    if (!canUseFeature("unlimited_photos", photos.length)) {
+      triggerHaptic("heavy");
+      setProTriggerFeature("unlimited_photos");
+      setIsProModalOpen(true);
+      return;
+    }
+    triggerHaptic("light");
+    fileInputRef.current?.click();
+  };
+
+  const handleTriggerCameraSelect = () => {
+    if (!canUseFeature("unlimited_photos", photos.length)) {
+      triggerHaptic("heavy");
+      setProTriggerFeature("unlimited_photos");
+      setIsProModalOpen(true);
+      return;
+    }
+    triggerHaptic("light");
+    cameraInputRef.current?.click();
+  };
+
+  const handleTriggerVideoSelect = () => {
+    if (!canUseFeature("video")) {
+      triggerHaptic("heavy");
+      setProTriggerFeature("video");
+      setIsProModalOpen(true);
+      return;
+    }
+    triggerHaptic("light");
+    videoInputRef.current?.click();
+  };
+
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
 
-    const selectedFiles = Array.from(fileList);
+    let selectedFiles = Array.from(fileList);
+    if (!isProUser()) {
+      const remainingSlots = Math.max(0, FREE_MAX_PHOTOS - photos.length);
+      if (remainingSlots <= 0) {
+        triggerHaptic("heavy");
+        setProTriggerFeature("unlimited_photos");
+        setIsProModalOpen(true);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        if (cameraInputRef.current) cameraInputRef.current.value = "";
+        return;
+      }
+      if (selectedFiles.length > remainingSlots) {
+        selectedFiles = selectedFiles.slice(0, remainingSlots);
+        setProTriggerFeature("unlimited_photos");
+        setIsProModalOpen(true);
+      }
+    }
 
     try {
       for (const file of selectedFiles) {
@@ -313,11 +378,47 @@ export function CreateNoteSheet({
     setIsRecording(false);
   };
 
+  const handleAudioFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAudioError(null);
+    try {
+      const result = await processAudioFile(file);
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current = null;
+      }
+      setIsPlayingAudio(false);
+      setRecordedAudio({
+        blob: result.blob,
+        url: result.url,
+        durationSeconds: result.duration,
+      });
+      triggerSuccessHaptic();
+    } catch (err: any) {
+      console.error("Audio import error:", err);
+      setAudioError(err?.message || "Failed to process audio file.");
+      triggerHaptic("heavy");
+      setTimeout(() => setAudioError(null), 5000);
+    } finally {
+      if (audioFileInputRef.current) audioFileInputRef.current.value = "";
+    }
+  };
+
   const toggleAudioPlayback = () => {
     if (!recordedAudio || !recordedAudio.url) return;
     triggerHaptic("light");
 
-    if (!previewAudioRef.current) {
+    if (
+      !previewAudioRef.current ||
+      previewAudioRef.current.src !== recordedAudio.url
+    ) {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
       const audio = new Audio(recordedAudio.url);
       previewAudioRef.current = audio;
       audio.onended = () => setIsPlayingAudio(false);
@@ -651,7 +752,7 @@ export function CreateNoteSheet({
             {/* Top Specular Rim Reflection */}
             <div className="dynamic-island-specular-rim" />
 
-            {/* Hidden Inputs for Gallery & Camera */}
+            {/* Hidden Inputs for Gallery, Camera, Video, & Audio */}
             <input
               ref={fileInputRef}
               type="file"
@@ -676,6 +777,14 @@ export function CreateNoteSheet({
               accept="video/mp4,video/quicktime,video/webm"
               onClick={(e) => e.stopPropagation()}
               onChange={handleVideoSelect}
+              className="hidden"
+            />
+            <input
+              ref={audioFileInputRef}
+              type="file"
+              accept="audio/*,audio/mpeg,audio/mp4,audio/m4a,audio/wav,audio/aac,audio/x-m4a,.mp3,.m4a,.wav,.aac,.ogg"
+              onClick={(e) => e.stopPropagation()}
+              onChange={handleAudioFileSelect}
               className="hidden"
             />
 
@@ -1042,10 +1151,7 @@ export function CreateNoteSheet({
                       <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            triggerHaptic("light");
-                            fileInputRef.current?.click();
-                          }}
+                          onClick={handleTriggerPhotoSelect}
                           className="px-2.5 py-1 rounded-full bg-black/65 text-white text-[11px] font-sans font-medium flex items-center gap-1 hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs"
                           title="Add another photo"
                         >
@@ -1090,10 +1196,7 @@ export function CreateNoteSheet({
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          triggerHaptic("light");
-                          fileInputRef.current?.click();
-                        }}
+                        onClick={handleTriggerPhotoSelect}
                         className="w-full py-2 rounded-xl inner-pseudo-glass border border-dashed border-[var(--glass-border)] flex items-center justify-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
                       >
                         <Plus className="w-3.5 h-3.5" />
@@ -1127,7 +1230,7 @@ export function CreateNoteSheet({
 
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={handleTriggerPhotoSelect}
                         className="w-20 aspect-[3/4] rounded-2xl inner-pseudo-glass border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors shrink-0 cursor-pointer"
                       >
                         <Plus className="w-4 h-4" />
@@ -1210,6 +1313,11 @@ export function CreateNoteSheet({
                     type="button"
                     onClick={() => {
                       triggerHaptic("light");
+                      if (previewAudioRef.current) {
+                        previewAudioRef.current.pause();
+                        previewAudioRef.current = null;
+                      }
+                      setIsPlayingAudio(false);
                       setRecordedAudio(null);
                     }}
                     className="p-2 text-[var(--text-tertiary)] hover:text-rose-500 transition-colors cursor-pointer"
@@ -1322,16 +1430,80 @@ export function CreateNoteSheet({
 
             {/* 3. Bottom Action Bar with Floating Capsule Action Dock */}
             <footer className="px-4 py-2.5 border-t border-[var(--glass-border)]/50 flex items-center justify-between gap-2 shrink-0 relative z-10 bg-[var(--sheet-bg)]/80 backdrop-blur-md">
+              {/* Audio Menu Popover */}
+              <AnimatePresence>
+                {showAudioMenu && !isRecording && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-30"
+                      onClick={() => setShowAudioMenu(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.16, ease: "easeOut" }}
+                      className="absolute bottom-[calc(100%+8px)] left-4 sm:left-20 z-40 w-60 rounded-2xl bg-[var(--sheet-bg)] border border-[var(--glass-border)] shadow-2xl p-1.5 flex flex-col gap-1 backdrop-blur-xl"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAudioMenu(false);
+                          handleStartRecording();
+                        }}
+                        className="w-full px-3 py-2 rounded-xl text-left flex items-center gap-2.5 text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-98 transition-all cursor-pointer"
+                      >
+                        <div className="w-7 h-7 rounded-lg inner-pseudo-glass flex items-center justify-center shrink-0">
+                          <Mic className="w-3.5 h-3.5 stroke-[2]" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-xs">Record Voice Memo</div>
+                          <div className="text-[10px] text-[var(--text-tertiary)]">Live microphone</div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAudioMenu(false);
+                          if (!canUseFeature("audio_import")) {
+                            triggerHaptic("heavy");
+                            setProTriggerFeature("audio_import");
+                            setIsProModalOpen(true);
+                            return;
+                          }
+                          triggerHaptic("light");
+                          audioFileInputRef.current?.click();
+                        }}
+                        className="w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-98 transition-all cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg inner-pseudo-glass flex items-center justify-center shrink-0">
+                            <Upload className="w-3.5 h-3.5 stroke-[2]" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-xs">Import Audio File</div>
+                            <div className="text-[10px] text-[var(--text-tertiary)]">Max 2 min (MP3, M4A)</div>
+                          </div>
+                        </div>
+                        {!isProUser() && (
+                          <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            PRO
+                          </span>
+                        )}
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+
               {!isRecording ? (
                 <div className="flex items-center justify-between w-full gap-2">
                   {/* Left: Media Tool Icons & Format Drawers */}
                   <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
                     <button
                       type="button"
-                      onClick={() => {
-                        triggerHaptic("light");
-                        fileInputRef.current?.click();
-                      }}
+                      onClick={handleTriggerPhotoSelect}
                       className="w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer shrink-0"
                       title="Add photos"
                     >
@@ -1340,10 +1512,7 @@ export function CreateNoteSheet({
 
                     <button
                       type="button"
-                      onClick={() => {
-                        triggerHaptic("light");
-                        cameraInputRef.current?.click();
-                      }}
+                      onClick={handleTriggerCameraSelect}
                       className="w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer shrink-0"
                       title="Take photo"
                     >
@@ -1352,10 +1521,7 @@ export function CreateNoteSheet({
 
                     <button
                       type="button"
-                      onClick={() => {
-                        triggerHaptic("light");
-                        videoInputRef.current?.click();
-                      }}
+                      onClick={handleTriggerVideoSelect}
                       disabled={isVideoProcessing}
                       className="w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer disabled:opacity-50 shrink-0"
                       title="Add short video clip"
@@ -1365,9 +1531,16 @@ export function CreateNoteSheet({
 
                     <button
                       type="button"
-                      onClick={handleStartRecording}
-                      className="w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer shrink-0"
-                      title="Record audio"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setShowAudioMenu((prev) => !prev);
+                      }}
+                      className={`w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center active:scale-95 transition-all cursor-pointer shrink-0 ${
+                        showAudioMenu
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      }`}
+                      title="Audio memo options"
                     >
                       <Mic className="w-3.5 h-3.5 stroke-[1.85]" />
                     </button>
@@ -1525,6 +1698,13 @@ export function CreateNoteSheet({
               )}
             </footer>
           </motion.div>
+
+          {/* Atelier Pro Membership Modal */}
+          <AtelierProModal
+            isOpen={isProModalOpen}
+            onClose={() => setIsProModalOpen(false)}
+            triggerFeature={proTriggerFeature}
+          />
         </div>
       )}
     </AnimatePresence>

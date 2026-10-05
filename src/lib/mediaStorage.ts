@@ -15,8 +15,10 @@ export interface VideoMetadata {
 }
 
 const STORAGE_BUCKET = "noticed-media";
-const MAX_VIDEO_DURATION_SECONDS = 35;
-const MAX_VIDEO_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+export const MAX_VIDEO_DURATION_SECONDS = 35;
+export const MAX_VIDEO_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+export const MAX_AUDIO_DURATION_SECONDS = 120; // 2 minutes (120s)
+export const MAX_AUDIO_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
 
 export type MediaFolder = "photos" | "videos" | "avatars" | "audio";
 
@@ -384,4 +386,111 @@ export async function processVideoFile(file: File): Promise<{
     reader.readAsDataURL(file);
   });
 }
+
+/**
+ * Extracts the duration of an audio file in seconds via the browser Audio API.
+ */
+export function extractAudioDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const audio = new Audio();
+    audio.preload = "metadata";
+    audio.src = objectUrl;
+
+    audio.onloadedmetadata = () => {
+      const duration = audio.duration;
+      URL.revokeObjectURL(objectUrl);
+      if (isNaN(duration) || duration === Infinity) {
+        resolve(0);
+      } else {
+        resolve(duration);
+      }
+    };
+
+    audio.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Unable to read audio file metadata"));
+    };
+  });
+}
+
+/**
+ * Validates an audio file against size (max 15MB) and type constraints.
+ */
+export function validateAudioFile(file: File): { valid: boolean; error?: string } {
+  const isAudioType =
+    file.type.startsWith("audio/") ||
+    /\.(mp3|m4a|wav|aac|ogg|webm|flac)$/i.test(file.name);
+
+  if (!isAudioType) {
+    return {
+      valid: false,
+      error: "Please select a valid audio file (.mp3, .m4a, .wav, .aac).",
+    };
+  }
+
+  if (file.size > MAX_AUDIO_FILE_SIZE_BYTES) {
+    return {
+      valid: false,
+      error: `Audio file is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max allowed size is 15MB.`,
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validates and processes an external audio file, enforcing the 2-minute (120s) limit.
+ * Uploads to Supabase Storage ('noticed-media/audio') or falls back to local DataURL.
+ */
+export async function processAudioFile(file: File): Promise<{
+  url: string;
+  duration: number;
+  blob: Blob;
+}> {
+  const validation = validateAudioFile(file);
+  if (!validation.valid) {
+    throw new Error(validation.error);
+  }
+
+  const duration = await extractAudioDuration(file);
+  if (duration > MAX_AUDIO_DURATION_SECONDS) {
+    throw new Error(
+      `Audio duration is ${Math.round(duration)}s. Noticed allows voice clips up to 2 minutes (120s).`
+    );
+  }
+
+  const extMatch = file.name.split(".").pop()?.toLowerCase();
+  const ext =
+    extMatch && ["mp3", "m4a", "wav", "aac", "ogg", "webm"].includes(extMatch)
+      ? extMatch
+      : "m4a";
+  const contentType = file.type || "audio/m4a";
+
+  // 1. Primary: Upload directly to Supabase Storage ('noticed-media/audio' bucket)
+  const supabaseUrl = await uploadMediaToSupabase(file, "audio", ext, contentType);
+  if (supabaseUrl) {
+    return {
+      url: supabaseUrl,
+      duration: Math.max(1, Math.round(duration)),
+      blob: file,
+    };
+  }
+
+  // 2. Offline-first fallback: convert to base64 DataURL
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      resolve({
+        url: dataUrl,
+        duration: Math.max(1, Math.round(duration)),
+        blob: file,
+      });
+    };
+    reader.onerror = () => reject(new Error("Failed to read audio file"));
+    reader.readAsDataURL(file);
+  });
+}
+
 
