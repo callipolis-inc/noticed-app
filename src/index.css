@@ -31,6 +31,13 @@
   --bg-elevated-2: #222228;
   --bg-card: #18181c;
   --bg-paper: #111113;
+  --bg-bookshelf-luminance: radial-gradient(
+      ellipse 85% 55% at 50% -6%,
+      rgba(255, 255, 255, 0.065) 0%,
+      rgba(255, 255, 255, 0.015) 50%,
+      transparent 80%
+    ),
+    linear-gradient(180deg, #161619 0%, #111113 55%, #0b0b0d 100%);
 
   --bg-card-contrast: #ffffff;
   --text-contrast: #121212;
@@ -113,6 +120,13 @@
   --bg-elevated-2: #2c2825;
   --bg-card: #23201e;
   --bg-paper: #191716;
+  --bg-bookshelf-luminance: radial-gradient(
+      ellipse 85% 55% at 50% -6%,
+      rgba(255, 242, 226, 0.055) 0%,
+      rgba(255, 242, 226, 0.012) 50%,
+      transparent 80%
+    ),
+    linear-gradient(180deg, #221e1b 0%, #191716 55%, #131211 100%);
 
   --bg-card-contrast: #ede8e1;
   --text-contrast: #191716;
@@ -164,6 +178,13 @@
   --bg-elevated-2: rgba(252, 251, 249, 0.85);
   --bg-card: #ffffff;
   --bg-paper: #f7f5f0;
+  --bg-bookshelf-luminance: radial-gradient(
+      ellipse 85% 55% at 50% -6%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 80%
+    ),
+    linear-gradient(180deg, #faf7f2 0%, #f4ede3 55%, #eae3d5 100%);
 
   --text-primary: #1c1917;
   --text-secondary: #57534e;
@@ -218,6 +239,13 @@
   --bg-canvas: #fcfcfa;
   --bg-primary: #ffffff;
   --bg-paper: #fcfcfa;
+  --bg-bookshelf-luminance: radial-gradient(
+      ellipse 85% 55% at 50% -6%,
+      rgba(255, 255, 255, 1) 0%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 80%
+    ),
+    linear-gradient(180deg, #ffffff 0%, #fafafc 55%, #f2f2f7 100%);
 
   --bg-elevated: rgba(255, 255, 255, 0.75);
   --bg-elevated-2: rgba(248, 248, 252, 0.68);
@@ -309,6 +337,13 @@
   --bg-elevated: rgba(250, 246, 240, 0.78);
   --bg-card: #faf6f0;
   --bg-paper: #f2eadf;
+  --bg-bookshelf-luminance: radial-gradient(
+      ellipse 85% 55% at 50% -6%,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 80%
+    ),
+    linear-gradient(180deg, #fbf9f4 0%, #f5efe5 55%, #ece5d8 100%);
 
   --text-primary: #26211d;
   --text-secondary: #5c5249;

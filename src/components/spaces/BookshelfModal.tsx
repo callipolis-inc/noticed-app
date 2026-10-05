@@ -417,8 +417,9 @@ export function BookshelfView({
 
   return (
     <div
-      className="min-h-screen w-full bg-[var(--bg-base)] text-[var(--text-primary)] flex flex-col justify-between overflow-x-hidden relative select-none"
+      className="min-h-screen w-full text-[var(--text-primary)] flex flex-col justify-between overflow-x-hidden relative select-none"
       style={{
+        background: "var(--bg-bookshelf-luminance, var(--bg-base))",
         paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 14px), 24px)",
         paddingBottom:
           "max(calc(env(safe-area-inset-bottom, 0px) + 14px), 24px)",
