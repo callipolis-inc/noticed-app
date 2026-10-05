@@ -49,6 +49,8 @@ export interface BookshelfViewProps {
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
   onOpenSearch?: () => void;
+  isSyncing?: boolean;
+  isCloudConnected?: boolean;
 }
 
 export const MODERN_PALETTES: {
@@ -245,6 +247,8 @@ export function BookshelfView({
   onOpenProfile,
   onOpenSettings,
   onOpenSearch: _onOpenSearch,
+  isSyncing = false,
+  isCloudConnected = false,
 }: BookshelfViewProps) {
   const currentAvatar =
     avatarPhoto ??
@@ -433,23 +437,35 @@ export function BookshelfView({
           title="Profile"
         >
           <div className="dynamic-island-specular-rim" />
-          {currentAvatar ? (
-            <img
-              src={currentAvatar}
-              alt={userName}
-              className="w-7 h-7 rounded-full object-cover shadow-xs border border-white/40 dark:border-white/10"
-            />
-          ) : (
-            <div className="w-7 h-7 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold text-xs flex items-center justify-center font-sans shadow-xs">
-              {userName.charAt(0).toUpperCase() || "A"}
-            </div>
-          )}
+          <div className="relative shrink-0">
+            {currentAvatar ? (
+              <img
+                src={currentAvatar}
+                alt={userName}
+                className="w-7 h-7 rounded-full object-cover shadow-xs border border-white/40 dark:border-white/10"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold text-xs flex items-center justify-center font-sans shadow-xs">
+                {userName.charAt(0).toUpperCase() || "A"}
+              </div>
+            )}
+            {isCloudConnected && (
+              <span
+                className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-base)] transition-colors ${
+                  isSyncing
+                    ? "bg-amber-400 animate-pulse"
+                    : "bg-emerald-500"
+                }`}
+                title={isSyncing ? "Syncing to Cloud..." : "Cloud Synced"}
+              />
+            )}
+          </div>
           <div className="flex flex-col text-left">
             <span className="text-[11.5px] font-semibold leading-none text-[var(--text-primary)] font-sans">
               {userName}
             </span>
             <span className="text-[9.5px] text-[var(--text-tertiary)] font-medium leading-none mt-0.5 font-sans">
-              {timeGreeting}
+              {isSyncing ? "Syncing..." : timeGreeting}
             </span>
           </div>
         </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Space,
@@ -37,7 +37,11 @@ import {
   onAuthStateChange,
   signOutUser,
 } from "@/lib/supabase";
-import { syncWithCloud } from "@/lib/syncEngine";
+import {
+  syncWithCloud,
+  queueCloudDeleteNote,
+  queueCloudDeleteSpace,
+} from "@/lib/syncEngine";
 import {
   ArrowLeft,
   Palette,
@@ -342,19 +346,41 @@ export function App() {
     };
   }, []);
 
-  // Two-way synchronization handler
-  const handleCloudSync = async () => {
+  const isApplyingRemoteSyncRef = useRef(false);
+  const autoSyncTimerRef = useRef<number | null>(null);
+
+  // Two-way synchronization handler (supports silent background mode or manual user trigger)
+  const handleCloudSync = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
     if (isSyncing) return;
     setIsSyncing(true);
     try {
       const result = await syncWithCloud(spaces, notes, userName, avatarPhoto);
       if (result.synced) {
-        setSpaces(result.spaces);
-        setNotes(result.notes);
+        const spacesChanged =
+          JSON.stringify(result.spaces) !== JSON.stringify(spaces);
+        const notesChanged =
+          JSON.stringify(result.notes) !== JSON.stringify(notes);
+
+        if (spacesChanged || notesChanged) {
+          isApplyingRemoteSyncRef.current = true;
+          if (spacesChanged) setSpaces(result.spaces);
+          if (notesChanged) setNotes(result.notes);
+          setTimeout(() => {
+            isApplyingRemoteSyncRef.current = false;
+          }, 150);
+        }
+
         if (result.timestamp) setLastSyncedAt(result.timestamp);
-        setFlyoutMessage("Cloud synchronized");
-        setTimeout(() => setFlyoutMessage(null), 2000);
-      } else if (result.error && result.error !== "User is not signed in") {
+        if (!silent) {
+          setFlyoutMessage("Cloud synchronized");
+          setTimeout(() => setFlyoutMessage(null), 2000);
+        }
+      } else if (
+        !silent &&
+        result.error &&
+        result.error !== "User is not signed in"
+      ) {
         setFlyoutMessage(`Sync: ${result.error}`);
         setTimeout(() => setFlyoutMessage(null), 2500);
       }
@@ -365,21 +391,51 @@ export function App() {
     }
   };
 
-  // Trigger sync when user signs in or reconnects online
+  // Trigger silent sync when user signs in
   useEffect(() => {
     if (userEmail) {
-      handleCloudSync();
+      handleCloudSync({ silent: true });
     }
   }, [userEmail]);
 
+  // Debounced Silent Auto-Sync whenever notes, spaces, or profile change
+  useEffect(() => {
+    if (!userEmail || isApplyingRemoteSyncRef.current) return;
+
+    if (autoSyncTimerRef.current) {
+      window.clearTimeout(autoSyncTimerRef.current);
+    }
+
+    autoSyncTimerRef.current = window.setTimeout(() => {
+      handleCloudSync({ silent: true });
+    }, 1500);
+
+    return () => {
+      if (autoSyncTimerRef.current) {
+        window.clearTimeout(autoSyncTimerRef.current);
+      }
+    };
+  }, [spaces, notes, userName, avatarPhoto, userEmail]);
+
+  // Trigger silent sync when device reconnects online or returns to foreground
   useEffect(() => {
     const handleOnline = () => {
       if (userEmail) {
-        handleCloudSync();
+        handleCloudSync({ silent: true });
       }
     };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && userEmail) {
+        handleCloudSync({ silent: true });
+      }
+    };
+
     window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [userEmail, spaces, notes, userName, avatarPhoto]);
 
   const handleAuthSuccess = (email: string) => {
@@ -780,6 +836,7 @@ export function App() {
   };
 
   const handleDeleteSpace = (spaceId: string) => {
+    const spaceNotes = notes.filter((n) => n.spaceId === spaceId);
     setSpaces((prev) => {
       const remaining = prev.filter((s) => s.id !== spaceId);
       if (activeSpaceId === spaceId && remaining.length > 0) {
@@ -787,6 +844,8 @@ export function App() {
       }
       return remaining;
     });
+    setNotes((prev) => prev.filter((n) => n.spaceId !== spaceId));
+    queueCloudDeleteSpace(spaceId, spaceNotes);
     setFlyoutMessage("Notebook archived");
     setTimeout(() => setFlyoutMessage(null), 2000);
   };
@@ -853,7 +912,11 @@ export function App() {
 
   const handleDeleteNote = (noteId: string) => {
     triggerHaptic("medium");
+    const targetNote = notes.find((n) => n.id === noteId);
     setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    if (targetNote) {
+      queueCloudDeleteNote(targetNote);
+    }
     setFlyoutMessage("Note removed");
     setTimeout(() => setFlyoutMessage(null), 2000);
   };
@@ -989,6 +1052,8 @@ export function App() {
               userName={userName}
               avatarPhoto={avatarPhoto}
               defaultShelfLayout={defaultShelfLayout}
+              isSyncing={isSyncing}
+              isCloudConnected={Boolean(userEmail)}
               onSelectSpace={(id) => {
                 setActiveSpaceId(id);
                 setCurrentView("notebook");
@@ -1469,7 +1534,7 @@ export function App() {
         onAuthSuccess={handleAuthSuccess}
         isSyncing={isSyncing}
         lastSyncedAt={lastSyncedAt}
-        onTriggerSync={handleCloudSync}
+        onTriggerSync={() => handleCloudSync({ silent: false })}
       />
 
       {/* Settings Sheet */}

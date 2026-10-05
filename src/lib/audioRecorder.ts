@@ -99,14 +99,25 @@ export class TactileAudioRecorder {
       this.mediaRecorder.onstop = () => {
         const mimeType = this.mediaRecorder?.mimeType || "audio/webm";
         const audioBlob = new Blob(this.audioChunks, { type: mimeType });
-        const audioUrl = URL.createObjectURL(audioBlob);
-
         this.cleanup();
-        resolve({
-          blob: audioBlob,
-          url: audioUrl,
-          durationSeconds: duration,
-        });
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = (e.target?.result as string) || URL.createObjectURL(audioBlob);
+          resolve({
+            blob: audioBlob,
+            url: dataUrl,
+            durationSeconds: duration,
+          });
+        };
+        reader.onerror = () => {
+          resolve({
+            blob: audioBlob,
+            url: URL.createObjectURL(audioBlob),
+            durationSeconds: duration,
+          });
+        };
+        reader.readAsDataURL(audioBlob);
       };
 
       this.mediaRecorder.stop();

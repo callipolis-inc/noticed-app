@@ -3,7 +3,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote, TextAlign } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { generateId, formatTimeOnly } from "@/lib/utils";
-import { processPhotoFile, processVideoFile } from "@/lib/mediaStorage";
+import {
+  processPhotoFile,
+  processVideoFile,
+  processAudioBlob,
+} from "@/lib/mediaStorage";
 import { TactileAudioRecorder, RecordedAudio } from "@/lib/audioRecorder";
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import {
@@ -266,7 +270,14 @@ export function CreateNoteSheet({
     if (audioRecorderRef.current) {
       const audioResult = await audioRecorderRef.current.stop();
       if (audioResult) {
-        setRecordedAudio(audioResult);
+        const persistedUrl = await processAudioBlob(
+          audioResult.blob,
+          audioResult.url
+        );
+        setRecordedAudio({
+          ...audioResult,
+          url: persistedUrl || audioResult.url,
+        });
       } else {
         setRecordedAudio({
           blob: new Blob(),
@@ -316,6 +327,7 @@ export function CreateNoteSheet({
       !content.trim() &&
       !marginaliaText.trim() &&
       photos.length === 0 &&
+      videos.length === 0 &&
       !recordedAudio
     ) {
       onClose();

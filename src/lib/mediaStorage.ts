@@ -18,6 +18,8 @@ const STORAGE_BUCKET = "noticed-media";
 const MAX_VIDEO_DURATION_SECONDS = 35;
 const MAX_VIDEO_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 
+export type MediaFolder = "photos" | "videos" | "avatars" | "audio";
+
 /**
  * Converts a base64 DataURL into a binary Blob for cloud storage upload.
  */
@@ -37,6 +39,11 @@ export function dataUrlToBlob(dataUrl: string): {
     if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
     else if (contentType.includes("png")) ext = "png";
     else if (contentType.includes("webp")) ext = "webp";
+    else if (contentType.includes("audio/mp4") || contentType.includes("audio/aac")) ext = "m4a";
+    else if (contentType.includes("audio/mpeg") || contentType.includes("audio/mp3")) ext = "mp3";
+    else if (contentType.includes("audio/ogg")) ext = "ogg";
+    else if (contentType.includes("audio/wav")) ext = "wav";
+    else if (contentType.includes("audio/webm")) ext = "webm";
     else if (contentType.includes("mp4")) ext = "mp4";
     else if (contentType.includes("quicktime") || contentType.includes("mov")) ext = "mov";
     else if (contentType.includes("webm")) ext = "webm";
@@ -64,7 +71,7 @@ export function dataUrlToBlob(dataUrl: string): {
  */
 export async function uploadMediaToSupabase(
   blobOrFile: Blob | File,
-  folder: "photos" | "videos" | "avatars",
+  folder: MediaFolder,
   ext: string,
   contentType: string
 ): Promise<string | null> {
@@ -100,6 +107,45 @@ export async function uploadMediaToSupabase(
 }
 
 /**
+ * Extracts the internal bucket path from a Supabase Storage public URL.
+ */
+export function extractStoragePathFromUrl(url: string): string | null {
+  if (!url || !url.startsWith("http")) return null;
+  const marker = `/storage/v1/object/public/${STORAGE_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return null;
+  const rawPath = url.slice(idx + marker.length).split("?")[0];
+  return rawPath ? decodeURIComponent(rawPath) : null;
+}
+
+/**
+ * Deletes an array of media URLs from the 'noticed-media' Supabase Storage bucket.
+ * Returns true if deletion succeeded (or no valid bucket paths existed), false if offline/failed.
+ */
+export async function deleteMediaUrlsFromSupabase(urls: string[]): Promise<boolean> {
+  const paths = urls
+    .map((u) => extractStoragePathFromUrl(u))
+    .filter((p): p is string => Boolean(p));
+
+  if (paths.length === 0) return true;
+  if (!isSupabaseConfigured || (typeof navigator !== "undefined" && !navigator.onLine)) {
+    return false;
+  }
+
+  try {
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).remove(paths);
+    if (error) {
+      console.warn("[MediaStorage] Failed to purge files from bucket:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn("[MediaStorage] Error purging files from bucket:", err);
+    return false;
+  }
+}
+
+/**
  * Compresses a photo file and uploads it to Supabase Storage ('noticed-media/photos').
  * Falls back to the compressed base64 DataURL when offline.
  */
@@ -126,12 +172,41 @@ export async function processPhotoFile(file: File): Promise<string> {
 }
 
 /**
+ * Uploads a recorded Voice Memo audio Blob to Supabase Storage ('noticed-media/audio').
+ * Falls back to a persistent base64 DataURL when offline.
+ */
+export async function processAudioBlob(blob: Blob, fallbackDataUrl?: string): Promise<string> {
+  const contentType = blob.type || "audio/webm";
+  let ext = "webm";
+  if (contentType.includes("mp4") || contentType.includes("aac")) ext = "m4a";
+  else if (contentType.includes("mpeg") || contentType.includes("mp3")) ext = "mp3";
+  else if (contentType.includes("ogg")) ext = "ogg";
+  else if (contentType.includes("wav")) ext = "wav";
+
+  if (blob.size > 0) {
+    const remoteUrl = await uploadMediaToSupabase(blob, "audio", ext, contentType);
+    if (remoteUrl) {
+      return remoteUrl;
+    }
+  }
+
+  if (fallbackDataUrl) return fallbackDataUrl;
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve((e.target?.result as string) || "");
+    reader.onerror = () => resolve("");
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
  * Ensures any local base64 DataURLs in an array are uploaded to Supabase Storage
  * and replaced with lightweight public URLs before syncing to PostgreSQL.
  */
 export async function ensureRemoteMediaUrls(
   items: string[],
-  folder: "photos" | "videos" | "avatars"
+  folder: MediaFolder
 ): Promise<string[]> {
   if (!items || items.length === 0) return [];
   if (!isSupabaseConfigured || (typeof navigator !== "undefined" && !navigator.onLine)) {

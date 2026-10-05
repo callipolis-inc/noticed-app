@@ -1,11 +1,11 @@
 -- ============================================================================
 -- Noticed App: Dedicated Supabase Storage Bucket ('noticed-media')
--- Offloads heavy photos & 30s video clips from the PostgreSQL database (500MB)
+-- Offloads heavy photos, 30s video clips & voice memos from PostgreSQL (500MB)
 -- into Supabase Storage (1GB dedicated file storage).
 -- Safe to run multiple times (Idempotent).
 -- ============================================================================
 
--- 1. Create the 'noticed-media' bucket (publicly readable for fast inline rendering)
+-- 1. Create or update the 'noticed-media' bucket (publicly readable for fast inline rendering)
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
   'noticed-media',
@@ -19,7 +19,14 @@ VALUES (
     'image/gif',
     'video/mp4',
     'video/quicktime',
-    'video/webm'
+    'video/webm',
+    'audio/webm',
+    'audio/mp4',
+    'audio/aac',
+    'audio/x-m4a',
+    'audio/mpeg',
+    'audio/ogg',
+    'audio/wav'
   ]
 )
 ON CONFLICT (id) DO UPDATE SET
@@ -33,7 +40,7 @@ DROP POLICY IF EXISTS "Noticed Media Authenticated Upload" ON storage.objects;
 DROP POLICY IF EXISTS "Noticed Media Authenticated Update" ON storage.objects;
 DROP POLICY IF EXISTS "Noticed Media Authenticated Delete" ON storage.objects;
 
--- 3. Allow anyone to view/stream photos & inline videos from 'noticed-media'
+-- 3. Allow anyone to view/stream photos, inline videos & voice memos from 'noticed-media'
 CREATE POLICY "Noticed Media Public Read"
 ON storage.objects FOR SELECT
 USING (bucket_id = 'noticed-media');
@@ -48,7 +55,7 @@ CREATE POLICY "Noticed Media Authenticated Update"
 ON storage.objects FOR UPDATE
 USING (bucket_id = 'noticed-media');
 
--- 6. Allow deletes from 'noticed-media'
+-- 6. Allow deletes from 'noticed-media' (for auto-purging orphan files when notes are deleted)
 CREATE POLICY "Noticed Media Authenticated Delete"
 ON storage.objects FOR DELETE
 USING (bucket_id = 'noticed-media');
