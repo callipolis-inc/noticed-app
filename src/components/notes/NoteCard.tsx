@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { FieldNote } from "@/types";
 import { formatNoteDate } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
+import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import {
   MapPin,
   Play,
@@ -105,6 +106,7 @@ export function NoteCard({
   };
 
   const hasPhotos = Boolean(note.photos && note.photos.length > 0);
+  const hasVideos = Boolean(note.videos && note.videos.length > 0);
 
   return (
     <article
@@ -311,6 +313,19 @@ export function NoteCard({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Attached Inline Videos */}
+      {hasVideos && (
+        <div className="mt-3.5 space-y-2.5">
+          {note.videos!.map((videoUrl, index) => (
+            <InlineVideoPlayer
+              key={index}
+              src={videoUrl}
+              className="w-full max-h-72"
+            />
+          ))}
         </div>
       )}
 

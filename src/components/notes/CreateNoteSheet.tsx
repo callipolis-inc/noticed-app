@@ -4,13 +4,16 @@ import { Space, FieldNote, TextAlign } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { generateId, formatTimeOnly } from "@/lib/utils";
 import { compressImageFile } from "@/lib/storage";
+import { processVideoFile } from "@/lib/mediaStorage";
 import { TactileAudioRecorder, RecordedAudio } from "@/lib/audioRecorder";
+import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import {
   X,
   Check,
   ChevronDown,
   Camera,
   Image as ImageIcon,
+  Video,
   Mic,
   Square,
   Play,
@@ -68,6 +71,9 @@ export function CreateNoteSheet({
   const [locationName, setLocationName] = useState("");
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const [isVideoProcessing, setIsVideoProcessing] = useState(false);
 
   // Direct Inline Date & Time state
   const [noteDate, setNoteDate] = useState<string>(() =>
@@ -94,6 +100,7 @@ export function CreateNoteSheet({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const audioRecorderRef = useRef<TactileAudioRecorder | null>(null);
   const recordingTimerRef = useRef<number | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -110,6 +117,7 @@ export function CreateNoteSheet({
       setSelectedSpaceId(editingNote.spaceId || defaultSpaceId);
       setLocationName(editingNote.locationName || "");
       setPhotos(editingNote.photos ? [...editingNote.photos] : []);
+      setVideos(editingNote.videos ? [...editingNote.videos] : []);
 
       const firstMarg = editingNote.marginaliaItems?.[0];
       const margText = editingNote.marginalia || firstMarg?.content || "";
@@ -139,6 +147,8 @@ export function CreateNoteSheet({
       setSelectedSpaceId(defaultSpaceId);
       setLocationName("");
       setPhotos([]);
+      setVideos([]);
+      setVideoError(null);
       setMarginaliaText("");
       setCitationText("");
       setIsMarginaliaOpen(false);
@@ -192,6 +202,32 @@ export function CreateNoteSheet({
   const handleRemovePhoto = (index: number) => {
     triggerHaptic("light");
     setPhotos((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsVideoProcessing(true);
+    setVideoError(null);
+    try {
+      const result = await processVideoFile(file);
+      setVideos((prev) => [...prev, result.url]);
+      triggerSuccessHaptic();
+    } catch (err: any) {
+      console.error("Video processing error:", err);
+      setVideoError(err?.message || "Failed to process video");
+      triggerHaptic("heavy");
+      setTimeout(() => setVideoError(null), 4000);
+    } finally {
+      setIsVideoProcessing(false);
+      if (videoInputRef.current) videoInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveVideo = (index: number) => {
+    triggerHaptic("light");
+    setVideos((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleStartRecording = async () => {
@@ -337,6 +373,7 @@ export function CreateNoteSheet({
             : undefined,
         locationName: locationName.trim() || undefined,
         photos: photos.length > 0 ? photos : undefined,
+        videos: videos.length > 0 ? videos : undefined,
         voiceMemo: recordedAudio
           ? {
               durationSeconds: recordedAudio.durationSeconds,
@@ -371,6 +408,7 @@ export function CreateNoteSheet({
         : undefined,
       locationName: locationName.trim() || undefined,
       photos: photos.length > 0 ? photos : undefined,
+      videos: videos.length > 0 ? videos : undefined,
       voiceMemo: recordedAudio
         ? {
             durationSeconds: recordedAudio.durationSeconds,
@@ -470,6 +508,14 @@ export function CreateNoteSheet({
               capture="environment"
               onClick={(e) => e.stopPropagation()}
               onChange={handlePhotoSelect}
+              className="hidden"
+            />
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm"
+              onClick={(e) => e.stopPropagation()}
+              onChange={handleVideoSelect}
               className="hidden"
             />
 
@@ -838,6 +884,41 @@ export function CreateNoteSheet({
                 </div>
               )}
 
+              {/* Video Previews */}
+              {videos.length > 0 && (
+                <div className="mt-2 space-y-3">
+                  {videos.map((vid, idx) => (
+                    <div key={idx} className="relative group">
+                      <InlineVideoPlayer src={vid} className="w-full max-h-72" />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveVideo(idx);
+                        }}
+                        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs z-30"
+                        title="Remove video"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Video Processing or Error Toast */}
+              {isVideoProcessing && (
+                <div className="mt-2 p-2.5 rounded-xl apple-card text-xs text-[var(--text-secondary)] flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[var(--text-primary)] animate-ping" />
+                  <span>Processing video clip...</span>
+                </div>
+              )}
+              {videoError && (
+                <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans">
+                  {videoError}
+                </div>
+              )}
+
               {/* Voice Memo Capsule */}
               {recordedAudio && (
                 <div className="mt-2 p-3 rounded-2xl apple-card shadow-xs flex items-center justify-between">
@@ -909,6 +990,19 @@ export function CreateNoteSheet({
                       title="Take photo"
                     >
                       <Camera className="w-3.5 h-3.5 stroke-[1.85]" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        videoInputRef.current?.click();
+                      }}
+                      disabled={isVideoProcessing}
+                      className="w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer disabled:opacity-50"
+                      title="Add short video clip"
+                    >
+                      <Video className="w-3.5 h-3.5 stroke-[1.85]" />
                     </button>
 
                     <button

@@ -4,6 +4,7 @@ import { FieldNote, TextHighlight, TextAlign, ImageFrameSize } from "@/types";
 import { formatTimeOnly } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
 import { TextHighlighter, toSuperscriptNumber } from "./TextHighlighter";
+import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import {
   Play,
   Pause,
@@ -125,6 +126,7 @@ export function NoteEntry({
   const hasMarginalia =
     marginaliaList.length > 0 || linkedHighlightNotes.length > 0;
   const hasPhotos = Boolean(note.photos && note.photos.length > 0);
+  const hasVideos = Boolean(note.videos && note.videos.length > 0);
   const formattedTime = formatTimeOnly(note.createdAt).toUpperCase();
   const authorLabel = note.author?.name
     ? note.author.name.toUpperCase()
@@ -481,6 +483,35 @@ export function NoteEntry({
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 1.5 Inline Videos */}
+          {hasVideos && (
+            <div className="w-full space-y-2.5">
+              {note.videos!.map((videoUrl, idx) => (
+                <div
+                  key={idx}
+                  className={`
+                    ${
+                      imageFrameSize === "compact"
+                        ? "w-full max-w-[280px] sm:max-w-[320px]"
+                        : imageFrameSize === "editorial"
+                          ? "w-full max-w-[92%] sm:max-w-[84%]"
+                          : "w-full"
+                    }
+                    ${
+                      imageFrameSize !== "full" && effectiveAlign === "center"
+                        ? "mx-auto"
+                        : imageFrameSize !== "full" && effectiveAlign === "right"
+                          ? "ml-auto"
+                          : ""
+                    }
+                  `}
+                >
+                  <InlineVideoPlayer src={videoUrl} />
+                </div>
+              ))}
             </div>
           )}
 

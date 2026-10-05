@@ -65,6 +65,7 @@ export interface FieldNote {
   textAlign?: TextAlign;
   locationName?: string;
   photos?: string[];
+  videos?: string[];
   voiceMemo?: VoiceMemo;
   tags?: string[];
   pinned?: boolean;
