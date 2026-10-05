@@ -262,7 +262,7 @@ export function ProfileSheet({
                     day: "numeric",
                   })}
                 </span>
-                <h2 className="text-lg font-serif font-bold text-[var(--text-primary)] tracking-tight mt-0.5">
+                <h2 className="text-lg font-serif font-bold text-[var(--text-primary)] tracking-tight mt-0.5 whitespace-nowrap truncate">
                   {timeGreeting}, {userName || "Author"}
                 </h2>
               </div>
@@ -323,8 +323,8 @@ export function ProfileSheet({
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10.5px] font-mono uppercase tracking-widest text-[var(--text-tertiary)] font-semibold mb-0.5">
-                    {timeGreeting}
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-tertiary)] font-semibold mb-0.5">
+                    Author
                   </div>
                   <input
                     type="text"

@@ -460,12 +460,11 @@ export function BookshelfView({
               />
             )}
           </div>
-          <div className="flex flex-col text-left">
-            <span className="text-[11.5px] font-semibold leading-none text-[var(--text-primary)] font-sans">
-              {userName}
-            </span>
-            <span className="text-[9.5px] text-[var(--text-tertiary)] font-medium leading-none mt-0.5 font-sans">
-              {isSyncing ? "Syncing..." : timeGreeting}
+          <div className="flex items-center text-left min-w-0">
+            <span className="text-[11.5px] font-semibold leading-none text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[180px] sm:max-w-[220px]">
+              {isSyncing
+                ? `Syncing · ${userName}`
+                : `${timeGreeting}, ${userName}`}
             </span>
           </div>
         </button>

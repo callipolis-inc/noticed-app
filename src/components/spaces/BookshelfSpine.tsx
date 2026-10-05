@@ -308,14 +308,13 @@ export function BookshelfSpine({
             : "0 6px 14px -2px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.14), inset 0 -1.5px 1.5px rgba(0,0,0,0.35), inset 1px 0 1.5px rgba(255,255,255,0.08), inset -1px 0 1.5px rgba(0,0,0,0.25)",
         }}
       >
-        {/* Book Headband (Pita penutup jilid atas buku fisik) */}
+        {/* Subtle Specular Top Rim Reflection */}
         <div
-          className="absolute top-0 inset-x-1 h-[2px] pointer-events-none z-20 opacity-80 rounded-t-xs"
+          className="absolute top-0 inset-x-1 h-[1.5px] pointer-events-none z-20 rounded-t-xs"
           style={{
-            backgroundImage: isLight
-              ? "repeating-linear-gradient(90deg, #1e3a8a 0px, #1e3a8a 2px, #f4efe4 2px, #f4efe4 4px)"
-              : "repeating-linear-gradient(90deg, #d4af37 0px, #d4af37 2px, #1e1e24 2px, #1e1e24 4px)",
-            boxShadow: "0 0.5px 1px rgba(0,0,0,0.35)",
+            background: isLight
+              ? "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.75) 50%, transparent 100%)"
+              : "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.24) 50%, transparent 100%)",
           }}
         />
 
