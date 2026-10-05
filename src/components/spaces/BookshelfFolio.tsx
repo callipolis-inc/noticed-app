@@ -128,7 +128,7 @@ export function BookshelfFolio({
                   : "0 -0.5px 0.5px rgba(0,0,0,0.7)",
               }}
             >
-              {space.isShared ? "SHARED ATELIER" : "FOLIO EDITION"}
+              {space.isShared ? "SHARED EDITION" : "FOLIO EDITION"}
             </span>
 
             {/* Emblem Motif Glyph with Debossed Shadow */}

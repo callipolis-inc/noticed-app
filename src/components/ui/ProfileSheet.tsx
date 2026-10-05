@@ -18,6 +18,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { AuthModal } from "./AuthModal";
+import { getTimeGreeting } from "@/lib/greetings";
 
 interface ProfileSheetProps {
   isOpen: boolean;
@@ -62,6 +63,8 @@ export function ProfileSheet({
   lastSyncedAt,
   onTriggerSync,
 }: ProfileSheetProps) {
+  const timeGreeting = useMemo(() => getTimeGreeting(), []);
+
   // Local state for inline author name editing
   const [editingName, setEditingName] = useState(userName);
   const [saveIndicator, setSaveIndicator] = useState(false);
@@ -246,6 +249,20 @@ export function ProfileSheet({
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative z-10">
+              {/* Welcoming Time-based Greeting Header */}
+              <div className="px-1 pt-0.5">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--text-tertiary)] font-semibold block">
+                  {new Date().toLocaleDateString(undefined, {
+                    weekday: "long",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+                <h2 className="text-lg font-serif font-bold text-[var(--text-primary)] tracking-tight mt-0.5">
+                  {timeGreeting}, {userName || "Author"}
+                </h2>
+              </div>
+
               {/* Profile Card */}
               <div className="p-3.5 rounded-2xl apple-card flex items-center gap-3.5 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
                 <div className="relative group shrink-0">
@@ -293,6 +310,9 @@ export function ProfileSheet({
                 </div>
 
                 <div className="flex-1 min-w-0">
+                  <div className="text-[10.5px] font-mono uppercase tracking-widest text-[var(--text-tertiary)] font-semibold mb-0.5">
+                    {timeGreeting}
+                  </div>
                   <input
                     type="text"
                     value={editingName}

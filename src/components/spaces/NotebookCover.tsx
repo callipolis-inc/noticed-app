@@ -158,7 +158,7 @@ export function NotebookCover({
                 : "0 -0.5px 0.5px rgba(0,0,0,0.7)",
             }}
           >
-            ATELIER
+            NOTICED
           </span>
         </div>
 

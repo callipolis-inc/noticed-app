@@ -3,19 +3,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { Lock, Unlock, ShieldCheck, KeyRound } from "lucide-react";
 
-interface AtelierLockScreenProps {
+interface AppLockScreenProps {
   isLocked: boolean;
   userName: string;
   onUnlock: () => void;
   savedPin: string | null;
 }
 
-export function AtelierLockScreen({
+export function AppLockScreen({
   isLocked,
   userName = "Afa",
   onUnlock,
   savedPin,
-}: AtelierLockScreenProps) {
+}: AppLockScreenProps) {
   const [pinInput, setPinInput] = useState("");
   const [isErrorShake, setIsErrorShake] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
@@ -78,7 +78,7 @@ export function AtelierLockScreen({
           {/* Top Lock Status Pill */}
           <div className="flex items-center gap-1.5 px-3 py-1 rounded-full liquid-glass border border-[var(--glass-border)] text-xs font-mono text-[var(--text-tertiary)] uppercase tracking-wider">
             <Lock className="w-3.5 h-3.5" />
-            <span>Atelier Locked</span>
+            <span>Noticed Locked</span>
           </div>
 
           {/* Center Clock & Identity */}
@@ -99,7 +99,7 @@ export function AtelierLockScreen({
               </div>
               <div>
                 <h2 className="text-base font-serif font-bold text-[var(--text-primary)]">
-                  {userName || "Afa"} · Atelier
+                  {userName || "Author"}
                 </h2>
                 <div className="flex items-center justify-center gap-1 text-[11px] text-[var(--text-tertiary)]">
                   <ShieldCheck className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
@@ -137,7 +137,7 @@ export function AtelierLockScreen({
                     className="w-full py-3 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] font-semibold text-xs tracking-wider uppercase disabled:opacity-40 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-2"
                   >
                     <Unlock className="w-4 h-4" />
-                    <span>Unlock Atelier</span>
+                    <span>Unlock App</span>
                   </button>
                 </form>
               ) : (
@@ -162,3 +162,5 @@ export function AtelierLockScreen({
     </AnimatePresence>
   );
 }
+
+export const AtelierLockScreen = AppLockScreen;

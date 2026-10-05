@@ -124,7 +124,7 @@ export async function syncWithCloud(
       await supabase.from("profiles").upsert(
         {
           id: user.id,
-          display_name: userName || "Atelier Scribe",
+          display_name: userName || "Author",
           avatar_url: avatarPhoto || null,
           updated_at: new Date().toISOString(),
         },

@@ -397,7 +397,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 Signed In Successfully
               </h2>
               <p className="text-xs text-[var(--text-secondary)] mt-1.5">
-                Connecting to Noticed cloud and synchronizing your atelier...
+                Connecting to Noticed cloud and synchronizing your notebooks...
               </p>
             </div>
           )}

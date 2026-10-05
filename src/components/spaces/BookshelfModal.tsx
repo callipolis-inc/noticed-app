@@ -8,6 +8,7 @@ import {
   getLuminance,
 } from "./BookshelfSpine";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
+import { getTimeGreeting } from "@/lib/greetings";
 import {
   ArrowRight,
   ArrowLeft,
@@ -250,6 +251,7 @@ export function BookshelfView({
     (typeof window !== "undefined"
       ? localStorage.getItem("sidenotes_avatar_photo")
       : null);
+  const timeGreeting = useMemo(() => getTimeGreeting(), []);
   const [selectedId, setSelectedId] = useState<string>(activeSpaceId);
   const [isOpening, setIsOpening] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -447,7 +449,7 @@ export function BookshelfView({
               {userName}
             </span>
             <span className="text-[9.5px] text-[var(--text-tertiary)] font-medium leading-none mt-0.5 font-sans">
-              Atelier
+              {timeGreeting}
             </span>
           </div>
         </button>
@@ -975,7 +977,7 @@ export function BookshelfView({
               </button>
               <div className="text-center">
                 <span className="text-[9px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)] block">
-                  Volume Atelier
+                  Volume Details
                 </span>
                 <span className="text-xs font-semibold text-[var(--text-primary)]">
                   Edit Notebook

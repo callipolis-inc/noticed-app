@@ -485,7 +485,7 @@ export function App() {
   const handleUnlockSession = () => {
     setIsLocked(false);
     localStorage.setItem("sidenotes_is_locked", "false");
-    setFlyoutMessage("Atelier unlocked");
+    setFlyoutMessage("App unlocked");
     setTimeout(() => setFlyoutMessage(null), 2000);
   };
 
