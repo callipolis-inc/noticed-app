@@ -142,9 +142,14 @@ export function App() {
       ) as ThemePalette;
       if (
         saved &&
-        ["alabaster", "clean_white", "linen", "obsidian", "espresso"].includes(
-          saved,
-        )
+        [
+          "alabaster",
+          "clean_white",
+          "sage",
+          "obsidian",
+          "espresso",
+          "oxford",
+        ].includes(saved)
       ) {
         return saved;
       }
@@ -737,9 +742,10 @@ export function App() {
     const themeColors: Record<ThemePalette, string> = {
       obsidian: "#111113",
       espresso: "#191716",
+      oxford: "#101520",
       alabaster: "#f7f5f0",
       clean_white: "#ffffff",
-      linen: "#f2eadf",
+      sage: "#eff3ef",
     };
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {

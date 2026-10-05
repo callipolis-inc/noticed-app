@@ -60,11 +60,11 @@ const THEME_OPTIONS: ThemeOption[] = [
     isDark: false,
   },
   {
-    id: "linen",
-    name: "Linen",
-    tagline: "Folio cream linen",
-    bgHex: "#F2EADF",
-    accentHex: "#26211D",
+    id: "sage",
+    name: "Sage",
+    tagline: "Muted tea leaf & washi",
+    bgHex: "#EFF3EF",
+    accentHex: "#19231B",
     isDark: false,
   },
   {
@@ -81,6 +81,14 @@ const THEME_OPTIONS: ThemeOption[] = [
     tagline: "Roasted cocoa & ink",
     bgHex: "#23201E",
     accentHex: "#EDE8E1",
+    isDark: true,
+  },
+  {
+    id: "oxford",
+    name: "Oxford",
+    tagline: "Archival midnight ink",
+    bgHex: "#101520",
+    accentHex: "#F1F5F9",
     isDark: true,
   },
 ];
@@ -232,7 +240,7 @@ export function ThemeSelectorSheet({
                   </div>
 
                   {/* Soft Jewel Discs with Check Icon */}
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                     {THEME_OPTIONS.map((th) => {
                       const isSelected = currentTheme === th.id;
                       return (

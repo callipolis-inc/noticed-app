@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where([data-theme="obsidian"], [data-theme="espresso"], [data-theme="dark"], .dark, .dark *));
-@custom-variant light (&:where([data-theme="alabaster"], [data-theme="clean_white"], [data-theme="linen"], [data-theme="light"], .light, .light *));
+@custom-variant dark (&:where([data-theme="obsidian"], [data-theme="espresso"], [data-theme="oxford"], [data-theme="dark"], .dark, .dark *));
+@custom-variant light (&:where([data-theme="alabaster"], [data-theme="clean_white"], [data-theme="sage"], [data-theme="light"], .light, .light *));
 
 @theme {
   --font-sans:
@@ -167,6 +167,88 @@
 }
 
 /* ============================================================
+   2.5 OXFORD NAVY (Dark Mode) — Archival Midnight Ink & Platinum
+   ============================================================ */
+:root[data-theme="oxford"],
+.theme-oxford {
+  --bg-base: #101520;
+  --bg-primary: #101520;
+  --bg-elevated: #151b29;
+  --bg-elevated-2: #1b2335;
+  --bg-card: #151b29;
+  --bg-paper: #101520;
+  --bg-bookshelf-luminance: radial-gradient(
+      ellipse 85% 55% at 50% -6%,
+      rgba(210, 230, 255, 0.075) 0%,
+      rgba(210, 230, 255, 0.015) 50%,
+      transparent 80%
+    ),
+    linear-gradient(180deg, #151b28 0%, #101520 55%, #0a0d14 100%);
+
+  --bg-card-contrast: #ffffff;
+  --text-contrast: #0f141d;
+  --text-contrast-sub: #64748b;
+
+  --glass-fill: rgba(21, 27, 41, 0.68);
+  --glass-fill-strong: rgba(27, 35, 53, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.2);
+  --glass-refraction: rgba(0, 0, 0, 0.4);
+  --glass-shadow-color: rgba(0, 0, 0, 0.5);
+
+  --glass-surface: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  --glass-surface-strong: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.14) 0%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+
+  --accent: #f1f5f9;
+  --accent-secondary: #cbd5e1;
+  --accent-ink: #101520;
+
+  --dock-bg: rgba(21, 27, 41, 0.76);
+  --dock-border: rgba(255, 255, 255, 0.14);
+  --dock-active-pill: rgba(255, 255, 255, 0.14);
+  --dock-active-ink: #ffffff;
+  --dock-inactive-ink: rgba(255, 255, 255, 0.45);
+  --dock-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --dock-active-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+
+  --card-gradient-hero: linear-gradient(
+    155deg,
+    rgba(26, 34, 52, 0.8) 0%,
+    rgba(16, 21, 32, 0.9) 100%
+  );
+  --card-gradient-subtle: linear-gradient(
+    145deg,
+    rgba(21, 27, 41, 0.7) 0%,
+    rgba(16, 21, 32, 0.8) 100%
+  );
+
+  --sheet-bg: #151b29;
+  --sheet-border: 1px solid var(--glass-border);
+  --sheet-shadow: 0 -12px 40px rgba(0, 0, 0, 0.65);
+  --glass-milky: var(--glass-fill);
+  --glass-milky-border: 1px solid var(--glass-border);
+  --glass-milky-shadow: var(--shadow-card);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-card:
+    0 10px 30px -4px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-polaroid: 0 12px 36px -4px rgba(0, 0, 0, 0.7);
+}
+
+/* ============================================================
    3. ALABASTER PAPER (Signature Preview Theme) — #F7F5F0 & Ink
    ============================================================ */
 :root[data-theme="alabaster"],
@@ -328,55 +410,56 @@
 }
 
 /* ============================================================
-   5. VINTAGE PENGUIN BUFF (Warm Linen) — Classic Folio
+   5. SAGE WASHI (Light Mode) — Muted Tea Leaf & Japanese Washi
    ============================================================ */
-:root[data-theme="linen"],
-.theme-linen {
-  --bg-base: #f2eadf;
-  --bg-primary: #f2eadf;
-  --bg-elevated: rgba(250, 246, 240, 0.78);
-  --bg-card: #faf6f0;
-  --bg-paper: #f2eadf;
+:root[data-theme="sage"],
+.theme-sage {
+  --bg-base: #eff3ef;
+  --bg-primary: #eff3ef;
+  --bg-elevated: rgba(247, 250, 247, 0.82);
+  --bg-elevated-2: rgba(242, 246, 242, 0.9);
+  --bg-card: #f7faf7;
+  --bg-paper: #eff3ef;
   --bg-bookshelf-luminance: radial-gradient(
       ellipse 85% 55% at 50% -6%,
-      rgba(255, 255, 255, 0.9) 0%,
-      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(255, 255, 255, 0.35) 50%,
       transparent 80%
     ),
-    linear-gradient(180deg, #fbf9f4 0%, #f5efe5 55%, #ece5d8 100%);
+    linear-gradient(180deg, #f7faf7 0%, #eef3ee 55%, #dfebd0 100%);
 
-  --text-primary: #26211d;
-  --text-secondary: #5c5249;
-  --text-tertiary: #94887d;
+  --text-primary: #19231b;
+  --text-secondary: #4e5d51;
+  --text-tertiary: #7f9183;
 
-  --accent: #26211d;
-  --accent-ink: #f2eadf;
+  --accent: #19231b;
+  --accent-ink: #eff3ef;
 
-  --glass-fill: rgba(250, 246, 240, 0.74);
-  --glass-fill-strong: rgba(250, 246, 240, 0.88);
+  --glass-fill: rgba(247, 250, 247, 0.74);
+  --glass-fill-strong: rgba(247, 250, 247, 0.88);
   --glass-surface: linear-gradient(
     135deg,
-    rgba(255, 252, 247, 0.88) 0%,
-    rgba(242, 234, 223, 0.6) 100%
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(239, 243, 239, 0.6) 100%
   );
   --glass-surface-strong: linear-gradient(
     135deg,
-    rgba(255, 252, 247, 0.94) 0%,
-    rgba(242, 234, 223, 0.75) 100%
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(239, 243, 239, 0.75) 100%
   );
-  --glass-border: rgba(38, 33, 29, 0.11);
+  --glass-border: rgba(25, 35, 27, 0.1);
   --glass-highlight: rgba(255, 255, 255, 0.92);
-  --glass-refraction: rgba(38, 33, 29, 0.06);
-  --glass-shadow-color: rgba(38, 33, 29, 0.07);
+  --glass-refraction: rgba(25, 35, 27, 0.05);
+  --glass-shadow-color: rgba(25, 35, 27, 0.06);
 
-  --shadow-sm: 0 1px 3px rgba(38, 33, 29, 0.04);
+  --shadow-sm: 0 1px 3px rgba(25, 35, 27, 0.04);
   --shadow-card:
-    0 8px 24px -4px rgba(38, 33, 29, 0.06),
-    0 2px 6px -1px rgba(38, 33, 29, 0.02);
-  --shadow-polaroid: 0 12px 32px -4px rgba(38, 33, 29, 0.12);
+    0 8px 24px -4px rgba(25, 35, 27, 0.06),
+    0 2px 6px -1px rgba(25, 35, 27, 0.02);
+  --shadow-polaroid: 0 12px 32px -4px rgba(25, 35, 27, 0.12);
 
-  --sheet-bg: #faf6f0;
-  --sheet-border: rgba(38, 33, 29, 0.1);
+  --sheet-bg: #f7faf7;
+  --sheet-border: rgba(25, 35, 27, 0.1);
 }
 
 /* ============================================================
@@ -1018,6 +1101,7 @@ a.liquid-glass:active {
 :where(
     [data-theme="obsidian"],
     [data-theme="espresso"],
+    [data-theme="oxford"],
     [data-theme="dark"],
     .dark
   )
@@ -1046,6 +1130,7 @@ a.liquid-glass:active {
 :where(
     [data-theme="obsidian"],
     [data-theme="espresso"],
+    [data-theme="oxford"],
     [data-theme="dark"],
     .dark
   )
@@ -1072,6 +1157,7 @@ a.liquid-glass:active {
 :where(
     [data-theme="obsidian"],
     [data-theme="espresso"],
+    [data-theme="oxford"],
     [data-theme="dark"],
     .dark
   )
@@ -1159,7 +1245,7 @@ a.liquid-glass:active {
     inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
-:where([data-theme="obsidian"], [data-theme="dark"], .dark) .shelf-timber {
+:where([data-theme="obsidian"], [data-theme="espresso"], [data-theme="oxford"], [data-theme="dark"], .dark) .shelf-timber {
   background: linear-gradient(180deg, #242228 0%, #17161b 45%, #0b0a0e 100%);
   box-shadow:
     0 16px 32px rgba(0, 0, 0, 0.65),
@@ -1176,7 +1262,7 @@ a.liquid-glass:active {
   );
 }
 
-:where([data-theme="obsidian"], [data-theme="dark"], .dark) .pages-edge {
+:where([data-theme="obsidian"], [data-theme="espresso"], [data-theme="oxford"], [data-theme="dark"], .dark) .pages-edge {
   background: repeating-linear-gradient(
     0deg,
     #d8d2c4,
@@ -1212,7 +1298,7 @@ a.liquid-glass:active {
   text-shadow: 0 1px 1px rgba(255, 255, 255, 0.2);
 }
 
-:where([data-theme="obsidian"], [data-theme="dark"], .dark)
+:where([data-theme="obsidian"], [data-theme="espresso"], [data-theme="oxford"], [data-theme="dark"], .dark)
   .editorial-date-opener::first-letter {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
@@ -1232,7 +1318,7 @@ a.liquid-glass:active {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-:where([data-theme="obsidian"], [data-theme="dark"], .dark)
+:where([data-theme="obsidian"], [data-theme="espresso"], [data-theme="oxford"], [data-theme="dark"], .dark)
   .paper-micro-grain::before {
   opacity: 0.022;
   mix-blend-mode: screen;

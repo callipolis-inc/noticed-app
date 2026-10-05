@@ -81,7 +81,13 @@ export interface FieldNote {
   };
 }
 
-export type ThemePalette = 'alabaster' | 'clean_white' | 'linen' | 'obsidian' | 'espresso';
+export type ThemePalette =
+  | 'alabaster'
+  | 'clean_white'
+  | 'sage'
+  | 'obsidian'
+  | 'espresso'
+  | 'oxford';
 export type ThemeMode = 'light' | 'dark';
 export type FontChoice = 'editorial' | 'sans' | 'display';
 

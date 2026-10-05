@@ -57,9 +57,10 @@ export function SettingsSheet({
   }> = [
     { id: "alabaster", name: "Alabaster", bg: "#F7F5F0", isDark: false },
     { id: "clean_white", name: "Ivory", bg: "#FCFCFA", isDark: false },
-    { id: "linen", name: "Linen", bg: "#F2EADF", isDark: false },
+    { id: "sage", name: "Sage", bg: "#EFF3EF", isDark: false },
     { id: "obsidian", name: "Obsidian", bg: "#161618", isDark: true },
     { id: "espresso", name: "Espresso", bg: "#23201E", isDark: true },
+    { id: "oxford", name: "Oxford", bg: "#101520", isDark: true },
   ];
 
   const currentThemeLabel =
