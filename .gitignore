@@ -33,3 +33,6 @@ Thumbs.db
 # Capacitor / Mobile builds
 ios/App/Pods/
 ios/App/Podfile.lock
+build/
+*.ipa
+*.xcarchive
