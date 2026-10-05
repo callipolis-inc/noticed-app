@@ -732,6 +732,19 @@ export function App() {
       document.documentElement.classList.add("light");
     }
     localStorage.setItem("sidenotes_theme_palette", theme);
+
+    // Sync native mobile status bar and browser chrome color with active theme
+    const themeColors: Record<ThemePalette, string> = {
+      obsidian: "#111113",
+      espresso: "#191716",
+      alabaster: "#f7f5f0",
+      clean_white: "#ffffff",
+      linen: "#f2eadf",
+    };
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute("content", themeColors[theme] || "#111113");
+    }
   }, [theme]);
 
   useEffect(() => {
