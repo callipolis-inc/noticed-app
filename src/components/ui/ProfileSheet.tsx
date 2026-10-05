@@ -8,7 +8,6 @@ import {
   Cloud,
   ChevronRight,
   LogOut,
-  Mail,
   Trash2,
   Check,
   ShieldCheck,
@@ -16,7 +15,9 @@ import {
   HardDrive,
   Download,
   Upload,
+  RotateCw,
 } from "lucide-react";
+import { AuthModal } from "./AuthModal";
 
 interface ProfileSheetProps {
   isOpen: boolean;
@@ -32,6 +33,12 @@ interface ProfileSheetProps {
   onLockSession: () => void;
   onExportArchive: () => void;
   onImportArchive: (file: File) => void;
+  userEmail?: string | null;
+  onSignOut?: () => void;
+  onAuthSuccess?: (email: string) => void;
+  isSyncing?: boolean;
+  lastSyncedAt?: string | null;
+  onTriggerSync?: () => Promise<void> | void;
 }
 
 export function ProfileSheet({
@@ -48,20 +55,19 @@ export function ProfileSheet({
   onLockSession,
   onExportArchive,
   onImportArchive,
+  userEmail,
+  onSignOut,
+  onAuthSuccess,
+  isSyncing = false,
+  lastSyncedAt,
+  onTriggerSync,
 }: ProfileSheetProps) {
   // Local state for inline author name editing
   const [editingName, setEditingName] = useState(userName);
   const [saveIndicator, setSaveIndicator] = useState(false);
 
-  // Cloud Account State
-  const [userEmail, setUserEmail] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("sidenotes_user_email") || null;
-    }
-    return null;
-  });
+  // Cloud Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authEmailInput, setAuthEmailInput] = useState("");
 
   // PIN Passcode Modal State
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -123,25 +129,9 @@ export function ProfileSheet({
   };
 
   // Auth Handlers
-  const handleSignIn = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!authEmailInput.trim() || !authEmailInput.includes("@")) return;
-    triggerSuccessHaptic();
-    const cleanEmail = authEmailInput.trim().toLowerCase();
-    setUserEmail(cleanEmail);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sidenotes_user_email", cleanEmail);
-    }
-    setIsAuthModalOpen(false);
-    setAuthEmailInput("");
-  };
-
   const handleSignOut = () => {
     triggerHaptic("medium");
-    setUserEmail(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("sidenotes_user_email");
-    }
+    onSignOut?.();
   };
 
   // PIN Handlers
@@ -340,20 +330,54 @@ export function ProfileSheet({
                         <div className="text-xs font-semibold text-[var(--text-primary)] truncate">
                           {userEmail ? userEmail : "Local Storage"}
                         </div>
-                        <div className="text-[10px] text-[var(--text-tertiary)]">
-                          {userEmail ? "Cloud Synced" : "On-device only"}
+                        <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1">
+                          {userEmail ? (
+                            isSyncing ? (
+                              <span className="flex items-center gap-1 text-sky-500">
+                                <RotateCw className="w-2.5 h-2.5 animate-spin" />
+                                <span>Syncing...</span>
+                              </span>
+                            ) : (
+                              <span className="text-emerald-500/90">
+                                {lastSyncedAt
+                                  ? "Synced with Cloud"
+                                  : "Cloud Connected"}
+                              </span>
+                            )
+                          ) : (
+                            "On-device only"
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {userEmail ? (
-                      <button
-                        type="button"
-                        onClick={handleSignOut}
-                        className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-secondary)] hover:text-rose-500 active:scale-95 transition-all cursor-pointer shrink-0 shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]"
-                      >
-                        <LogOut className="w-3 h-3" />
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic("medium");
+                            onTriggerSync?.();
+                          }}
+                          disabled={isSyncing}
+                          title="Sync changes now"
+                          className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer flex items-center gap-1 disabled:opacity-40 shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]"
+                        >
+                          <RotateCw
+                            className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`}
+                          />
+                          <span className="text-[10px]">Sync</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleSignOut}
+                          title="Sign Out"
+                          className="p-1.5 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-secondary)] hover:text-rose-500 active:scale-95 transition-all cursor-pointer shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]"
+                        >
+                          <LogOut className="w-3 h-3" />
+                        </button>
+                      </div>
                     ) : (
                       <button
                         type="button"
@@ -499,68 +523,15 @@ export function ProfileSheet({
             </div>
           </motion.div>
 
-          {/* Sub-Modal: Cloud Sign-In */}
-          <AnimatePresence>
-            {isAuthModalOpen && (
-              <div className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-auto">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsAuthModalOpen(false)}
-                  className="fixed inset-0 bg-black/45 backdrop-blur-md"
-                />
-
-                <motion.div
-                  initial={{ scale: 0.94, opacity: 0, y: 8 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.94, opacity: 0, y: 8 }}
-                  className="relative w-full max-w-[280px] rounded-3xl p-5 dynamic-island-shell z-10 space-y-4 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.35)]"
-                >
-                  <div className="dynamic-island-specular-rim" />
-                  <div className="text-center space-y-1">
-                    <div className="w-9 h-9 rounded-xl bg-[var(--text-primary)]/8 flex items-center justify-center text-[var(--text-primary)] mx-auto mb-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
-                      <Mail className="w-4 h-4" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-[var(--text-primary)]">
-                      Sign In
-                    </h4>
-                    <p className="text-[11px] text-[var(--text-tertiary)]">
-                      Sync notes across your devices
-                    </p>
-                  </div>
-
-                  <form onSubmit={handleSignIn} className="space-y-3">
-                    <input
-                      type="email"
-                      value={authEmailInput}
-                      onChange={(e) => setAuthEmailInput(e.target.value)}
-                      placeholder="name@email.com"
-                      autoFocus
-                      required
-                      className="w-full px-3 py-1.5 rounded-xl bg-[var(--text-primary)]/5 border border-[var(--glass-border)] text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none font-mono text-center shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]"
-                    />
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsAuthModalOpen(false)}
-                        className="flex-1 py-1.5 rounded-xl inner-pseudo-glass text-xs font-medium text-[var(--text-secondary)] active:scale-95 transition-transform cursor-pointer shadow-xs"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex-1 py-1.5 rounded-xl bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold active:scale-95 transition-transform cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
-                      >
-                        Continue
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>
+          {/* Sub-Modal: Cloud 6-Digit OTP Sign-In */}
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onAuthSuccess={(newEmail) => {
+              onAuthSuccess?.(newEmail);
+              setIsAuthModalOpen(false);
+            }}
+          />
 
           {/* Sub-Modal: PIN Passcode Setup */}
           <AnimatePresence>

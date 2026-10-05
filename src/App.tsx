@@ -34,6 +34,12 @@ import {
   safeLocalStorageSet,
 } from "@/lib/storage";
 import {
+  getCurrentUser,
+  onAuthStateChange,
+  signOutUser,
+} from "@/lib/supabase";
+import { syncWithCloud } from "@/lib/syncEngine";
+import {
   ArrowLeft,
   Palette,
   PenLine,
@@ -317,6 +323,94 @@ export function App() {
   const [photostripNote, setPhotostripNote] = useState<FieldNote | null>(null);
   const [annotatorNote, setAnnotatorNote] = useState<FieldNote | null>(null);
   const [flyoutMessage, setFlyoutMessage] = useState<string | null>(null);
+
+  // Cloud Auth & Sync State
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("sidenotes_last_synced_at") || null;
+    }
+    return null;
+  });
+
+  // Listen to Supabase session state
+  useEffect(() => {
+    getCurrentUser().then((user) => {
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    });
+
+    const { data: authListener } = onAuthStateChange((_event, session) => {
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+      } else {
+        setUserEmail(null);
+      }
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
+  // Two-way synchronization handler
+  const handleCloudSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      const result = await syncWithCloud(spaces, notes, userName, avatarPhoto);
+      if (result.synced) {
+        setSpaces(result.spaces);
+        setNotes(result.notes);
+        if (result.timestamp) setLastSyncedAt(result.timestamp);
+        setFlyoutMessage("Cloud synchronized");
+        setTimeout(() => setFlyoutMessage(null), 2000);
+      } else if (result.error && result.error !== "User is not signed in") {
+        setFlyoutMessage(`Sync: ${result.error}`);
+        setTimeout(() => setFlyoutMessage(null), 2500);
+      }
+    } catch (err: any) {
+      console.error("[Noticed] Sync error:", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Trigger sync when user signs in or reconnects online
+  useEffect(() => {
+    if (userEmail) {
+      handleCloudSync();
+    }
+  }, [userEmail]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      if (userEmail) {
+        handleCloudSync();
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [userEmail, spaces, notes, userName, avatarPhoto]);
+
+  const handleAuthSuccess = (email: string) => {
+    setUserEmail(email);
+    setFlyoutMessage(`Signed in as ${email}`);
+    setTimeout(() => setFlyoutMessage(null), 2500);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      setUserEmail(null);
+      setFlyoutMessage("Signed out from cloud");
+      setTimeout(() => setFlyoutMessage(null), 2000);
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
 
   // Hydrate spaces & notes from IndexedDB
   useEffect(() => {
@@ -977,6 +1071,28 @@ export function App() {
                         </span>
                       </>
                     )}
+                    {userEmail && (
+                      <>
+                        <span>·</span>
+                        <span
+                          title={
+                            isSyncing
+                              ? "Syncing with cloud"
+                              : "Cloud synchronized"
+                          }
+                          className="inline-flex items-center gap-1 text-[var(--text-secondary)]"
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isSyncing
+                                ? "bg-sky-500 animate-pulse"
+                                : "bg-emerald-500/80"
+                            }`}
+                          />
+                          <span>{isSyncing ? "Syncing" : "Cloud"}</span>
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   {/* Title */}
@@ -1383,6 +1499,12 @@ export function App() {
         onLockSession={handleLockSession}
         onExportArchive={handleExportArchive}
         onImportArchive={handleImportArchive}
+        userEmail={userEmail}
+        onSignOut={handleSignOut}
+        onAuthSuccess={handleAuthSuccess}
+        isSyncing={isSyncing}
+        lastSyncedAt={lastSyncedAt}
+        onTriggerSync={handleCloudSync}
       />
 
       {/* Settings Sheet */}
