@@ -62,9 +62,9 @@ const THEME_OPTIONS: ThemeOption[] = [
   {
     id: "sage",
     name: "Sage",
-    tagline: "Muted tea leaf & washi",
-    bgHex: "#EFF3EF",
-    accentHex: "#19231B",
+    tagline: "Kyoto matcha washi paper",
+    bgHex: "#DBE6DB",
+    accentHex: "#122416",
     isDark: false,
   },
   {

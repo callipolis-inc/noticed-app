@@ -546,10 +546,19 @@ export const NoteEntry = memo(function NoteEntry({
                   ? "calc(var(--note-font-size, 15.5px) + 1px)"
                   : "var(--note-font-size, 15.5px)",
               }}
+              data-font={note.fontChoice || "editorial"}
               className={`font-content leading-[1.78] text-[var(--text-primary)] whitespace-pre-wrap selection:bg-[var(--text-primary)] selection:text-[var(--bg-base)] after:content-[''] after:table after:clear-both ${textAlignClass}`}
             >
               {note.title && (
-                <h3 className="font-serif font-bold text-[17px] sm:text-[18px] text-[var(--text-primary)] tracking-tight leading-snug pb-1">
+                <h3
+                  className={`font-bold text-[17px] sm:text-[18px] text-[var(--text-primary)] tracking-tight leading-snug pb-1 ${
+                    note.fontChoice === "sans"
+                      ? "font-sans"
+                      : note.fontChoice === "display"
+                        ? "font-serif italic"
+                        : "font-serif"
+                  }`}
+                >
                   {note.title}
                 </h3>
               )}

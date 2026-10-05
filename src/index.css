@@ -410,56 +410,56 @@
 }
 
 /* ============================================================
-   5. SAGE WASHI (Light Mode) — Muted Tea Leaf & Japanese Washi
+   5. KYOTO MATCHA (Light Mode) — Authentic Matcha Washi Paper
    ============================================================ */
 :root[data-theme="sage"],
 .theme-sage {
-  --bg-base: #eff3ef;
-  --bg-primary: #eff3ef;
-  --bg-elevated: rgba(247, 250, 247, 0.82);
-  --bg-elevated-2: rgba(242, 246, 242, 0.9);
-  --bg-card: #f7faf7;
-  --bg-paper: #eff3ef;
+  --bg-base: #dbe6db;
+  --bg-primary: #dbe6db;
+  --bg-elevated: rgba(235, 244, 235, 0.85);
+  --bg-elevated-2: rgba(228, 239, 228, 0.95);
+  --bg-card: #e5efe5;
+  --bg-paper: #dbe6db;
   --bg-bookshelf-luminance: radial-gradient(
       ellipse 85% 55% at 50% -6%,
       rgba(255, 255, 255, 0.95) 0%,
-      rgba(255, 255, 255, 0.35) 50%,
+      rgba(255, 255, 255, 0.4) 50%,
       transparent 80%
     ),
-    linear-gradient(180deg, #f7faf7 0%, #eef3ee 55%, #dfebd0 100%);
+    linear-gradient(180deg, #eaf2ea 0%, #dbe6db 55%, #c8dac8 100%);
 
-  --text-primary: #19231b;
-  --text-secondary: #4e5d51;
-  --text-tertiary: #7f9183;
+  --text-primary: #122416;
+  --text-secondary: #3e5443;
+  --text-tertiary: #6b8270;
 
-  --accent: #19231b;
-  --accent-ink: #eff3ef;
+  --accent: #122416;
+  --accent-ink: #dbe6db;
 
-  --glass-fill: rgba(247, 250, 247, 0.74);
-  --glass-fill-strong: rgba(247, 250, 247, 0.88);
+  --glass-fill: rgba(229, 239, 229, 0.78);
+  --glass-fill-strong: rgba(229, 239, 229, 0.92);
   --glass-surface: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.9) 0%,
-    rgba(239, 243, 239, 0.6) 100%
+    rgba(219, 230, 219, 0.7) 100%
   );
   --glass-surface-strong: linear-gradient(
     135deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(239, 243, 239, 0.75) 100%
+    rgba(255, 255, 255, 0.96) 0%,
+    rgba(219, 230, 219, 0.85) 100%
   );
-  --glass-border: rgba(25, 35, 27, 0.1);
+  --glass-border: rgba(18, 36, 22, 0.12);
   --glass-highlight: rgba(255, 255, 255, 0.92);
-  --glass-refraction: rgba(25, 35, 27, 0.05);
-  --glass-shadow-color: rgba(25, 35, 27, 0.06);
+  --glass-refraction: rgba(18, 36, 22, 0.05);
+  --glass-shadow-color: rgba(18, 36, 22, 0.06);
 
-  --shadow-sm: 0 1px 3px rgba(25, 35, 27, 0.04);
+  --shadow-sm: 0 1px 3px rgba(18, 36, 22, 0.04);
   --shadow-card:
-    0 8px 24px -4px rgba(25, 35, 27, 0.06),
-    0 2px 6px -1px rgba(25, 35, 27, 0.02);
-  --shadow-polaroid: 0 12px 32px -4px rgba(25, 35, 27, 0.12);
+    0 8px 24px -4px rgba(18, 36, 22, 0.07),
+    0 2px 6px -1px rgba(18, 36, 22, 0.03);
+  --shadow-polaroid: 0 12px 32px -4px rgba(18, 36, 22, 0.14);
 
-  --sheet-bg: #f7faf7;
-  --sheet-border: rgba(25, 35, 27, 0.1);
+  --sheet-bg: #e5efe5;
+  --sheet-border: rgba(18, 36, 22, 0.12);
 }
 
 /* ============================================================
@@ -804,6 +804,31 @@ body,
     0 3px 8px -1px rgba(25, 30, 48, 0.03) !important;
 }
 
+:root[data-theme="sage"] .apple-card {
+  background: linear-gradient(
+    180deg,
+    rgba(235, 244, 235, 0.92) 0%,
+    rgba(224, 236, 224, 0.78) 100%
+  ) !important;
+  border: 1px solid rgba(18, 36, 22, 0.12) !important;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.8),
+    0 10px 24px -4px rgba(18, 36, 22, 0.06),
+    0 2px 6px -1px rgba(18, 36, 22, 0.02) !important;
+}
+
+:root[data-theme="oxford"] .apple-card {
+  background: linear-gradient(
+    145deg,
+    rgba(25, 34, 52, 0.75) 0%,
+    rgba(16, 21, 32, 0.85) 100%
+  ) !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 26px -6px rgba(0, 0, 0, 0.5) !important;
+}
+
 .apple-sub-box,
 .sub-box {
   background: rgba(255, 255, 255, 0.03);
@@ -935,6 +960,32 @@ body,
     inset 0 1.5px 0.5px #ffffff !important;
   backdrop-filter: blur(34px) saturate(200%) !important;
   -webkit-backdrop-filter: blur(34px) saturate(200%) !important;
+}
+
+:root[data-theme="sage"] .dynamic-island-shell {
+  background: linear-gradient(
+    180deg,
+    rgba(235, 244, 235, 0.88) 0%,
+    rgba(219, 230, 219, 0.72) 100%
+  ) !important;
+  border: 1px solid rgba(18, 36, 22, 0.12) !important;
+  box-shadow:
+    0 20px 48px -12px rgba(18, 36, 22, 0.09),
+    0 4px 14px -2px rgba(18, 36, 22, 0.04),
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.8) !important;
+}
+
+:root[data-theme="oxford"] .dynamic-island-shell {
+  background: linear-gradient(
+    135deg,
+    rgba(21, 27, 41, 0.85) 0%,
+    rgba(16, 21, 32, 0.95) 100%
+  ) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 24px 50px -12px rgba(0, 0, 0, 0.65),
+    0 8px 20px -4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
 }
 
 .dynamic-island-specular-rim {

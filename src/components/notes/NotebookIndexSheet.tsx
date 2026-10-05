@@ -115,9 +115,6 @@ export function NotebookIndexSheet({
             className="
               pointer-events-auto relative w-full max-w-sm sm:max-w-md
               dynamic-island-shell overflow-hidden z-10 flex flex-col
-              bg-white/95 dark:bg-[#18181c]/95 backdrop-blur-[40px] saturate-[190%]
-              border border-[var(--glass-border)]
-              shadow-[0_28px_64px_-12px_rgba(0,0,0,0.24),0_8px_24px_-4px_rgba(0,0,0,0.08)]
               text-[var(--text-primary)]
             "
             style={{

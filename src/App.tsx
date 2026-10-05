@@ -729,7 +729,11 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    if (theme === "obsidian" || theme === "espresso") {
+    if (
+      theme === "obsidian" ||
+      theme === "espresso" ||
+      theme === "oxford"
+    ) {
       document.documentElement.classList.add("dark");
       document.documentElement.classList.remove("light");
     } else {
@@ -745,7 +749,7 @@ export function App() {
       oxford: "#101520",
       alabaster: "#f7f5f0",
       clean_white: "#ffffff",
-      sage: "#eff3ef",
+      sage: "#dbe6db",
     };
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
@@ -1531,6 +1535,7 @@ export function App() {
             spaces={spaces}
             defaultSpaceId={activeSpace.id}
             defaultTextAlign={defaultTextAlign}
+            defaultFontChoice={activeSpace.fontChoice || "editorial"}
             editingNote={editingNote}
             onSaveNote={handleSaveNote}
             onUpdateNote={handleUpdateNote}

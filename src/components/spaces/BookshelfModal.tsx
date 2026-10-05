@@ -997,7 +997,7 @@ export function BookshelfView({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-[32px] overflow-hidden bg-white/95 dark:bg-[#18181c]/95 backdrop-blur-[40px] saturate-[190%] border border-[var(--glass-border)] shadow-[0_28px_64px_-12px_rgba(0,0,0,0.24)] flex flex-col max-h-[88dvh] animate-in zoom-in-95 duration-200 p-5 relative"
+            className="w-full max-w-sm rounded-[32px] overflow-hidden bg-[var(--sheet-bg)] backdrop-blur-[40px] saturate-[190%] border border-[var(--glass-border)] shadow-[0_28px_64px_-12px_rgba(0,0,0,0.24)] flex flex-col max-h-[88dvh] animate-in zoom-in-95 duration-200 p-5 relative text-[var(--text-primary)]"
             style={{
               marginTop:
                 "max(calc(env(safe-area-inset-top, 0px) + 12px), 20px)",
@@ -1265,7 +1265,7 @@ export function BookshelfView({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-[32px] overflow-hidden bg-white/95 dark:bg-[#18181c]/95 backdrop-blur-[40px] saturate-[190%] border border-[var(--glass-border)] shadow-[0_28px_64px_-12px_rgba(0,0,0,0.24)] flex flex-col max-h-[88dvh] animate-in zoom-in-95 duration-200 p-5 relative"
+            className="w-full max-w-sm rounded-[32px] overflow-hidden bg-[var(--sheet-bg)] backdrop-blur-[40px] saturate-[190%] border border-[var(--glass-border)] shadow-[0_28px_64px_-12px_rgba(0,0,0,0.24)] flex flex-col max-h-[88dvh] animate-in zoom-in-95 duration-200 p-5 relative text-[var(--text-primary)]"
             style={{
               marginTop:
                 "max(calc(env(safe-area-inset-top, 0px) + 12px), 20px)",

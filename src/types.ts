@@ -63,6 +63,7 @@ export interface FieldNote {
   title?: string;
   content: string;
   textAlign?: TextAlign;
+  fontChoice?: FontChoice;
   locationName?: string;
   photos?: string[];
   videos?: string[];
