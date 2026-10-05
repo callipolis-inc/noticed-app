@@ -30,7 +30,17 @@ import {
   AlignJustify,
   Calendar,
   Clock,
+  Bold,
+  Italic,
+  Strikethrough,
+  Quote,
+  List,
+  ListOrdered,
+  Code,
+  Minus,
+  Type,
 } from "lucide-react";
+import { EditorialMarkdown } from "@/lib/markdownRenderer";
 
 function toDateInputString(d: Date): string {
   const year = d.getFullYear();
@@ -102,6 +112,10 @@ export function CreateNoteSheet({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
 
+  // Rich text formatting & Preview state
+  const [isFormattingOpen, setIsFormattingOpen] = useState(false);
+  const [editorMode, setEditorMode] = useState<"write" | "preview">("write");
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +127,9 @@ export function CreateNoteSheet({
   // Sync or reset form state whenever sheet opens or editingNote changes
   useEffect(() => {
     if (!isOpen) return;
+
+    setIsFormattingOpen(false);
+    setEditorMode("write");
 
     if (editingNote) {
       setContent(editingNote.content || "");
@@ -419,11 +436,146 @@ export function CreateNoteSheet({
     setMarginaliaText("");
     setCitationText("");
     setIsMarginaliaOpen(false);
+    setIsFormattingOpen(false);
+    setEditorMode("write");
     setPhotos([]);
     setVideos([]);
     setRecordedAudio(null);
     setLocationName("");
     onClose();
+  };
+
+  const applyMarkdownWrap = (
+    prefix: string,
+    suffix: string,
+    placeholder: string = "text",
+  ) => {
+    triggerHaptic("light");
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentVal = content;
+    const selectedText = currentVal.substring(start, end);
+
+    if (selectedText.length > 0) {
+      const nextVal =
+        currentVal.substring(0, start) +
+        prefix +
+        selectedText +
+        suffix +
+        currentVal.substring(end);
+      setContent(nextVal);
+
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(
+          start + prefix.length,
+          end + prefix.length,
+        );
+      }, 10);
+    } else {
+      const insertText = `${prefix}${placeholder}${suffix}`;
+      const nextVal =
+        currentVal.substring(0, start) +
+        insertText +
+        currentVal.substring(end);
+      setContent(nextVal);
+
+      setTimeout(() => {
+        textarea.focus();
+        const selStart = start + prefix.length;
+        const selEnd = selStart + placeholder.length;
+        textarea.setSelectionRange(selStart, selEnd);
+      }, 10);
+    }
+  };
+
+  const applyMarkdownBlock = (
+    prefix: string,
+    placeholder: string = "text",
+  ) => {
+    triggerHaptic("light");
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentVal = content;
+    const selectedText = currentVal.substring(start, end);
+
+    const textBefore = currentVal.substring(0, start);
+    const needsLeadingNewline =
+      textBefore.length > 0 && !textBefore.endsWith("\n");
+    const leading = needsLeadingNewline ? "\n" : "";
+
+    if (prefix === "---\n") {
+      const dividerInsert = `${leading}---\n`;
+      const nextVal =
+        currentVal.substring(0, start) +
+        dividerInsert +
+        currentVal.substring(end);
+      setContent(nextVal);
+      setTimeout(() => {
+        textarea.focus();
+        const newPos = start + dividerInsert.length;
+        textarea.setSelectionRange(newPos, newPos);
+      }, 10);
+      return;
+    }
+
+    if (selectedText.length > 0) {
+      const lines = selectedText.split("\n");
+      const transformed = lines.map((l) => `${prefix}${l}`).join("\n");
+      const nextVal =
+        currentVal.substring(0, start) +
+        leading +
+        transformed +
+        currentVal.substring(end);
+      setContent(nextVal);
+
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(
+          start + leading.length,
+          start + leading.length + transformed.length,
+        );
+      }, 10);
+    } else {
+      const blockInsert = `${leading}${prefix}${placeholder}\n`;
+      const nextVal =
+        currentVal.substring(0, start) +
+        blockInsert +
+        currentVal.substring(end);
+      setContent(nextVal);
+
+      setTimeout(() => {
+        textarea.focus();
+        const selStart = start + leading.length + prefix.length;
+        const selEnd = selStart + placeholder.length;
+        textarea.setSelectionRange(selStart, selEnd);
+      }, 10);
+    }
+  };
+
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const isMod = e.metaKey || e.ctrlKey;
+    if (!isMod) return;
+
+    if (e.key === "b" || e.key === "B") {
+      e.preventDefault();
+      applyMarkdownWrap("**", "**", "bold");
+    } else if (e.key === "i" || e.key === "I") {
+      e.preventDefault();
+      applyMarkdownWrap("*", "*", "italic");
+    } else if ((e.key === "x" || e.key === "X") && e.shiftKey) {
+      e.preventDefault();
+      applyMarkdownWrap("~~", "~~", "strikethrough");
+    } else if (e.key === "e" || e.key === "E") {
+      e.preventDefault();
+      applyMarkdownWrap("`", "`", "code");
+    }
   };
 
   const canSave =
@@ -612,6 +764,38 @@ export function CreateNoteSheet({
 
               {/* Right Action Cluster */}
               <div className="flex items-center gap-2 shrink-0">
+                {/* Write / Preview Segmented Tab */}
+                <div className="apple-segmented-track p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setEditorMode("write");
+                    }}
+                    className={`px-2 py-0.5 rounded-full text-[10.5px] font-sans font-medium transition-all cursor-pointer ${
+                      editorMode === "write"
+                        ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] font-semibold shadow-xs"
+                        : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    Write
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setEditorMode("preview");
+                    }}
+                    className={`px-2 py-0.5 rounded-full text-[10.5px] font-sans font-medium transition-all cursor-pointer ${
+                      editorMode === "preview"
+                        ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] font-semibold shadow-xs"
+                        : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    Preview
+                  </button>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -701,22 +885,49 @@ export function CreateNoteSheet({
               />
 
               {/* Main Content Area */}
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="What caught your eye today?"
-                rows={6}
-                className={`w-full bg-transparent resize-none border-0 p-0 text-[16px] sm:text-[17px] leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none ${
-                  textAlign === "center"
-                    ? "text-center"
-                    : textAlign === "right"
-                      ? "text-right"
-                      : textAlign === "justify"
-                        ? "text-justify"
-                        : "text-left"
-                }`}
-              />
+              {editorMode === "write" ? (
+                <textarea
+                  ref={textareaRef}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  onKeyDown={handleEditorKeyDown}
+                  placeholder="What caught your eye today?"
+                  rows={6}
+                  className={`w-full bg-transparent resize-none border-0 p-0 text-[16px] sm:text-[17px] leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none ${
+                    textAlign === "center"
+                      ? "text-center"
+                      : textAlign === "right"
+                        ? "text-right"
+                        : textAlign === "justify"
+                          ? "text-justify"
+                          : "text-left"
+                  }`}
+                />
+              ) : (
+                <div
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setEditorMode("write");
+                  }}
+                  className={`w-full min-h-[140px] text-[16px] sm:text-[17px] leading-relaxed font-content text-[var(--text-primary)] cursor-text select-text ${
+                    textAlign === "center"
+                      ? "text-center"
+                      : textAlign === "right"
+                        ? "text-right"
+                        : textAlign === "justify"
+                          ? "text-justify"
+                          : "text-left"
+                  }`}
+                >
+                  {content.trim() ? (
+                    <EditorialMarkdown content={content} />
+                  ) : (
+                    <p className="font-serif italic text-[var(--text-tertiary)]/50 select-none">
+                      Nothing to preview yet. Switch back to write.
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Companion Sidenote Field */}
               {(isMarginaliaOpen || marginaliaText) && (
@@ -963,6 +1174,105 @@ export function CreateNoteSheet({
               )}
             </main>
 
+            {/* 2.5 Markdown Formatting Toolbar Drawer */}
+            <AnimatePresence>
+              {isFormattingOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="px-4 py-2 border-t border-[var(--glass-border)]/50 bg-black/[0.02] dark:bg-white/[0.02] overflow-hidden shrink-0 z-10"
+                >
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                    <button
+                      type="button"
+                      onClick={() => applyMarkdownWrap("**", "**", "bold")}
+                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0 shadow-2xs"
+                      title="Bold (Cmd+B)"
+                    >
+                      <Bold className="w-3.5 h-3.5 stroke-[2.4]" />
+                      <span className="text-[11px]">Bold</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyMarkdownWrap("*", "*", "italic")}
+                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0 shadow-2xs"
+                      title="Italic (Cmd+I)"
+                    >
+                      <Italic className="w-3.5 h-3.5 stroke-[2.2]" />
+                      <span className="text-[11px]">Italic</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        applyMarkdownWrap("~~", "~~", "strikethrough")
+                      }
+                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer line-through opacity-80 shrink-0 shadow-2xs"
+                      title="Strikethrough (Cmd+Shift+X)"
+                    >
+                      <Strikethrough className="w-3.5 h-3.5 stroke-[2]" />
+                      <span className="text-[11px]">Strike</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyMarkdownWrap("`", "`", "code")}
+                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-mono shrink-0 shadow-2xs"
+                      title="Inline Code (Cmd+E)"
+                    >
+                      <Code className="w-3.5 h-3.5 stroke-[2]" />
+                      <span className="text-[11px]">Code</span>
+                    </button>
+
+                    <div className="w-px h-4 bg-[var(--glass-border)] mx-1 shrink-0" />
+
+                    <button
+                      type="button"
+                      onClick={() => applyMarkdownBlock("> ", "quote")}
+                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      title="Quote block"
+                    >
+                      <Quote className="w-3.5 h-3.5 stroke-[2]" />
+                      <span className="text-[11px]">Quote</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyMarkdownBlock("- ", "item")}
+                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      title="Bullet list"
+                    >
+                      <List className="w-3.5 h-3.5 stroke-[2]" />
+                      <span className="text-[11px]">Bullet</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyMarkdownBlock("1. ", "item")}
+                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      title="Numbered list"
+                    >
+                      <ListOrdered className="w-3.5 h-3.5 stroke-[2]" />
+                      <span className="text-[11px]">Number</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => applyMarkdownBlock("---\n", "")}
+                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      title="Horizontal divider"
+                    >
+                      <Minus className="w-3.5 h-3.5 stroke-[2.2]" />
+                      <span className="text-[11px]">Divider</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* 3. Bottom Action Bar */}
             <footer className="px-4 py-2.5 border-t border-[var(--glass-border)]/50 flex items-center justify-between gap-2 shrink-0 relative z-10">
               {!isRecording ? (
@@ -1056,6 +1366,28 @@ export function CreateNoteSheet({
                       <span>¹</span>
                       <span className="font-sans font-medium text-[11px]">
                         Note
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setIsFormattingOpen((prev) => !prev);
+                        if (editorMode === "preview") {
+                          setEditorMode("write");
+                        }
+                      }}
+                      className={`px-2.5 py-1 rounded-full text-xs font-serif font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 ${
+                        isFormattingOpen
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
+                          : "inner-pseudo-glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      }`}
+                      title="Formatting toolbar"
+                    >
+                      <Type className="w-3.5 h-3.5 stroke-[2]" />
+                      <span className="font-sans font-medium text-[11px]">
+                        Aa
                       </span>
                     </button>
                   </div>

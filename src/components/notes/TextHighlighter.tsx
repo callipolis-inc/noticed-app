@@ -5,6 +5,7 @@ import { TextHighlight, HighlightStyle, MarginaliaItem } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { generateId } from "@/lib/utils";
 import { Trash2, Check, X, MessageSquare, PenTool } from "lucide-react";
+import { renderInlineMarkdown } from "@/lib/markdownRenderer";
 
 const SUPERSCRIPT_DIGITS = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
 export function toSuperscriptNumber(num: number): string {
@@ -185,7 +186,7 @@ export function TextHighlighter({
       );
 
     if (anchored.length === 0) {
-      return <span key={segKey}>{text}</span>;
+      return <span key={segKey}>{renderInlineMarkdown(text)}</span>;
     }
 
     let remaining = text;
@@ -201,7 +202,11 @@ export function TextHighlighter({
       if (pos === -1) continue;
 
       const before = remaining.slice(0, pos + anchor.sentence.length);
-      nodes.push(<span key={`${segKey}-p-${partIdx++}`}>{before}</span>);
+      nodes.push(
+        <span key={`${segKey}-p-${partIdx++}`}>
+          {renderInlineMarkdown(before)}
+        </span>,
+      );
       nodes.push(
         <button
           key={`${segKey}-fn-${anchor.num}`}
@@ -222,7 +227,9 @@ export function TextHighlighter({
     }
 
     if (remaining.length > 0) {
-      nodes.push(<span key={`${segKey}-rest`}>{remaining}</span>);
+      nodes.push(
+        <span key={`${segKey}-rest`}>{renderInlineMarkdown(remaining)}</span>,
+      );
     }
 
     return <span key={segKey}>{nodes}</span>;
@@ -388,7 +395,7 @@ export function TextHighlighter({
                   : "Highlighted passage"
               }
             >
-              {seg.text}
+              {renderInlineMarkdown(seg.text)}
               {hl.marginalia && fnNumber && (
                 <button
                   type="button"
