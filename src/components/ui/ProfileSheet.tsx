@@ -4,14 +4,10 @@ import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import {
   X,
   Camera,
-  Lock,
   Cloud,
-  ChevronRight,
   LogOut,
   Trash2,
   Check,
-  ShieldCheck,
-  KeyRound,
   HardDrive,
   Download,
   Upload,
@@ -29,9 +25,6 @@ interface ProfileSheetProps {
   onUpdateAvatarPhoto: (photo: string | null) => void;
   totalVolumes: number;
   totalNotes: number;
-  hasPin: boolean;
-  onSetPin: (pin: string | null) => void;
-  onLockSession: () => void;
   onExportArchive: () => void;
   onImportArchive: (file: File) => void;
   userEmail?: string | null;
@@ -51,9 +44,6 @@ export function ProfileSheet({
   onUpdateAvatarPhoto,
   totalVolumes = 6,
   totalNotes = 8,
-  hasPin,
-  onSetPin,
-  onLockSession,
   onExportArchive,
   onImportArchive,
   userEmail,
@@ -71,10 +61,6 @@ export function ProfileSheet({
 
   // Cloud Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-
-  // PIN Passcode Modal State
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [newPin, setNewPin] = useState("");
 
   // File Inputs
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -137,22 +123,6 @@ export function ProfileSheet({
     onSignOut?.();
   };
 
-  // PIN Handlers
-  const handleSavePin = () => {
-    if (newPin.length === 4) {
-      triggerSuccessHaptic();
-      onSetPin(newPin);
-      setIsPinModalOpen(false);
-      setNewPin("");
-    }
-  };
-
-  const handleRemovePin = () => {
-    triggerHaptic("medium");
-    onSetPin(null);
-    setIsPinModalOpen(false);
-    setNewPin("");
-  };
 
   // Local Storage Usage Calculation
   const storageUsageText = useMemo(() => {
@@ -411,64 +381,6 @@ export function ProfileSheet({
                       </button>
                     )}
                   </div>
-
-                  {/* Passcode Row */}
-                  <div className="p-3.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center text-[var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                        {hasPin ? (
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        ) : (
-                          <KeyRound className="w-3.5 h-3.5 opacity-80" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold text-[var(--text-primary)]">
-                          Passcode
-                        </div>
-                        <div className="text-[10px] text-[var(--text-tertiary)]">
-                          {hasPin ? "Configured" : "Off"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic("light");
-                        setIsPinModalOpen(true);
-                      }}
-                      className="px-3 py-1 rounded-full inner-pseudo-glass text-xs font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]"
-                    >
-                      {hasPin ? "Change" : "Turn On"}
-                    </button>
-                  </div>
-
-                  {/* Lock Screen Row */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("medium");
-                      onClose();
-                      onLockSession();
-                    }}
-                    className="w-full p-3.5 flex items-center justify-between text-left hover:bg-[var(--text-primary)]/3 active:opacity-70 transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center text-[var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                        <Lock className="w-3.5 h-3.5 opacity-80" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold text-[var(--text-primary)]">
-                          Lock Session
-                        </div>
-                        <div className="text-[10px] text-[var(--text-tertiary)]">
-                          Immediate lock
-                        </div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] opacity-60" />
-                  </button>
                 </div>
               </div>
 
@@ -553,92 +465,6 @@ export function ProfileSheet({
             }}
           />
 
-          {/* Sub-Modal: PIN Passcode Setup */}
-          <AnimatePresence>
-            {isPinModalOpen && (
-              <div className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-auto">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsPinModalOpen(false)}
-                  className="fixed inset-0 bg-black/45 backdrop-blur-md"
-                />
-
-                <motion.div
-                  initial={{ scale: 0.94, opacity: 0, y: 8 }}
-                  animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.94, opacity: 0, y: 8 }}
-                  className="relative w-full max-w-[280px] rounded-3xl p-5 dynamic-island-shell z-10 space-y-4 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.35)]"
-                >
-                  <div className="dynamic-island-specular-rim" />
-                  <div className="text-center space-y-1">
-                    <div className="w-9 h-9 rounded-xl bg-[var(--text-primary)]/8 flex items-center justify-center text-[var(--text-primary)] mx-auto mb-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
-                      <Lock className="w-4 h-4" />
-                    </div>
-                    <h4 className="text-sm font-semibold text-[var(--text-primary)]">
-                      {hasPin ? "Change PIN" : "Set PIN"}
-                    </h4>
-                    <p className="text-[11px] text-[var(--text-tertiary)]">
-                      Enter a 4-digit passcode
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-center">
-                      <input
-                        type="password"
-                        maxLength={4}
-                        pattern="[0-9]*"
-                        inputMode="numeric"
-                        autoFocus
-                        value={newPin}
-                        onChange={(e) => {
-                          const val = e.target.value
-                            .replace(/\D/g, "")
-                            .slice(0, 4);
-                          setNewPin(val);
-                        }}
-                        placeholder="••••"
-                        className="w-32 text-center text-xl font-mono tracking-widest px-3 py-1.5 rounded-xl bg-[var(--text-primary)]/5 border border-[var(--glass-border)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]"
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      {hasPin && (
-                        <button
-                          type="button"
-                          onClick={handleRemovePin}
-                          className="flex-1 py-1.5 rounded-xl bg-rose-500/10 text-xs font-semibold text-rose-500 active:scale-95 transition-transform cursor-pointer"
-                        >
-                          Remove
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setIsPinModalOpen(false)}
-                        className="flex-1 py-1.5 rounded-xl inner-pseudo-glass text-xs font-medium text-[var(--text-secondary)] active:scale-95 transition-transform cursor-pointer shadow-xs"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        disabled={newPin.length !== 4}
-                        onClick={handleSavePin}
-                        className={`flex-1 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-transform cursor-pointer ${
-                          newPin.length === 4
-                            ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-[0_2px_8px_rgba(0,0,0,0.15)]"
-                            : "bg-[var(--text-primary)]/10 text-[var(--text-tertiary)] cursor-not-allowed"
-                        }`}
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>
         </div>
       )}
     </AnimatePresence>

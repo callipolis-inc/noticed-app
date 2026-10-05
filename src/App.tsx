@@ -21,7 +21,6 @@ import { DateGroupDivider } from "@/components/notes/DateGroupDivider";
 import { ThemeSelectorSheet } from "@/components/ui/ThemeSelectorSheet";
 import { ProfileSheet } from "@/components/ui/ProfileSheet";
 import { SettingsSheet } from "@/components/ui/SettingsSheet";
-import { AtelierLockScreen } from "@/components/ui/AtelierLockScreen";
 import { SpotlightSearchModal } from "@/components/ui/SpotlightSearchModal";
 import { BookshelfView } from "@/components/spaces/BookshelfModal";
 import { DynamicFlyout } from "@/components/ui/DynamicFlyout";
@@ -256,12 +255,6 @@ export function App() {
   const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isLocked, setIsLocked] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("sidenotes_is_locked") === "true";
-    }
-    return false;
-  });
   const [userName, setUserName] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("sidenotes_username") || "Afa";
@@ -306,12 +299,6 @@ export function App() {
       return localStorage.getItem("sidenotes_haptics_enabled") !== "false";
     }
     return true;
-  });
-  const [pinCode, setPinCode] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("sidenotes_pin_code") || null;
-    }
-    return null;
   });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isIndexOpen, setIsIndexOpen] = useState(false);
@@ -427,6 +414,10 @@ export function App() {
       if (idbNotes && Array.isArray(idbNotes) && idbNotes.length > 0) {
         setNotes(idbNotes);
       }
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("sidenotes_is_locked");
+        localStorage.removeItem("sidenotes_pin_code");
+      }
     })();
     return () => {
       isMounted = false;
@@ -465,29 +456,6 @@ export function App() {
     setTimeout(() => setFlyoutMessage(null), 2000);
   };
 
-  const handleSetPin = (pin: string | null) => {
-    setPinCode(pin);
-    if (pin) {
-      localStorage.setItem("sidenotes_pin_code", pin);
-      setFlyoutMessage("4-Digit PIN passcode set");
-    } else {
-      localStorage.removeItem("sidenotes_pin_code");
-      setFlyoutMessage("PIN passcode removed");
-    }
-    setTimeout(() => setFlyoutMessage(null), 2000);
-  };
-
-  const handleLockSession = () => {
-    setIsLocked(true);
-    localStorage.setItem("sidenotes_is_locked", "true");
-  };
-
-  const handleUnlockSession = () => {
-    setIsLocked(false);
-    localStorage.setItem("sidenotes_is_locked", "false");
-    setFlyoutMessage("App unlocked");
-    setTimeout(() => setFlyoutMessage(null), 2000);
-  };
 
   const handleExportArchive = () => {
     const archive = {
@@ -1494,9 +1462,6 @@ export function App() {
         onUpdateAvatarPhoto={handleUpdateAvatarPhoto}
         totalVolumes={spaces.length}
         totalNotes={notes.length}
-        hasPin={Boolean(pinCode)}
-        onSetPin={handleSetPin}
-        onLockSession={handleLockSession}
         onExportArchive={handleExportArchive}
         onImportArchive={handleImportArchive}
         userEmail={userEmail}
@@ -1518,14 +1483,6 @@ export function App() {
         onResetAllData={handleResetAllData}
         currentTheme={theme}
         onSelectTheme={setTheme}
-      />
-
-      {/* Lock Screen */}
-      <AtelierLockScreen
-        isLocked={isLocked}
-        userName={userName}
-        onUnlock={handleUnlockSession}
-        savedPin={pinCode}
       />
 
       {/* Spotlight Search Modal */}
