@@ -111,7 +111,7 @@ export async function uploadMediaToSupabase(
  */
 export function extractStoragePathFromUrl(url: string): string | null {
   if (!url || !url.startsWith("http")) return null;
-  const marker = `/storage/v1/object/public/${STORAGE_BUCKET}/`;
+  const marker = `/${STORAGE_BUCKET}/`;
   const idx = url.indexOf(marker);
   if (idx === -1) return null;
   const rawPath = url.slice(idx + marker.length).split("?")[0];
@@ -226,6 +226,30 @@ export async function ensureRemoteMediaUrls(
         );
         results.push(remoteUrl || item);
       } else {
+        results.push(item);
+      }
+    } else if (item && item.startsWith("blob:")) {
+      try {
+        const res = await fetch(item);
+        const blob = await res.blob();
+        const contentType = blob.type || "application/octet-stream";
+        let ext = "bin";
+        if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
+        else if (contentType.includes("png")) ext = "png";
+        else if (contentType.includes("webp")) ext = "webp";
+        else if (contentType.includes("mp4")) ext = "mp4";
+        else if (contentType.includes("webm")) ext = "webm";
+        else if (contentType.includes("ogg")) ext = "ogg";
+        else if (contentType.includes("wav")) ext = "wav";
+
+        const remoteUrl = await uploadMediaToSupabase(
+          blob,
+          folder,
+          ext,
+          contentType
+        );
+        results.push(remoteUrl || item);
+      } catch {
         results.push(item);
       }
     } else {

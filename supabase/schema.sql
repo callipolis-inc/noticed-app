@@ -93,6 +93,7 @@ create table if not exists public.field_notes (
   text_align text default 'left',
   location_name text,
   photos jsonb default '[]'::jsonb,
+  videos jsonb default '[]'::jsonb,
   voice_memo jsonb,
   tags jsonb default '[]'::jsonb,
   pinned boolean not null default false,
@@ -215,18 +216,42 @@ create policy "Users can delete notes in accessible spaces"
   );
 
 -- ============================================================================
--- 7. STORAGE BUCKET FOR MEDIA & AVATARS (OPTIONAL / SAFE EXECUTION)
+-- 7. STORAGE BUCKET FOR MEDIA & AVATARS ('noticed-media')
 -- ============================================================================
-insert into storage.buckets (id, name, public)
-values ('atelier_media', 'atelier_media', true)
-on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'noticed-media',
+  'noticed-media',
+  true,
+  26214400, -- 25 MB max per file
+  ARRAY[
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+    'video/mp4', 'video/quicktime', 'video/webm',
+    'audio/webm', 'audio/mp4', 'audio/aac', 'audio/x-m4a', 'audio/mpeg', 'audio/ogg', 'audio/wav'
+  ]
+)
+on conflict (id) do update set
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
 
-drop policy if exists "Public media bucket access" on storage.objects;
-create policy "Public media bucket access"
+drop policy if exists "Noticed Media Public Read" on storage.objects;
+drop policy if exists "Noticed Media Authenticated Upload" on storage.objects;
+drop policy if exists "Noticed Media Authenticated Update" on storage.objects;
+drop policy if exists "Noticed Media Authenticated Delete" on storage.objects;
+
+create policy "Noticed Media Public Read"
   on storage.objects for select
-  using (bucket_id = 'atelier_media');
+  using (bucket_id = 'noticed-media');
 
-drop policy if exists "Authenticated users can upload media" on storage.objects;
-create policy "Authenticated users can upload media"
+create policy "Noticed Media Authenticated Upload"
   on storage.objects for insert
-  with check (bucket_id = 'atelier_media' and auth.role() = 'authenticated');
+  with check (bucket_id = 'noticed-media');
+
+create policy "Noticed Media Authenticated Update"
+  on storage.objects for update
+  using (bucket_id = 'noticed-media');
+
+create policy "Noticed Media Authenticated Delete"
+  on storage.objects for delete
+  using (bucket_id = 'noticed-media');

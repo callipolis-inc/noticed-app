@@ -446,7 +446,8 @@ export async function syncWithCloud(
       let remoteVoiceMemo = note.voiceMemo;
       if (
         note.voiceMemo?.audioUrl &&
-        note.voiceMemo.audioUrl.startsWith("data:")
+        (note.voiceMemo.audioUrl.startsWith("data:") ||
+          note.voiceMemo.audioUrl.startsWith("blob:"))
       ) {
         const uploadedAudio = await ensureRemoteMediaUrls(
           [note.voiceMemo.audioUrl],
