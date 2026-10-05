@@ -1,6 +1,7 @@
 import { supabase, getCurrentUser } from "./supabase";
 import { Space, FieldNote } from "@/types";
 import { saveToAtelierDB, safeLocalStorageSet } from "./storage";
+import { ensureRemoteMediaUrls } from "./mediaStorage";
 
 export interface SyncResult {
   spaces: Space[];
@@ -121,13 +122,19 @@ export async function syncWithCloud(
   }
 
   try {
-    // 1. Sync User Profile
+    // 1. Sync User Profile (offload avatar DataURL to Storage Bucket if needed)
     if (userName || avatarPhoto) {
+      let resolvedAvatarUrl = avatarPhoto || null;
+      if (resolvedAvatarUrl && resolvedAvatarUrl.startsWith("data:")) {
+        const uploaded = await ensureRemoteMediaUrls([resolvedAvatarUrl], "avatars");
+        resolvedAvatarUrl = uploaded[0] || resolvedAvatarUrl;
+      }
+
       await supabase.from("profiles").upsert(
         {
           id: user.id,
           display_name: userName || "Author",
-          avatar_url: avatarPhoto || null,
+          avatar_url: resolvedAvatarUrl,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" }
@@ -145,9 +152,24 @@ export async function syncWithCloud(
       }
     }
 
-    // 3. Push Local Notes (Upsert)
-    if (localNotes.length > 0) {
-      const dbNotes = localNotes.map((n) => noteToDb(n, user.id));
+    // 3. Push Local Notes (Offload any pending offline base64 photos/videos to 'noticed-media' bucket first)
+    const hydratedLocalNotes: FieldNote[] = [];
+    for (const note of localNotes) {
+      const remotePhotos = note.photos?.length
+        ? await ensureRemoteMediaUrls(note.photos, "photos")
+        : [];
+      const remoteVideos = note.videos?.length
+        ? await ensureRemoteMediaUrls(note.videos, "videos")
+        : [];
+      hydratedLocalNotes.push({
+        ...note,
+        photos: remotePhotos,
+        videos: remoteVideos,
+      });
+    }
+
+    if (hydratedLocalNotes.length > 0) {
+      const dbNotes = hydratedLocalNotes.map((n) => noteToDb(n, user.id));
       const { error: pushNoteError } = await supabase
         .from("field_notes")
         .upsert(dbNotes, { onConflict: "id" });
@@ -184,7 +206,7 @@ export async function syncWithCloud(
 
     // 7. Merge Notes (Deduplicate by ID, prefer cloud or newer)
     const notesMap = new Map<string, FieldNote>();
-    localNotes.forEach((n) => notesMap.set(n.id, n));
+    hydratedLocalNotes.forEach((n) => notesMap.set(n.id, n));
     if (remoteNotesData) {
       remoteNotesData.forEach((row) => {
         const remoteNote = dbToNote(row);

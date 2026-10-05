@@ -1,8 +1,11 @@
 /**
  * Noticed Media Pipeline: Video & Photo Storage Management
- * Handles local blob generation, thumbnail extraction, validation,
- * and Cloudflare R2 direct upload pipeline.
+ * Handles local compression, thumbnail extraction, validation,
+ * and automatic Supabase Storage ('noticed-media' bucket) uploads with offline fallback.
  */
+
+import { supabase, isSupabaseConfigured, getCurrentUser } from "./supabase";
+import { compressImageFile } from "./storage";
 
 export interface VideoMetadata {
   duration: number;
@@ -11,8 +14,151 @@ export interface VideoMetadata {
   thumbnailDataUrl?: string;
 }
 
+const STORAGE_BUCKET = "noticed-media";
 const MAX_VIDEO_DURATION_SECONDS = 35;
 const MAX_VIDEO_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+
+/**
+ * Converts a base64 DataURL into a binary Blob for cloud storage upload.
+ */
+export function dataUrlToBlob(dataUrl: string): {
+  blob: Blob;
+  contentType: string;
+  ext: string;
+} | null {
+  try {
+    const [header, base64Data] = dataUrl.split(",");
+    if (!header || !base64Data) return null;
+
+    const mimeMatch = header.match(/data:([^;]+);base64/);
+    const contentType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+
+    let ext = "bin";
+    if (contentType.includes("jpeg") || contentType.includes("jpg")) ext = "jpg";
+    else if (contentType.includes("png")) ext = "png";
+    else if (contentType.includes("webp")) ext = "webp";
+    else if (contentType.includes("mp4")) ext = "mp4";
+    else if (contentType.includes("quicktime") || contentType.includes("mov")) ext = "mov";
+    else if (contentType.includes("webm")) ext = "webm";
+
+    const byteCharacters = atob(base64Data);
+    const byteArrays = new Uint8Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteArrays[i] = byteCharacters.charCodeAt(i);
+    }
+
+    return {
+      blob: new Blob([byteArrays], { type: contentType }),
+      contentType,
+      ext,
+    };
+  } catch (err) {
+    console.warn("[MediaStorage] Failed to convert DataURL to Blob:", err);
+    return null;
+  }
+}
+
+/**
+ * Uploads a binary Blob or File to Supabase Storage ('noticed-media' bucket)
+ * and returns its permanent public URL. Returns null if offline or bucket unavailable.
+ */
+export async function uploadMediaToSupabase(
+  blobOrFile: Blob | File,
+  folder: "photos" | "videos" | "avatars",
+  ext: string,
+  contentType: string
+): Promise<string | null> {
+  if (!isSupabaseConfigured || (typeof navigator !== "undefined" && !navigator.onLine)) {
+    return null;
+  }
+
+  try {
+    const user = await getCurrentUser();
+    const ownerFolder = user?.id || "guest";
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filePath = `${folder}/${ownerFolder}/${uniqueName}`;
+
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(filePath, blobOrFile, {
+        contentType,
+        cacheControl: "31536000",
+        upsert: true,
+      });
+
+    if (error) {
+      console.warn(`[MediaStorage] Supabase Storage upload skipped (${error.message}), using local fallback.`);
+      return null;
+    }
+
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
+    return data?.publicUrl || null;
+  } catch (err) {
+    console.warn("[MediaStorage] Cloud upload failed, using offline fallback:", err);
+    return null;
+  }
+}
+
+/**
+ * Compresses a photo file and uploads it to Supabase Storage ('noticed-media/photos').
+ * Falls back to the compressed base64 DataURL when offline.
+ */
+export async function processPhotoFile(file: File): Promise<string> {
+  const compressedDataUrl = await compressImageFile(file, 1600, 0.82);
+  if (!compressedDataUrl) {
+    throw new Error("Failed to compress photo");
+  }
+
+  const parsed = dataUrlToBlob(compressedDataUrl);
+  if (parsed) {
+    const remoteUrl = await uploadMediaToSupabase(
+      parsed.blob,
+      "photos",
+      parsed.ext,
+      parsed.contentType
+    );
+    if (remoteUrl) {
+      return remoteUrl;
+    }
+  }
+
+  return compressedDataUrl;
+}
+
+/**
+ * Ensures any local base64 DataURLs in an array are uploaded to Supabase Storage
+ * and replaced with lightweight public URLs before syncing to PostgreSQL.
+ */
+export async function ensureRemoteMediaUrls(
+  items: string[],
+  folder: "photos" | "videos" | "avatars"
+): Promise<string[]> {
+  if (!items || items.length === 0) return [];
+  if (!isSupabaseConfigured || (typeof navigator !== "undefined" && !navigator.onLine)) {
+    return items;
+  }
+
+  const results: string[] = [];
+  for (const item of items) {
+    if (item && item.startsWith("data:")) {
+      const parsed = dataUrlToBlob(item);
+      if (parsed) {
+        const remoteUrl = await uploadMediaToSupabase(
+          parsed.blob,
+          folder,
+          parsed.ext,
+          parsed.contentType
+        );
+        results.push(remoteUrl || item);
+      } else {
+        results.push(item);
+      }
+    } else {
+      results.push(item);
+    }
+  }
+  return results;
+}
 
 /**
  * Extracts duration and creates a first-frame canvas thumbnail from a video File.
@@ -89,8 +235,8 @@ export function validateVideoFile(file: File): { valid: boolean; error?: string 
 }
 
 /**
- * Converts a video File into a persistent local base64 DataURL or uploads to Cloudflare R2
- * if an upload endpoint is configured.
+ * Validates a video File, uploads it to Supabase Storage ('noticed-media/videos'),
+ * or falls back to a persistent local base64 DataURL when offline.
  */
 export async function processVideoFile(file: File): Promise<{
   url: string;
@@ -109,32 +255,22 @@ export async function processVideoFile(file: File): Promise<{
     );
   }
 
-  // Check if Cloudflare R2 endpoint is available
-  const r2Endpoint = import.meta.env.VITE_R2_UPLOAD_ENDPOINT;
-  if (r2Endpoint) {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch(r2Endpoint, {
-        method: "POST",
-        body: formData,
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.url) {
-          return {
-            url: json.url,
-            thumbnailUrl: meta.thumbnailDataUrl,
-            duration: meta.duration,
-          };
-        }
-      }
-    } catch (err) {
-      console.warn("[MediaStorage] R2 upload failed, falling back to local storage:", err);
-    }
+  // Determine video extension
+  const extMatch = file.name.split(".").pop()?.toLowerCase();
+  const ext = extMatch && ["mp4", "mov", "webm", "m4v"].includes(extMatch) ? extMatch : "mp4";
+  const contentType = file.type || "video/mp4";
+
+  // 1. Primary: Upload directly to Supabase Storage ('noticed-media' bucket)
+  const supabaseUrl = await uploadMediaToSupabase(file, "videos", ext, contentType);
+  if (supabaseUrl) {
+    return {
+      url: supabaseUrl,
+      thumbnailUrl: meta.thumbnailDataUrl,
+      duration: meta.duration,
+    };
   }
 
-  // Offline-first fallback: convert to base64 DataURL
+  // 2. Offline-first fallback: convert to base64 DataURL (auto-uploaded on next sync)
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -149,3 +285,4 @@ export async function processVideoFile(file: File): Promise<{
     reader.readAsDataURL(file);
   });
 }
+

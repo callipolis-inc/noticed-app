@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote, TextAlign } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { generateId, formatTimeOnly } from "@/lib/utils";
-import { compressImageFile } from "@/lib/storage";
-import { processVideoFile } from "@/lib/mediaStorage";
+import { processPhotoFile, processVideoFile } from "@/lib/mediaStorage";
 import { TactileAudioRecorder, RecordedAudio } from "@/lib/audioRecorder";
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import {
@@ -185,9 +184,9 @@ export function CreateNoteSheet({
 
     try {
       for (const file of selectedFiles) {
-        const compressedDataUrl = await compressImageFile(file, 1600, 0.82);
-        if (compressedDataUrl) {
-          setPhotos((prev) => [...prev, compressedDataUrl]);
+        const photoUrl = await processPhotoFile(file);
+        if (photoUrl) {
+          setPhotos((prev) => [...prev, photoUrl]);
           triggerHaptic("light");
         }
       }
