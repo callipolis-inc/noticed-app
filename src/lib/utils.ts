@@ -12,12 +12,10 @@ export function formatNoteDate(dateStr: string | Date): string {
   const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
   if (isNaN(d.getTime())) return "";
 
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
+  return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
+    month: "long",
+    year: "numeric",
   }).format(d);
 }
 
@@ -36,16 +34,9 @@ export function getDateGroupKey(dateStr: string | Date): string {
   const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
   if (isNaN(d.getTime())) return "";
 
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diffDays = Math.round((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "TODAY";
-  if (diffDays === 1) return "YESTERDAY";
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
+  return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
-  }).format(d).toUpperCase();
+    month: "long",
+    year: "numeric",
+  }).format(d);
 }

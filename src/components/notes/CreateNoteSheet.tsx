@@ -602,9 +602,9 @@ export function CreateNoteSheet({
     ? previewDateObj
     : new Date();
   const formattedPreviewTime = formatTimeOnly(validPreviewDate);
-  const formattedPreviewDate = new Intl.DateTimeFormat("en-US", {
-    month: "short",
+  const formattedPreviewDate = new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
+    month: "long",
     year: "numeric",
   }).format(validPreviewDate);
 
