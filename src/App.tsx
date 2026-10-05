@@ -1053,28 +1053,6 @@ export function App() {
     return groups;
   }, [notebookNotes, streamSortOrder]);
 
-  const notebookSubtitle = useMemo(() => {
-    const noteCount = notebookNotes.length;
-    const noteCountText = `${noteCount} ${noteCount === 1 ? "notice" : "notices"}`;
-
-    if (notebookNotes.length > 0) {
-      const targetNote =
-        streamSortOrder === "oldest"
-          ? notebookNotes[notebookNotes.length - 1]
-          : notebookNotes[0];
-      const latestDate = new Date(targetNote.createdAt);
-      const dateText = new Intl.DateTimeFormat("en-US", {
-        month: "short",
-        day: "numeric",
-      })
-        .format(latestDate)
-        .toLowerCase();
-      return `${dateText} · ${noteCountText}`;
-    }
-
-    return `today · ${noteCountText}`;
-  }, [notebookNotes, streamSortOrder]);
-
   const notebookFontClass =
     currentNotebookFont === "sans"
       ? "font-sans"
@@ -1163,42 +1141,20 @@ export function App() {
             >
               {/* Literary Folio Header */}
               {!isReadingMode ? (
-                <header className="pt-2 pb-6 text-center space-y-2.5 select-none">
-                  {/* Metadata Badge */}
-                  <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full inner-pseudo-glass text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--text-tertiary)] shadow-xs">
-                    <span>{notebookSubtitle}</span>
-                    {userEmail && (
-                      <>
-                        <span>·</span>
-                        <span
-                          title={
-                            isSyncing
-                              ? "Syncing with cloud"
-                              : "Cloud synchronized"
-                          }
-                          className="inline-flex items-center gap-1 text-[var(--text-secondary)]"
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isSyncing
-                                ? "bg-sky-500 animate-pulse"
-                                : "bg-emerald-500/80"
-                            }`}
-                          />
-                          <span>{isSyncing ? "Syncing" : "Cloud"}</span>
-                        </span>
-                      </>
-                    )}
-                  </div>
-
+                <header className="pt-2 pb-6 text-center space-y-2 select-none">
                   {/* Title */}
                   <h1 className="font-serif text-3xl sm:text-[40px] font-normal tracking-tight leading-[1.15] text-[var(--text-primary)] pt-1">
                     {activeSpace.name}
                   </h1>
 
-                  {/* Description */}
+                  {/* Author Byline (Journal / Academic Paper Style) */}
+                  <p className="font-serif text-[14.5px] sm:text-[15px] text-[var(--text-secondary)] font-medium tracking-wide">
+                    {userName || "Author"}
+                  </p>
+
+                  {/* Description / Abstract / Epigraph */}
                   {activeSpace.description && (
-                    <p className="font-serif italic text-[14px] sm:text-[15px] leading-relaxed text-[var(--text-secondary)] max-w-xs sm:max-w-md mx-auto">
+                    <p className="font-serif italic text-[13.5px] sm:text-[14px] leading-relaxed text-[var(--text-tertiary)] max-w-xs sm:max-w-md mx-auto pt-0.5">
                       {activeSpace.description}
                     </p>
                   )}
@@ -1212,9 +1168,12 @@ export function App() {
                 </header>
               ) : (
                 /* Streamlined Manuscript Header in Zen Mode */
-                <header className="pt-2 pb-8 text-center space-y-2 select-none">
-                  <div className="text-[10.5px] uppercase tracking-[0.24em] font-sans opacity-40">
-                    {activeSpace.name} · {notebookSubtitle}
+                <header className="pt-2 pb-8 text-center space-y-1.5 select-none">
+                  <div className="text-[11px] uppercase tracking-[0.2em] font-sans text-[var(--text-secondary)] opacity-60">
+                    {activeSpace.name}
+                  </div>
+                  <div className="text-[12.5px] font-serif italic text-[var(--text-tertiary)]">
+                    {userName || "Author"}
                   </div>
                   <div className="pt-1 w-16 mx-auto border-b border-[var(--glass-border)] opacity-35" />
                 </header>
