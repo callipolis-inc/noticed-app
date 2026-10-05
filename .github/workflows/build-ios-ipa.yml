@@ -52,24 +52,35 @@ jobs:
         run: |
           xcodebuild -version
 
-      - name: Build Xcode Archive (Unsigned for Sideloading)
+      - name: Build Xcode App (Unsigned for Sideloading)
         run: |
           xcodebuild \
             -project ios/App/App.xcodeproj \
             -scheme App \
             -configuration Release \
+            -sdk iphoneos \
             -destination 'generic/platform=iOS' \
-            -archivePath build/App.xcarchive \
-            archive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
+            -derivedDataPath build/DerivedData \
+            -skipPackagePluginValidation \
+            clean build \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_ENTITLEMENTS=""
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGNING_ENTITLEMENTS="" \
+            VALIDATE_PRODUCT=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
 
       - name: Package .app into Noticed.ipa
         run: |
           mkdir -p build/Payload
-          cp -R build/App.xcarchive/Products/Applications/App.app build/Payload/
+          APP_PATH=$(find build/DerivedData -name "App.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: App.app not found in build/DerivedData"
+            exit 1
+          fi
+          echo "Found built App.app at: $APP_PATH"
+          cp -R "$APP_PATH" build/Payload/
           cd build
           zip -r -q Noticed.ipa Payload
           ls -lh Noticed.ipa
