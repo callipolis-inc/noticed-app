@@ -78,18 +78,12 @@ function encodePNG(width, height, rgbaBuffer) {
 
 // 2. MAIN SCRIPT
 console.log('Loading source transparent artwork...');
-const sourceLogoPath = path.join(__dirname, '../public/logo-dark.png');
+const backupDark = path.join(__dirname, '../archive/assets/logo-transparent-dark.png');
+const sourceLogoPath = fs.existsSync(backupDark)
+  ? backupDark
+  : path.join(__dirname, '../public/logo-dark.png');
 const { width, height, pixels: srcPixels } = decodePNG(sourceLogoPath);
 console.log(`Source resolution: ${width}x${height}`);
-
-// Backup transparent versions if not already backed up
-const backupDark = path.join(__dirname, '../public/logo-transparent-dark.png');
-const backupLight = path.join(__dirname, '../public/logo-transparent-light.png');
-if (!fs.existsSync(backupDark)) {
-  fs.copyFileSync(path.join(__dirname, '../public/logo-dark.png'), backupDark);
-  fs.copyFileSync(path.join(__dirname, '../public/logo-light.png'), backupLight);
-  console.log('Backed up transparent source assets to public/logo-transparent-*.png');
-}
 
 // Extract normalized Alpha channel into Float32Array for high-precision convolution
 const alphaChannel = new Float32Array(width * height);
