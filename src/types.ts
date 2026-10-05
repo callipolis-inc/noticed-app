@@ -85,5 +85,5 @@ export type ThemePalette = 'alabaster' | 'clean_white' | 'linen' | 'obsidian' | 
 export type ThemeMode = 'light' | 'dark';
 export type FontChoice = 'editorial' | 'sans' | 'display';
 
-export type FilterCategory = 'all' | 'photos' | 'voice' | 'marginalia' | 'pinned' | 'shared';
+export type FilterCategory = 'all' | 'photos' | 'videos' | 'voice' | 'marginalia' | 'pinned' | 'shared';
 export type StreamSortOrder = 'newest' | 'oldest';

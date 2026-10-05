@@ -7,6 +7,7 @@ import {
   Search,
   X,
   Camera,
+  Film,
   Mic,
   Pin,
   BookOpen,
@@ -29,6 +30,7 @@ const CATEGORY_FILTERS: {
 }[] = [
   { id: "all", label: "All" },
   { id: "photos", label: "Photos", icon: Camera },
+  { id: "videos", label: "Videos", icon: Film },
   { id: "voice", label: "Audio", icon: Mic },
   { id: "marginalia", label: "Sidenotes" },
   { id: "pinned", label: "Pinned", icon: Pin },
@@ -98,13 +100,17 @@ export function SpotlightSearchModal({
       if (category === "photos" && (!note.photos || note.photos.length === 0)) {
         return false;
       }
+      if (category === "videos" && (!note.videos || note.videos.length === 0)) {
+        return false;
+      }
       if (category === "voice" && !note.voiceMemo) {
         return false;
       }
       if (
         category === "marginalia" &&
         !note.marginalia &&
-        (!note.marginaliaItems || note.marginaliaItems.length === 0)
+        (!note.marginaliaItems || note.marginaliaItems.length === 0) &&
+        !(note.highlights && note.highlights.some((h) => Boolean(h.marginalia)))
       ) {
         return false;
       }
@@ -138,6 +144,20 @@ export function SpotlightSearchModal({
       const marginalia = note.marginalia?.toLowerCase() || "";
       const quoteSource = note.quoteSource?.toLowerCase() || "";
       const location = note.locationName?.toLowerCase() || "";
+      const hasMatchingMarginaliaItem = Boolean(
+        note.marginaliaItems?.some(
+          (m) =>
+            m.content.toLowerCase().includes(trimmed) ||
+            (m.citation && m.citation.toLowerCase().includes(trimmed)),
+        ),
+      );
+      const hasMatchingHighlight = Boolean(
+        note.highlights?.some(
+          (h) =>
+            (h.marginalia && h.marginalia.toLowerCase().includes(trimmed)) ||
+            h.selectedText.toLowerCase().includes(trimmed),
+        ),
+      );
 
       return (
         title.includes(trimmed) ||
@@ -145,7 +165,9 @@ export function SpotlightSearchModal({
         marginalia.includes(trimmed) ||
         quoteSource.includes(trimmed) ||
         spaceName.includes(trimmed) ||
-        location.includes(trimmed)
+        location.includes(trimmed) ||
+        hasMatchingMarginaliaItem ||
+        hasMatchingHighlight
       );
     });
   }, [notes, query, category, timeframe, scope, activeSpaceId, spacesMap]);
@@ -389,10 +411,38 @@ export function SpotlightSearchModal({
                   const hasPhotos = Boolean(
                     note.photos && note.photos.length > 0,
                   );
-                  const hasMarginalia = Boolean(
-                    note.marginalia ||
-                    (note.marginaliaItems && note.marginaliaItems.length > 0),
+                  const hasVideos = Boolean(
+                    note.videos && note.videos.length > 0,
                   );
+                  const trimmedQuery = query.trim().toLowerCase();
+                  const matchedMarginaliaItem = trimmedQuery
+                    ? note.marginaliaItems?.find(
+                        (m) =>
+                          m.content.toLowerCase().includes(trimmedQuery) ||
+                          (m.citation &&
+                            m.citation.toLowerCase().includes(trimmedQuery)),
+                      )
+                    : undefined;
+                  const matchedHighlightMarginalia = trimmedQuery
+                    ? note.highlights?.find(
+                        (h) =>
+                          h.marginalia &&
+                          h.marginalia.toLowerCase().includes(trimmedQuery),
+                      )?.marginalia
+                    : undefined;
+                  const primaryMarginaliaText =
+                    matchedMarginaliaItem?.content ||
+                    matchedHighlightMarginalia ||
+                    note.marginalia ||
+                    note.marginaliaItems?.[0]?.content ||
+                    note.highlights?.find((h) => Boolean(h.marginalia))
+                      ?.marginalia ||
+                    "";
+                  const primaryCitationText =
+                    matchedMarginaliaItem?.citation ||
+                    note.quoteSource ||
+                    note.marginaliaItems?.[0]?.citation;
+                  const hasMarginalia = Boolean(primaryMarginaliaText);
 
                   return (
                     <div
@@ -424,6 +474,9 @@ export function SpotlightSearchModal({
                           {hasPhotos && (
                             <Camera className="w-3 h-3 text-[var(--text-secondary)] opacity-80" />
                           )}
+                          {hasVideos && (
+                            <Film className="w-3 h-3 text-[var(--text-secondary)] opacity-80" />
+                          )}
                           {note.voiceMemo && (
                             <Mic className="w-3 h-3 text-[var(--text-secondary)] opacity-80" />
                           )}
@@ -452,16 +505,11 @@ export function SpotlightSearchModal({
                             ¹
                           </span>
                           <span className="truncate">
-                            {highlightMatch(
-                              note.marginalia ||
-                                note.marginaliaItems?.[0]?.content ||
-                                "",
-                              query,
-                            )}
+                            {highlightMatch(primaryMarginaliaText, query)}
                           </span>
-                          {note.quoteSource && (
+                          {primaryCitationText && (
                             <span className="opacity-50 text-[10px] font-sans not-italic">
-                              · {note.quoteSource}
+                              · {highlightMatch(primaryCitationText, query)}
                             </span>
                           )}
                         </div>

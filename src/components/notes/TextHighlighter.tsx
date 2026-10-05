@@ -29,9 +29,69 @@ interface TextHighlighterProps {
 interface SelectionMenuPosition {
   x: number;
   y: number;
+  placeBelow?: boolean;
   startIndex: number;
   endIndex: number;
   selectedText: string;
+}
+
+function getCleanTextOffset(
+  container: HTMLElement,
+  targetNode: Node,
+  targetOffset: number,
+): number {
+  const range = document.createRange();
+  range.selectNodeContents(container);
+  range.setEnd(targetNode, targetOffset);
+
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const parent = node.parentElement;
+      if (parent && parent.closest("[data-footnote-badge='true']")) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  let offset = 0;
+  let currentNode = walker.nextNode();
+  while (currentNode) {
+    if (currentNode === targetNode) {
+      offset += targetOffset;
+      break;
+    }
+    const cmp = range.comparePoint(currentNode, 0);
+    if (cmp < 0) {
+      const textLen = currentNode.textContent?.length || 0;
+      const endCmp = range.comparePoint(currentNode, textLen);
+      if (endCmp <= 0) {
+        offset += textLen;
+      } else {
+        break;
+      }
+    } else {
+      break;
+    }
+    currentNode = walker.nextNode();
+  }
+  return offset;
+}
+
+function clampPopoverPosition(rect: DOMRect): {
+  x: number;
+  y: number;
+  placeBelow: boolean;
+} {
+  const vw = typeof window !== "undefined" ? window.innerWidth : 390;
+  const halfPopoverWidth = 148;
+  const x = Math.max(
+    halfPopoverWidth,
+    Math.min(vw - halfPopoverWidth, rect.left + rect.width / 2),
+  );
+  const placeBelow = rect.top < 112;
+  const y = placeBelow ? rect.bottom + 10 : rect.top - 10;
+  return { x, y, placeBelow };
 }
 
 export function TextHighlighter({
@@ -53,6 +113,7 @@ export function TextHighlighter({
   const [activePopoverPos, setActivePopoverPos] = useState<{
     x: number;
     y: number;
+    placeBelow?: boolean;
   } | null>(null);
   const [marginaliaInput, setMarginaliaInput] = useState("");
   const [isAddingMarginalia, setIsAddingMarginalia] = useState(false);
@@ -145,6 +206,7 @@ export function TextHighlighter({
         <button
           key={`${segKey}-fn-${anchor.num}`}
           type="button"
+          data-footnote-badge="true"
           onClick={(e) => {
             e.stopPropagation();
             triggerHaptic("light");
@@ -180,21 +242,35 @@ export function TextHighlighter({
       return;
     }
 
-    const selectedText = selection.toString().trim();
+    const rawStart = getCleanTextOffset(
+      containerRef.current,
+      range.startContainer,
+      range.startOffset,
+    );
+    const rawEnd = getCleanTextOffset(
+      containerRef.current,
+      range.endContainer,
+      range.endOffset,
+    );
+    if (rawEnd <= rawStart) return;
+
+    const rawSlice = content.slice(rawStart, rawEnd);
+    const leadingSpaces = rawSlice.length - rawSlice.trimStart().length;
+    const trailingSpaces = rawSlice.length - rawSlice.trimEnd().length;
+    const startIndex = rawStart + leadingSpaces;
+    const endIndex = rawEnd - trailingSpaces;
+    const selectedText = content.slice(startIndex, endIndex);
+
     if (selectedText.length === 0) return;
 
-    const preRange = range.cloneRange();
-    preRange.selectNodeContents(containerRef.current);
-    preRange.setEnd(range.startContainer, range.startOffset);
-    const startIndex = preRange.toString().length;
-    const endIndex = startIndex + selectedText.length;
-
     const rect = range.getBoundingClientRect();
+    const clamped = clampPopoverPosition(rect);
     triggerHaptic("light");
 
     setMenuPos({
-      x: rect.left + rect.width / 2,
-      y: rect.top - 10,
+      x: clamped.x,
+      y: clamped.y,
+      placeBelow: clamped.placeBelow,
       startIndex,
       endIndex,
       selectedText,
@@ -248,12 +324,10 @@ export function TextHighlighter({
     e.stopPropagation();
     triggerHaptic("light");
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const clamped = clampPopoverPosition(rect);
     setActiveHighlightId(hl.id);
     setMarginaliaInput(hl.marginalia || "");
-    setActivePopoverPos({
-      x: rect.left + rect.width / 2,
-      y: rect.top - 8,
-    });
+    setActivePopoverPos(clamped);
   };
 
   const handleSaveActiveMarginalia = (hl: TextHighlight) => {
@@ -318,6 +392,7 @@ export function TextHighlighter({
               {hl.marginalia && fnNumber && (
                 <button
                   type="button"
+                  data-footnote-badge="true"
                   onClick={(e) => {
                     e.stopPropagation();
                     triggerHaptic("light");
@@ -343,7 +418,9 @@ export function TextHighlighter({
             style={{
               left: `${menuPos.x}px`,
               top: `${menuPos.y}px`,
-              transform: "translate(-50%, -100%)",
+              transform: menuPos.placeBelow
+                ? "translate(-50%, 0%)"
+                : "translate(-50%, -100%)",
             }}
           >
             <motion.div
@@ -466,7 +543,9 @@ export function TextHighlighter({
             style={{
               left: `${activePopoverPos.x}px`,
               top: `${activePopoverPos.y}px`,
-              transform: "translate(-50%, -100%)",
+              transform: activePopoverPos.placeBelow
+                ? "translate(-50%, 0%)"
+                : "translate(-50%, -100%)",
             }}
           >
             <motion.div

@@ -17,12 +17,29 @@ export function InlineVideoPlayer({
 }: InlineVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const playerIdRef = useRef<string>(`video-${Math.random().toString(36).slice(2, 9)}`);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [showCenterIndicator, setShowCenterIndicator] = useState(false);
+
+  // Listen to global exclusive media playback event
+  useEffect(() => {
+    const handleOtherMediaPlay = (e: Event) => {
+      const customEvent = e as CustomEvent<{ sourceId: string }>;
+      if (customEvent.detail?.sourceId !== playerIdRef.current) {
+        const video = videoRef.current;
+        if (video && !video.paused) {
+          video.pause();
+          setIsPlaying(false);
+        }
+      }
+    };
+    window.addEventListener("noticed:media-play", handleOtherMediaPlay);
+    return () => window.removeEventListener("noticed:media-play", handleOtherMediaPlay);
+  }, []);
 
   // IntersectionObserver: Smart Viewport Autoplay
   useEffect(() => {
@@ -66,6 +83,11 @@ export function InlineVideoPlayer({
 
     triggerHaptic("light");
     if (video.paused) {
+      window.dispatchEvent(
+        new CustomEvent("noticed:media-play", {
+          detail: { sourceId: playerIdRef.current },
+        })
+      );
       video.play().then(() => {
         setIsPlaying(true);
       }).catch(console.error);
@@ -87,6 +109,13 @@ export function InlineVideoPlayer({
 
     triggerHaptic("medium");
     const nextMuted = !video.muted;
+    if (!nextMuted) {
+      window.dispatchEvent(
+        new CustomEvent("noticed:media-play", {
+          detail: { sourceId: playerIdRef.current },
+        })
+      );
+    }
     video.muted = nextMuted;
     setIsMuted(nextMuted);
   }, []);
@@ -108,11 +137,12 @@ export function InlineVideoPlayer({
       {/* Specular hairline top reflection */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 dark:via-white/20 to-transparent pointer-events-none z-10" />
 
-      {/* HTML5 Video element with iOS playsInline */}
+      {/* HTML5 Video element with iOS playsInline & metadata preload */}
       <video
         ref={videoRef}
         src={src}
         poster={poster}
+        preload="metadata"
         playsInline
         webkit-playsinline="true"
         loop

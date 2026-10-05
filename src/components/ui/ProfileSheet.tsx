@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { AuthModal } from "./AuthModal";
 import { getTimeGreeting } from "@/lib/greetings";
+import { processPhotoFile } from "@/lib/mediaStorage";
+import { loadFromAtelierDB } from "@/lib/storage";
 
 interface ProfileSheetProps {
   isOpen: boolean;
@@ -58,6 +60,7 @@ export function ProfileSheet({
   // Local state for inline author name editing
   const [editingName, setEditingName] = useState(userName);
   const [saveIndicator, setSaveIndicator] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Cloud Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -91,23 +94,23 @@ export function ProfileSheet({
     return () => clearTimeout(timer);
   }, [editingName, userName]);
 
-  // Photo Upload Handler (<2MB base64)
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Compressed + Cloud-Synced Avatar Upload Handler
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Please select an image under 2MB.");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        onUpdateAvatarPhoto(result);
-        triggerSuccessHaptic();
-        setSaveIndicator(true);
-        setTimeout(() => setSaveIndicator(false), 2000);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const processedUrl = await processPhotoFile(file);
+      onUpdateAvatarPhoto(processedUrl);
+      triggerSuccessHaptic();
+      setSaveIndicator(true);
+      setTimeout(() => setSaveIndicator(false), 2000);
+    } catch (err) {
+      console.error("[Noticed] Avatar upload failed:", err);
+    } finally {
+      setIsUploadingAvatar(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
     }
   };
 
@@ -123,22 +126,53 @@ export function ProfileSheet({
     onSignOut?.();
   };
 
+  // Accurate Local Vault (IndexedDB + localStorage) Usage Calculation
+  const [storageStats, setStorageStats] = useState<{
+    label: string;
+    percent: number;
+  }>({ label: "0 KB", percent: 4 });
 
-  // Local Storage Usage Calculation
-  const storageUsageText = useMemo(() => {
-    if (typeof window === "undefined") return "0 KB";
-    let totalBytes = 0;
-    try {
-      for (const key in localStorage) {
-        if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
-          totalBytes += (localStorage[key]?.length || 0) * 2;
+  useEffect(() => {
+    if (!isOpen || typeof window === "undefined") return;
+    let isCancelled = false;
+
+    (async () => {
+      let totalBytes = 0;
+      try {
+        for (const key in localStorage) {
+          if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
+            totalBytes += (localStorage[key]?.length || 0) * 2;
+          }
         }
+        const [idbNotes, idbSpaces] = await Promise.all([
+          loadFromAtelierDB<unknown>("sidenotes_notes"),
+          loadFromAtelierDB<unknown>("sidenotes_spaces"),
+        ]);
+        if (idbNotes) {
+          totalBytes += JSON.stringify(idbNotes).length * 2;
+        }
+        if (idbSpaces) {
+          totalBytes += JSON.stringify(idbSpaces).length * 2;
+        }
+      } catch {
+        totalBytes = 48000;
       }
-    } catch {
-      totalBytes = 48000;
-    }
-    const kb = Math.round(totalBytes / 1024);
-    return kb > 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
+
+      if (isCancelled) return;
+      const kb = Math.max(1, Math.round(totalBytes / 1024));
+      const label =
+        kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
+      // Scale percentage relative to a 25 MB local vault reference (clamped 4% - 100%)
+      const percent = Math.max(
+        4,
+        Math.min(100, Math.round((totalBytes / (25 * 1024 * 1024)) * 100)),
+      );
+      setStorageStats({ label, percent });
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [isOpen, totalNotes, totalVolumes, avatarPhoto]);
 
   // Archive Import Handler
@@ -251,11 +285,20 @@ export function ProfileSheet({
 
                     <button
                       type="button"
+                      disabled={isUploadingAvatar}
                       onClick={() => photoInputRef.current?.click()}
-                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer text-white backdrop-blur-[2px]"
+                      className={`absolute inset-0 bg-black/40 ${
+                        isUploadingAvatar
+                          ? "opacity-100"
+                          : "opacity-0 group-hover:opacity-100"
+                      } flex items-center justify-center transition-opacity cursor-pointer text-white backdrop-blur-[2px]`}
                       title="Upload Avatar"
                     >
-                      <Camera className="w-4 h-4 stroke-[2]" />
+                      {isUploadingAvatar ? (
+                        <RotateCw className="w-4 h-4 stroke-[2] animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4 stroke-[2]" />
+                      )}
                     </button>
                   </div>
 
@@ -398,13 +441,13 @@ export function ProfileSheet({
                         Usage
                       </span>
                       <span className="font-mono text-[11px] text-[var(--text-secondary)] font-medium">
-                        {storageUsageText}
+                        {storageStats.label}
                       </span>
                     </div>
                     <div className="w-full h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)]">
                       <div
                         className="h-full bg-[var(--text-primary)] rounded-full transition-all duration-500 shadow-[0_1px_4px_rgba(0,0,0,0.2)]"
-                        style={{ width: "12%" }}
+                        style={{ width: `${storageStats.percent}%` }}
                       />
                     </div>
                   </div>

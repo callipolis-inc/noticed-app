@@ -1,4 +1,12 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Space,
@@ -13,17 +21,50 @@ import {
   ImageFrameSize,
 } from "@/types";
 import { NoteEntry } from "@/components/notes/NoteEntry";
-import { CreateNoteSheet } from "@/components/notes/CreateNoteSheet";
-import { PhotostripModal } from "@/components/notes/PhotostripModal";
-import { QuickAnnotatorModal } from "@/components/notes/QuickAnnotatorModal";
-import { NotebookIndexSheet } from "@/components/notes/NotebookIndexSheet";
 import { DateGroupDivider } from "@/components/notes/DateGroupDivider";
-import { ThemeSelectorSheet } from "@/components/ui/ThemeSelectorSheet";
-import { ProfileSheet } from "@/components/ui/ProfileSheet";
-import { SettingsSheet } from "@/components/ui/SettingsSheet";
-import { SpotlightSearchModal } from "@/components/ui/SpotlightSearchModal";
 import { BookshelfView } from "@/components/spaces/BookshelfModal";
 import { DynamicFlyout } from "@/components/ui/DynamicFlyout";
+
+const CreateNoteSheet = lazy(() =>
+  import("@/components/notes/CreateNoteSheet").then((m) => ({
+    default: m.CreateNoteSheet,
+  })),
+);
+const PhotostripModal = lazy(() =>
+  import("@/components/notes/PhotostripModal").then((m) => ({
+    default: m.PhotostripModal,
+  })),
+);
+const QuickAnnotatorModal = lazy(() =>
+  import("@/components/notes/QuickAnnotatorModal").then((m) => ({
+    default: m.QuickAnnotatorModal,
+  })),
+);
+const NotebookIndexSheet = lazy(() =>
+  import("@/components/notes/NotebookIndexSheet").then((m) => ({
+    default: m.NotebookIndexSheet,
+  })),
+);
+const ThemeSelectorSheet = lazy(() =>
+  import("@/components/ui/ThemeSelectorSheet").then((m) => ({
+    default: m.ThemeSelectorSheet,
+  })),
+);
+const ProfileSheet = lazy(() =>
+  import("@/components/ui/ProfileSheet").then((m) => ({
+    default: m.ProfileSheet,
+  })),
+);
+const SettingsSheet = lazy(() =>
+  import("@/components/ui/SettingsSheet").then((m) => ({
+    default: m.SettingsSheet,
+  })),
+);
+const SpotlightSearchModal = lazy(() =>
+  import("@/components/ui/SpotlightSearchModal").then((m) => ({
+    default: m.SpotlightSearchModal,
+  })),
+);
 import { triggerHaptic } from "@/lib/haptics";
 import { generateId, getDateGroupKey } from "@/lib/utils";
 import {
@@ -578,7 +619,7 @@ export function App() {
 
   // Zen Reading Mode State
   const [isReadingMode, setIsReadingMode] = useState(false);
-  const [readingProgress, setReadingProgress] = useState(0);
+  const readingProgressBarRef = useRef<HTMLDivElement>(null);
 
   // Bottom Morphing Dock Expanded State
   const [isTopFlyoutOpen, setIsTopFlyoutOpen] = useState(false);
@@ -674,25 +715,36 @@ export function App() {
     setIsFilterMode(false);
   }, [activeSpaceId]);
 
-  // Scroll listener for reading progress bar
+  // Scroll listener for reading progress bar (RAF-throttled DOM ref update — 0 React re-renders)
   useEffect(() => {
-    if (currentView !== "notebook") return;
+    if (currentView !== "notebook" || !isReadingMode) return;
+    let rafId: number | null = null;
 
     const handleScroll = () => {
-      const totalScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
-      if (totalScroll > 0) {
-        const current = Math.min(
-          100,
-          Math.max(0, (window.scrollY / totalScroll) * 100),
-        );
-        setReadingProgress(current);
-      }
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        const bar = readingProgressBarRef.current;
+        if (!bar) return;
+        const totalScroll =
+          document.documentElement.scrollHeight - window.innerHeight;
+        if (totalScroll > 0) {
+          const current = Math.min(
+            100,
+            Math.max(0, (window.scrollY / totalScroll) * 100),
+          );
+          bar.style.width = `${current}%`;
+        }
+      });
     };
 
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [currentView]);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+    };
+  }, [currentView, isReadingMode]);
 
   const handleSelectSearchNote = (spaceId: string, noteId: string) => {
     setIsSearchOpen(false);
@@ -888,38 +940,128 @@ export function App() {
     setTimeout(() => setFlyoutMessage(null), 2200);
   };
 
-  const handleUpdateNoteHighlights = (
-    noteId: string,
-    highlights: TextHighlight[],
-  ) => {
-    setNotes((prev) =>
-      prev.map((n) => (n.id === noteId ? { ...n, highlights } : n)),
-    );
-  };
+  const handleUpdateNoteHighlights = useCallback(
+    (noteId: string, highlights: TextHighlight[]) => {
+      setNotes((prev) =>
+        prev.map((n) => (n.id === noteId ? { ...n, highlights } : n)),
+      );
+    },
+    [],
+  );
 
-  const handleUpdateNoteTextAlign = (noteId: string, align: TextAlign) => {
-    setNotes((prev) =>
-      prev.map((n) => (n.id === noteId ? { ...n, textAlign: align } : n)),
-    );
-  };
+  const handleUpdateNoteTextAlign = useCallback(
+    (noteId: string, align: TextAlign) => {
+      setNotes((prev) =>
+        prev.map((n) => (n.id === noteId ? { ...n, textAlign: align } : n)),
+      );
+    },
+    [],
+  );
 
-  const handlePinToggle = (noteId: string) => {
+  const handlePinToggle = useCallback((noteId: string) => {
     triggerHaptic("light");
     setNotes((prev) =>
       prev.map((n) => (n.id === noteId ? { ...n, pinned: !n.pinned } : n)),
     );
-  };
+  }, []);
 
-  const handleDeleteNote = (noteId: string) => {
-    triggerHaptic("medium");
-    const targetNote = notes.find((n) => n.id === noteId);
-    setNotes((prev) => prev.filter((n) => n.id !== noteId));
-    if (targetNote) {
-      queueCloudDeleteNote(targetNote);
+  const handleEditNoteCallback = useCallback((note: FieldNote) => {
+    setEditingNote(note);
+  }, []);
+
+  const handleOpenPhotostripCallback = useCallback((note: FieldNote) => {
+    setPhotostripNote(note);
+  }, []);
+
+  const handleOpenQuickAnnotatorCallback = useCallback((note: FieldNote) => {
+    setAnnotatorNote(note);
+  }, []);
+
+  // Soft-Delete 5-Second Undo Buffer State
+  const [flyoutAction, setFlyoutAction] = useState<{
+    label: string;
+    onClick: () => void;
+  } | null>(null);
+  const pendingDeleteRef = useRef<{
+    note: FieldNote;
+    index: number;
+    timerId: number;
+  } | null>(null);
+
+  const commitPendingDelete = useCallback(() => {
+    if (pendingDeleteRef.current) {
+      window.clearTimeout(pendingDeleteRef.current.timerId);
+      queueCloudDeleteNote(pendingDeleteRef.current.note);
+      pendingDeleteRef.current = null;
     }
-    setFlyoutMessage("Note removed");
-    setTimeout(() => setFlyoutMessage(null), 2000);
-  };
+  }, []);
+
+  // Flush any pending soft-deleted note if the tab is closed before the 5s window expires
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (pendingDeleteRef.current) {
+        queueCloudDeleteNote(pendingDeleteRef.current.note);
+        pendingDeleteRef.current = null;
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  const handleDeleteNote = useCallback(
+    (noteId: string) => {
+      triggerHaptic("medium");
+      commitPendingDelete();
+
+      setNotes((prev) => {
+        const idx = prev.findIndex((n) => n.id === noteId);
+        if (idx === -1) return prev;
+        const targetNote = prev[idx];
+
+        const timerId = window.setTimeout(() => {
+          queueCloudDeleteNote(targetNote);
+          pendingDeleteRef.current = null;
+          setFlyoutAction(null);
+          setFlyoutMessage((msg) => (msg === "Notice removed" ? null : msg));
+        }, 5000);
+
+        pendingDeleteRef.current = {
+          note: targetNote,
+          index: idx,
+          timerId,
+        };
+
+        setFlyoutMessage("Notice removed");
+        setFlyoutAction({
+          label: "Undo",
+          onClick: () => {
+            if (pendingDeleteRef.current?.note.id === targetNote.id) {
+              window.clearTimeout(pendingDeleteRef.current.timerId);
+              const restored = pendingDeleteRef.current.note;
+              const restoreIdx = pendingDeleteRef.current.index;
+              pendingDeleteRef.current = null;
+              setNotes((current) => {
+                if (current.some((n) => n.id === restored.id)) return current;
+                const next = [...current];
+                next.splice(Math.min(restoreIdx, next.length), 0, restored);
+                return next;
+              });
+              setFlyoutAction(null);
+              setFlyoutMessage("Notice restored");
+              window.setTimeout(() => {
+                setFlyoutMessage((msg) =>
+                  msg === "Notice restored" ? null : msg,
+                );
+              }, 2200);
+            }
+          },
+        });
+
+        return prev.filter((n) => n.id !== noteId);
+      });
+    },
+    [commitPendingDelete],
+  );
 
   const handleSelectFont = (font: FontChoice) => {
     if (activeSpace) {
@@ -1022,15 +1164,21 @@ export function App() {
       <DynamicFlyout
         message={flyoutMessage}
         type="success"
-        onClose={() => setFlyoutMessage(null)}
+        actionLabel={flyoutAction?.label}
+        onAction={flyoutAction?.onClick}
+        onClose={() => {
+          setFlyoutMessage(null);
+          setFlyoutAction(null);
+        }}
       />
 
       {/* Zen Reading Mode Progress Bar */}
       {isReadingMode && currentView === "notebook" && (
         <div className="fixed top-0 left-0 right-0 h-[2px] bg-[var(--text-primary)]/10 z-50 pointer-events-none">
           <div
-            className="h-full bg-gradient-to-r from-transparent via-[var(--text-primary)] to-[var(--text-primary)] transition-all duration-150"
-            style={{ width: `${readingProgress}%` }}
+            ref={readingProgressBarRef}
+            className="h-full bg-gradient-to-r from-transparent via-[var(--text-primary)] to-[var(--text-primary)] transition-[width] duration-100"
+            style={{ width: "0%" }}
           />
         </div>
       )}
@@ -1215,9 +1363,11 @@ export function App() {
                               imageFrameSize={imageFrameSize}
                               onPinToggle={handlePinToggle}
                               onDeleteNote={handleDeleteNote}
-                              onEditNote={(n) => setEditingNote(n)}
-                              onOpenPhotostrip={(n) => setPhotostripNote(n)}
-                              onOpenQuickAnnotator={(n) => setAnnotatorNote(n)}
+                              onEditNote={handleEditNoteCallback}
+                              onOpenPhotostrip={handleOpenPhotostripCallback}
+                              onOpenQuickAnnotator={
+                                handleOpenQuickAnnotatorCallback
+                              }
                               onUpdateHighlights={handleUpdateNoteHighlights}
                               onUpdateTextAlign={handleUpdateNoteTextAlign}
                             />
@@ -1457,110 +1607,131 @@ export function App() {
         )}
       </AnimatePresence>
 
-      {/* Quick Annotator Modal */}
-      <QuickAnnotatorModal
-        isOpen={Boolean(annotatorNote)}
-        onClose={() => setAnnotatorNote(null)}
-        note={annotatorNote}
-        onSaveMarginalia={handleSaveMarginalia}
-      />
+      <Suspense fallback={null}>
+        {/* Quick Annotator Modal */}
+        {Boolean(annotatorNote) && (
+          <QuickAnnotatorModal
+            isOpen={Boolean(annotatorNote)}
+            onClose={() => setAnnotatorNote(null)}
+            note={annotatorNote}
+            onSaveMarginalia={handleSaveMarginalia}
+          />
+        )}
 
-      {/* Create / Edit Note Sheet */}
-      <CreateNoteSheet
-        isOpen={isCreateOpen || Boolean(editingNote)}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setEditingNote(null);
-        }}
-        spaces={spaces}
-        defaultSpaceId={activeSpace.id}
-        defaultTextAlign={defaultTextAlign}
-        editingNote={editingNote}
-        onSaveNote={handleSaveNote}
-        onUpdateNote={handleUpdateNote}
-      />
+        {/* Create / Edit Note Sheet */}
+        {(isCreateOpen || Boolean(editingNote)) && (
+          <CreateNoteSheet
+            isOpen={isCreateOpen || Boolean(editingNote)}
+            onClose={() => {
+              setIsCreateOpen(false);
+              setEditingNote(null);
+            }}
+            spaces={spaces}
+            defaultSpaceId={activeSpace.id}
+            defaultTextAlign={defaultTextAlign}
+            editingNote={editingNote}
+            onSaveNote={handleSaveNote}
+            onUpdateNote={handleUpdateNote}
+          />
+        )}
 
-      {/* Photostrip Modal */}
-      <PhotostripModal
-        isOpen={Boolean(photostripNote)}
-        onClose={() => setPhotostripNote(null)}
-        note={photostripNote}
-        space={activeSpace}
-        defaultTheme={theme}
-      />
+        {/* Photostrip Modal */}
+        {Boolean(photostripNote) && (
+          <PhotostripModal
+            isOpen={Boolean(photostripNote)}
+            onClose={() => setPhotostripNote(null)}
+            note={photostripNote}
+            space={activeSpace}
+            defaultTheme={theme}
+          />
+        )}
 
-      {/* Table of Contents Index */}
-      <NotebookIndexSheet
-        isOpen={isIndexOpen}
-        onClose={() => setIsIndexOpen(false)}
-        space={activeSpace}
-        groupedNotes={groupedNotes}
-        onSelectNote={(noteId) =>
-          handleSelectSearchNote(activeSpace.id, noteId)
-        }
-      />
+        {/* Table of Contents Index */}
+        {isIndexOpen && (
+          <NotebookIndexSheet
+            isOpen={isIndexOpen}
+            onClose={() => setIsIndexOpen(false)}
+            space={activeSpace}
+            groupedNotes={groupedNotes}
+            onSelectNote={(noteId) =>
+              handleSelectSearchNote(activeSpace.id, noteId)
+            }
+          />
+        )}
 
-      {/* Theme Selector Sheet */}
-      <ThemeSelectorSheet
-        isOpen={isThemeSelectorOpen}
-        onClose={() => setIsThemeSelectorOpen(false)}
-        currentTheme={theme}
-        onSelectTheme={(newTheme) => setTheme(newTheme)}
-        currentFont={currentNotebookFont}
-        onSelectFont={handleSelectFont}
-        fontSize={fontSize}
-        onSelectFontSize={handleSelectFontSize}
-        textAlign={defaultTextAlign}
-        onSelectTextAlign={handleSelectTextAlign}
-        imageFrameSize={imageFrameSize}
-        onSelectImageFrameSize={handleSelectImageFrameSize}
-        notebookName={activeSpace.name}
-      />
+        {/* Theme Selector Sheet */}
+        {isThemeSelectorOpen && (
+          <ThemeSelectorSheet
+            isOpen={isThemeSelectorOpen}
+            onClose={() => setIsThemeSelectorOpen(false)}
+            currentTheme={theme}
+            onSelectTheme={(newTheme) => setTheme(newTheme)}
+            currentFont={currentNotebookFont}
+            onSelectFont={handleSelectFont}
+            fontSize={fontSize}
+            onSelectFontSize={handleSelectFontSize}
+            textAlign={defaultTextAlign}
+            onSelectTextAlign={handleSelectTextAlign}
+            imageFrameSize={imageFrameSize}
+            onSelectImageFrameSize={handleSelectImageFrameSize}
+            notebookName={activeSpace.name}
+          />
+        )}
 
-      {/* Profile Sheet */}
-      <ProfileSheet
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        userName={userName}
-        onUpdateUserName={handleUpdateUserName}
-        avatarPhoto={avatarPhoto}
-        onUpdateAvatarPhoto={handleUpdateAvatarPhoto}
-        totalVolumes={spaces.length}
-        totalNotes={notes.length}
-        onExportArchive={handleExportArchive}
-        onImportArchive={handleImportArchive}
-        userEmail={userEmail}
-        onSignOut={handleSignOut}
-        onAuthSuccess={handleAuthSuccess}
-        isSyncing={isSyncing}
-        lastSyncedAt={lastSyncedAt}
-        onTriggerSync={() => handleCloudSync({ silent: false })}
-      />
+        {/* Profile Sheet */}
+        {isProfileOpen && (
+          <ProfileSheet
+            isOpen={isProfileOpen}
+            onClose={() => setIsProfileOpen(false)}
+            userName={userName}
+            onUpdateUserName={handleUpdateUserName}
+            avatarPhoto={avatarPhoto}
+            onUpdateAvatarPhoto={handleUpdateAvatarPhoto}
+            totalVolumes={spaces.length}
+            totalNotes={notes.length}
+            onExportArchive={handleExportArchive}
+            onImportArchive={handleImportArchive}
+            userEmail={userEmail}
+            onSignOut={handleSignOut}
+            onAuthSuccess={handleAuthSuccess}
+            isSyncing={isSyncing}
+            lastSyncedAt={lastSyncedAt}
+            onTriggerSync={() => handleCloudSync({ silent: false })}
+          />
+        )}
 
-      {/* Settings Sheet */}
-      <SettingsSheet
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        defaultShelfLayout={defaultShelfLayout}
-        onUpdateDefaultShelfLayout={handleUpdateDefaultShelfLayout}
-        hapticsEnabled={hapticsEnabled}
-        onToggleHaptics={handleToggleHaptics}
-        onResetAllData={handleResetAllData}
-        currentTheme={theme}
-        onSelectTheme={setTheme}
-      />
+        {/* Settings Sheet */}
+        {isSettingsOpen && (
+          <SettingsSheet
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            defaultShelfLayout={defaultShelfLayout}
+            onUpdateDefaultShelfLayout={handleUpdateDefaultShelfLayout}
+            hapticsEnabled={hapticsEnabled}
+            onToggleHaptics={handleToggleHaptics}
+            onResetAllData={handleResetAllData}
+            currentTheme={theme}
+            onSelectTheme={setTheme}
+          />
+        )}
 
-      {/* Spotlight Search Modal */}
-      <SpotlightSearchModal
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-        spaces={spaces}
-        notes={notes}
-        activeSpaceId={currentView === "notebook" ? activeSpace.id : undefined}
-        onSelectNote={handleSelectSearchNote}
-      />
+        {/* Spotlight Search Modal */}
+        {isSearchOpen && (
+          <SpotlightSearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            spaces={spaces}
+            notes={notes}
+            activeSpaceId={
+              currentView === "notebook" ? activeSpace.id : undefined
+            }
+            onSelectNote={handleSelectSearchNote}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }
 
 export default App;
+

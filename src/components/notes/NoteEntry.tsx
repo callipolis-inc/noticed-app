@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldNote, TextHighlight, TextAlign, ImageFrameSize } from "@/types";
 import { formatTimeOnly } from "@/lib/utils";
@@ -38,7 +38,7 @@ interface NoteEntryProps {
   onUpdateTextAlign?: (noteId: string, align: TextAlign) => void;
 }
 
-export function NoteEntry({
+export const NoteEntry = memo(function NoteEntry({
   note,
   isSharedSpace = false,
   isHighlighted = false,
@@ -57,37 +57,64 @@ export function NoteEntry({
   const [showMenu, setShowMenu] = useState(false);
   const [isFootnotesExpanded, setIsFootnotesExpanded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioSourceId = `audio-${note.id}`;
 
+  // Clean up audio instance on unmount or URL change
   useEffect(() => {
-    if (note.voiceMemo?.audioUrl) {
-      const audio = new Audio(note.voiceMemo.audioUrl);
-      audioRef.current = audio;
-
-      audio.onended = () => {
-        setIsPlayingAudio(false);
-      };
-
-      return () => {
-        audio.pause();
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
         audioRef.current = null;
-      };
-    }
+      }
+    };
   }, [note.voiceMemo?.audioUrl]);
+
+  // Listen to global exclusive media playback event
+  useEffect(() => {
+    if (!note.voiceMemo) return;
+    const handleOtherMediaPlay = (e: Event) => {
+      const customEvent = e as CustomEvent<{ sourceId: string }>;
+      if (customEvent.detail?.sourceId !== audioSourceId) {
+        if (audioRef.current && !audioRef.current.paused) {
+          audioRef.current.pause();
+        }
+        setIsPlayingAudio(false);
+      }
+    };
+    window.addEventListener("noticed:media-play", handleOtherMediaPlay);
+    return () =>
+      window.removeEventListener("noticed:media-play", handleOtherMediaPlay);
+  }, [note.voiceMemo, audioSourceId]);
 
   const toggleAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHaptic("light");
 
-    if (audioRef.current) {
-      if (isPlayingAudio) {
-        audioRef.current.pause();
+    if (!note.voiceMemo?.audioUrl) {
+      setIsPlayingAudio((prev) => !prev);
+      return;
+    }
+
+    if (!audioRef.current) {
+      const audio = new Audio(note.voiceMemo.audioUrl);
+      audio.preload = "metadata";
+      audio.onended = () => {
         setIsPlayingAudio(false);
-      } else {
-        audioRef.current.play().catch(console.error);
-        setIsPlayingAudio(true);
-      }
+      };
+      audioRef.current = audio;
+    }
+
+    if (isPlayingAudio) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
     } else {
-      setIsPlayingAudio(!isPlayingAudio);
+      window.dispatchEvent(
+        new CustomEvent("noticed:media-play", {
+          detail: { sourceId: audioSourceId },
+        }),
+      );
+      audioRef.current.play().catch(console.error);
+      setIsPlayingAudio(true);
     }
   };
 
@@ -627,7 +654,10 @@ export function NoteEntry({
               </div>
 
               <span className="font-mono text-[10.5px] font-medium text-[var(--text-secondary)]">
-                0:{note.voiceMemo.durationSeconds.toString().padStart(2, "0")}
+                {Math.floor(note.voiceMemo.durationSeconds / 60)}:
+                {(note.voiceMemo.durationSeconds % 60)
+                  .toString()
+                  .padStart(2, "0")}
               </span>
             </div>
           )}
@@ -799,4 +829,4 @@ export function NoteEntry({
       </div>
     </article>
   );
-}
+});
