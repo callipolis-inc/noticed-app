@@ -6,7 +6,6 @@ interface DateGroupDividerProps {
 
 export function DateGroupDivider({
   dateKey,
-  noteCount,
   className = "",
 }: DateGroupDividerProps) {
   return (

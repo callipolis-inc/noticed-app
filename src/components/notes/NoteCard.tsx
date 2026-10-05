@@ -11,7 +11,6 @@ import {
   Film,
   Grid2X2,
   Sparkles,
-  Camera,
 } from "lucide-react";
 
 interface NoteCardProps {
