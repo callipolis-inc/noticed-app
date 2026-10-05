@@ -1,13 +1,12 @@
-import { useState, useRef, useEffect, useMemo, memo } from "react";
+import { useState, useMemo, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldNote, TextHighlight, TextAlign, ImageFrameSize } from "@/types";
 import { formatTimeOnly } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
 import { TextHighlighter, toSuperscriptNumber } from "./TextHighlighter";
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
+import { TactileAudioPlayer } from "./TactileAudioPlayer";
 import {
-  Play,
-  Pause,
   MoreHorizontal,
   Pin,
   Trash2,
@@ -53,66 +52,8 @@ export const NoteEntry = memo(function NoteEntry({
   onUpdateHighlights,
   onUpdateTextAlign,
 }: NoteEntryProps) {
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isFootnotesExpanded, setIsFootnotesExpanded] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioSourceId = `audio-${note.id}`;
-
-  // Clean up audio instance on unmount or URL change
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, [note.voiceMemo?.audioUrl]);
-
-  // Listen to global exclusive media playback event
-  useEffect(() => {
-    if (!note.voiceMemo) return;
-    const handleOtherMediaPlay = (e: Event) => {
-      const customEvent = e as CustomEvent<{ sourceId: string }>;
-      if (customEvent.detail?.sourceId !== audioSourceId) {
-        if (audioRef.current && !audioRef.current.paused) {
-          audioRef.current.pause();
-        }
-        setIsPlayingAudio(false);
-      }
-    };
-    window.addEventListener("noticed:media-play", handleOtherMediaPlay);
-    return () =>
-      window.removeEventListener("noticed:media-play", handleOtherMediaPlay);
-  }, [note.voiceMemo, audioSourceId]);
-
-  const toggleAudio = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!note.voiceMemo?.audioUrl) return;
-    triggerHaptic("light");
-
-    if (!audioRef.current) {
-      const audio = new Audio(note.voiceMemo.audioUrl);
-      audio.preload = "metadata";
-      audio.onended = () => {
-        setIsPlayingAudio(false);
-      };
-      audioRef.current = audio;
-    }
-
-    if (isPlayingAudio) {
-      audioRef.current.pause();
-      setIsPlayingAudio(false);
-    } else {
-      window.dispatchEvent(
-        new CustomEvent("noticed:media-play", {
-          detail: { sourceId: audioSourceId },
-        }),
-      );
-      audioRef.current.play().catch(console.error);
-      setIsPlayingAudio(true);
-    }
-  };
 
   const marginaliaList = useMemo(() => {
     if (note.marginaliaItems && note.marginaliaItems.length > 0) {
@@ -625,45 +566,14 @@ export const NoteEntry = memo(function NoteEntry({
             </div>
           )}
 
-          {/* 3. Audio Memo: Apple Dynamic Island Audio Capsule */}
-          {note.voiceMemo && (
-            <div className="inline-flex items-center gap-2.5 py-1 px-3 rounded-full dynamic-island-shell text-xs shadow-[0_4px_12px_rgba(0,0,0,0.08)] mt-1 border border-[var(--glass-border)]">
-              <button
-                type="button"
-                onClick={toggleAudio}
-                className="w-5 h-5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] flex items-center justify-center transition-transform active:scale-90 shadow-xs cursor-pointer"
-                title={isPlayingAudio ? "Pause" : "Play"}
-              >
-                {isPlayingAudio ? (
-                  <Pause className="w-2.5 h-2.5" />
-                ) : (
-                  <Play className="w-2.5 h-2.5 ml-0.5" />
-                )}
-              </button>
-
-              {/* Minimal Waveform */}
-              <div className="flex items-center gap-0.5 h-3">
-                {[40, 75, 55, 90, 60, 30, 80, 45, 70, 50, 85, 40].map(
-                  (h, i) => (
-                    <span
-                      key={i}
-                      className={`w-0.5 rounded-full transition-all duration-300 ${
-                        isPlayingAudio
-                          ? "bg-[var(--text-primary)] animate-pulse"
-                          : "bg-[var(--text-tertiary)] opacity-60"
-                      }`}
-                      style={{ height: `${Math.max(3, h * 0.15)}px` }}
-                    />
-                  ),
-                )}
-              </div>
-
-              <span className="font-mono text-[10.5px] font-medium text-[var(--text-secondary)]">
-                {Math.floor(note.voiceMemo.durationSeconds / 60)}:
-                {(note.voiceMemo.durationSeconds % 60)
-                  .toString()
-                  .padStart(2, "0")}
-              </span>
+          {/* 3. Audio Memo: Archival Letterpress Strip */}
+          {note.voiceMemo?.audioUrl && (
+            <div className="mt-1">
+              <TactileAudioPlayer
+                audioUrl={note.voiceMemo.audioUrl}
+                durationSeconds={note.voiceMemo.durationSeconds}
+                sourceId={`audio-${note.id}`}
+              />
             </div>
           )}
 

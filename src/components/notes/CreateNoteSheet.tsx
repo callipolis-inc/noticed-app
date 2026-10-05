@@ -18,6 +18,7 @@ import {
 import { AtelierProModal } from "@/components/ui/AtelierProModal";
 import { TactileAudioRecorder, RecordedAudio } from "@/lib/audioRecorder";
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
+import { TactileAudioPlayer } from "./TactileAudioPlayer";
 import {
   X,
   Check,
@@ -28,8 +29,6 @@ import {
   Mic,
   Upload,
   Square,
-  Play,
-  Pause,
   MapPin,
   Trash2,
   Plus,
@@ -125,7 +124,6 @@ export function CreateNoteSheet({
   const [recordedAudio, setRecordedAudio] = useState<RecordedAudio | null>(
     null,
   );
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [showAudioMenu, setShowAudioMenu] = useState(false);
 
@@ -144,7 +142,6 @@ export function CreateNoteSheet({
   const audioFileInputRef = useRef<HTMLInputElement>(null);
   const audioRecorderRef = useRef<TactileAudioRecorder | null>(null);
   const recordingTimerRef = useRef<number | null>(null);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Sync or reset form state whenever sheet opens or editingNote changes
@@ -216,10 +213,6 @@ export function CreateNoteSheet({
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
       if (audioRecorderRef.current) audioRecorderRef.current.cancel();
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-        previewAudioRef.current = null;
-      }
     };
   }, []);
 
@@ -387,11 +380,6 @@ export function CreateNoteSheet({
     setAudioError(null);
     try {
       const result = await processAudioFile(file);
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-        previewAudioRef.current = null;
-      }
-      setIsPlayingAudio(false);
       setRecordedAudio({
         blob: result.blob,
         url: result.url,
@@ -405,31 +393,6 @@ export function CreateNoteSheet({
       setTimeout(() => setAudioError(null), 5000);
     } finally {
       if (audioFileInputRef.current) audioFileInputRef.current.value = "";
-    }
-  };
-
-  const toggleAudioPlayback = () => {
-    if (!recordedAudio || !recordedAudio.url) return;
-    triggerHaptic("light");
-
-    if (
-      !previewAudioRef.current ||
-      previewAudioRef.current.src !== recordedAudio.url
-    ) {
-      if (previewAudioRef.current) {
-        previewAudioRef.current.pause();
-      }
-      const audio = new Audio(recordedAudio.url);
-      previewAudioRef.current = audio;
-      audio.onended = () => setIsPlayingAudio(false);
-    }
-
-    if (isPlayingAudio) {
-      previewAudioRef.current.pause();
-      setIsPlayingAudio(false);
-    } else {
-      previewAudioRef.current.play().catch(console.error);
-      setIsPlayingAudio(true);
     }
   };
 
@@ -1283,44 +1246,22 @@ export function CreateNoteSheet({
 
               {/* Voice Memo Capsule */}
               {recordedAudio && (
-                <div className="mt-2 p-3 rounded-2xl apple-card shadow-xs flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      onClick={toggleAudioPlayback}
-                      className="w-8 h-8 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] flex items-center justify-center active:scale-95 transition-transform cursor-pointer shadow-xs"
-                    >
-                      {isPlayingAudio ? (
-                        <Pause className="w-3.5 h-3.5" />
-                      ) : (
-                        <Play className="w-3.5 h-3.5 ml-0.5" />
-                      )}
-                    </button>
-                    <div>
-                      <div className="text-xs font-semibold text-[var(--text-primary)]">
-                        Voice Memo
-                      </div>
-                      <div className="text-[10px] text-[var(--text-tertiary)] font-mono">
-                        {Math.floor(recordedAudio.durationSeconds / 60)}:
-                        {(recordedAudio.durationSeconds % 60)
-                          .toString()
-                          .padStart(2, "0")}
-                      </div>
-                    </div>
+                <div className="mt-2 p-2.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.035] shadow-2xs flex items-center justify-between gap-3">
+                  <div className="flex-1 overflow-hidden">
+                    <TactileAudioPlayer
+                      audioUrl={recordedAudio.url}
+                      durationSeconds={recordedAudio.durationSeconds}
+                      sourceId="create-note-audio-preview"
+                    />
                   </div>
 
                   <button
                     type="button"
                     onClick={() => {
                       triggerHaptic("light");
-                      if (previewAudioRef.current) {
-                        previewAudioRef.current.pause();
-                        previewAudioRef.current = null;
-                      }
-                      setIsPlayingAudio(false);
                       setRecordedAudio(null);
                     }}
-                    className="p-2 text-[var(--text-tertiary)] hover:text-rose-500 transition-colors cursor-pointer"
+                    className="p-2 text-[var(--text-tertiary)] hover:text-rose-500 transition-colors cursor-pointer shrink-0"
                     title="Delete voice memo"
                   >
                     <Trash2 className="w-4 h-4" />
