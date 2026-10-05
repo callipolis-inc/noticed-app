@@ -100,6 +100,7 @@ export function CreateNoteSheet({
     null,
   );
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -138,6 +139,7 @@ export function CreateNoteSheet({
       } else {
         setRecordedAudio(null);
       }
+      setAudioError(null);
 
       const d = new Date(editingNote.createdAt);
       const validDate = !isNaN(d.getTime()) ? d : new Date();
@@ -152,6 +154,7 @@ export function CreateNoteSheet({
       setPhotos([]);
       setVideos([]);
       setVideoError(null);
+      setAudioError(null);
       setMarginaliaText("");
       setCitationText("");
       setIsMarginaliaOpen(false);
@@ -235,6 +238,7 @@ export function CreateNoteSheet({
 
   const handleStartRecording = async () => {
     triggerHaptic("medium");
+    setAudioError(null);
     const recorder = new TactileAudioRecorder();
     audioRecorderRef.current = recorder;
 
@@ -249,14 +253,10 @@ export function CreateNoteSheet({
         setRecordingSeconds((prev) => prev + 1);
       }, 1000);
     } else {
-      setIsRecording(true);
-      setRecordingSeconds(0);
-      recordingTimerRef.current = window.setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-        setAudioLevels(
-          Array.from({ length: 14 }, () => Math.floor(Math.random() * 65) + 15),
-        );
-      }, 1000);
+      audioRecorderRef.current = null;
+      setAudioError("Microphone access is required to record a voice memo.");
+      triggerHaptic("heavy");
+      setTimeout(() => setAudioError(null), 4000);
     }
   };
 
@@ -269,43 +269,26 @@ export function CreateNoteSheet({
 
     if (audioRecorderRef.current) {
       const audioResult = await audioRecorderRef.current.stop();
+      audioRecorderRef.current = null;
       if (audioResult) {
         const persistedUrl = await processAudioBlob(
           audioResult.blob,
-          audioResult.url
+          audioResult.url,
         );
         setRecordedAudio({
           ...audioResult,
           url: persistedUrl || audioResult.url,
         });
-      } else {
-        setRecordedAudio({
-          blob: new Blob(),
-          url: "",
-          durationSeconds: Math.max(1, recordingSeconds),
-        });
+        triggerSuccessHaptic();
       }
-      audioRecorderRef.current = null;
-    } else {
-      setRecordedAudio({
-        blob: new Blob(),
-        url: "",
-        durationSeconds: Math.max(1, recordingSeconds),
-      });
     }
 
     setIsRecording(false);
-    triggerSuccessHaptic();
   };
 
   const toggleAudioPlayback = () => {
-    if (!recordedAudio) return;
+    if (!recordedAudio || !recordedAudio.url) return;
     triggerHaptic("light");
-
-    if (!recordedAudio.url) {
-      setIsPlayingAudio(!isPlayingAudio);
-      return;
-    }
 
     if (!previewAudioRef.current) {
       const audio = new Audio(recordedAudio.url);
@@ -437,6 +420,7 @@ export function CreateNoteSheet({
     setCitationText("");
     setIsMarginaliaOpen(false);
     setPhotos([]);
+    setVideos([]);
     setRecordedAudio(null);
     setLocationName("");
     onClose();
@@ -446,6 +430,7 @@ export function CreateNoteSheet({
     content.trim().length > 0 ||
     marginaliaText.trim().length > 0 ||
     photos.length > 0 ||
+    videos.length > 0 ||
     recordedAudio !== null;
 
   const previewDateObj = new Date(`${noteDate}T${noteTime || "00:00"}`);
@@ -929,6 +914,11 @@ export function CreateNoteSheet({
                   {videoError}
                 </div>
               )}
+              {audioError && (
+                <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans">
+                  {audioError}
+                </div>
+              )}
 
               {/* Voice Memo Capsule */}
               {recordedAudio && (
@@ -950,8 +940,8 @@ export function CreateNoteSheet({
                         Voice Memo
                       </div>
                       <div className="text-[10px] text-[var(--text-tertiary)] font-mono">
-                        0:
-                        {recordedAudio.durationSeconds
+                        {Math.floor(recordedAudio.durationSeconds / 60)}:
+                        {(recordedAudio.durationSeconds % 60)
                           .toString()
                           .padStart(2, "0")}
                       </div>
@@ -1123,7 +1113,8 @@ export function CreateNoteSheet({
                   <div className="flex items-center gap-2 text-rose-500 font-sans font-medium text-xs">
                     <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                     <span>
-                      0:{recordingSeconds.toString().padStart(2, "0")}
+                      {Math.floor(recordingSeconds / 60)}:
+                      {(recordingSeconds % 60).toString().padStart(2, "0")}
                     </span>
                   </div>
 

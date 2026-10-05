@@ -40,12 +40,12 @@ interface ProfileSheetProps {
 export function ProfileSheet({
   isOpen,
   onClose,
-  userName = "Afa",
+  userName = "Author",
   onUpdateUserName,
   avatarPhoto,
   onUpdateAvatarPhoto,
-  totalVolumes = 6,
-  totalNotes = 8,
+  totalVolumes = 0,
+  totalNotes = 0,
   onExportArchive,
   onImportArchive,
   userEmail,
@@ -130,7 +130,7 @@ export function ProfileSheet({
   const [storageStats, setStorageStats] = useState<{
     label: string;
     percent: number;
-  }>({ label: "0 KB", percent: 4 });
+  }>({ label: "0 KB", percent: 0 });
 
   useEffect(() => {
     if (!isOpen || typeof window === "undefined") return;
@@ -155,18 +155,20 @@ export function ProfileSheet({
           totalBytes += JSON.stringify(idbSpaces).length * 2;
         }
       } catch {
-        totalBytes = 48000;
+        totalBytes = 0;
       }
 
       if (isCancelled) return;
-      const kb = Math.max(1, Math.round(totalBytes / 1024));
+      const kb = Math.round(totalBytes / 1024);
       const label =
         kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
-      // Scale percentage relative to a 25 MB local vault reference (clamped 4% - 100%)
-      const percent = Math.max(
-        4,
-        Math.min(100, Math.round((totalBytes / (25 * 1024 * 1024)) * 100)),
-      );
+      const percent =
+        totalBytes > 0
+          ? Math.max(
+              2,
+              Math.min(100, Math.round((totalBytes / (25 * 1024 * 1024)) * 100)),
+            )
+          : 0;
       setStorageStats({ label, percent });
     })();
 

@@ -88,12 +88,8 @@ export const NoteEntry = memo(function NoteEntry({
 
   const toggleAudio = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!note.voiceMemo?.audioUrl) return;
     triggerHaptic("light");
-
-    if (!note.voiceMemo?.audioUrl) {
-      setIsPlayingAudio((prev) => !prev);
-      return;
-    }
 
     if (!audioRef.current) {
       const audio = new Audio(note.voiceMemo.audioUrl);

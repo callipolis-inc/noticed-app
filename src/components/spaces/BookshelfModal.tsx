@@ -16,7 +16,6 @@ import {
   Pencil,
   Trash2,
   X,
-  Users,
   Settings,
   BookOpen,
   Sparkles,
@@ -41,6 +40,7 @@ export interface BookshelfViewProps {
     coverStyle?: CoverStyle,
     description?: string,
     customColor?: string,
+    fontChoice?: FontChoice,
   ) => void;
   onUpdateSpace?: (space: Space) => void;
   onDeleteSpace?: (spaceId: string) => void;
@@ -235,7 +235,7 @@ export function BookshelfView({
   spaces,
   activeSpaceId,
   notesCountMap,
-  userName = "Afa",
+  userName = "Author",
   avatarPhoto,
   defaultShelfLayout = "spines",
   onSelectSpace,
@@ -275,16 +275,15 @@ export function BookshelfView({
   const [editCustomColor, setEditCustomColor] = useState<string | undefined>(
     undefined,
   );
-  const [editShared, setEditShared] = useState(false);
 
   // Create State
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newCover, setNewCover] = useState<CoverStyle>("klein");
+  const [newFont, setNewFont] = useState<FontChoice>("editorial");
   const [newCustomColor, setNewCustomColor] = useState<string | undefined>(
     undefined,
   );
-  const [newShared, setNewShared] = useState(false);
 
   const activeSelected = useMemo(() => {
     return (
@@ -337,7 +336,6 @@ export function BookshelfView({
     setEditCover(activeSelected.coverStyle || "klein");
     setEditFont(activeSelected.fontChoice || "editorial");
     setEditCustomColor(activeSelected.customColor);
-    setEditShared(activeSelected.isShared || false);
     setIsEditing(true);
   };
 
@@ -370,7 +368,7 @@ export function BookshelfView({
         coverStyle: editCover,
         fontChoice: editFont,
         customColor: editCustomColor,
-        isShared: editShared,
+        isShared: false,
       });
     }
 
@@ -378,7 +376,7 @@ export function BookshelfView({
   };
 
   const handleDeleteActive = () => {
-    if (!activeSelected || spaces.length <= 1) return;
+    if (!activeSelected) return;
     if (
       window.confirm(
         `Archive and remove "${activeSelected.name}" from bookshelf?`,
@@ -399,14 +397,16 @@ export function BookshelfView({
     triggerSuccessHaptic();
     onCreateSpace(
       newName.trim(),
-      newShared,
+      false,
       newCover,
       newDesc.trim(),
       newCustomColor,
+      newFont,
     );
     setNewName("");
     setNewDesc("");
     setNewCustomColor(undefined);
+    setNewFont("editorial");
     setIsCreating(false);
   };
 
@@ -541,7 +541,33 @@ export function BookshelfView({
 
       {/* 2. MAIN HORIZON DISPLAY: SPINES OR UNCONSTRAINED 3D SPATIAL CAROUSEL */}
       <main className="flex-1 flex flex-col justify-center items-center relative scene-3d w-full my-auto overflow-visible">
-        {shelfLayout === "spines" ? (
+        {spaces.length === 0 ? (
+          <div className="w-full max-w-md px-5 mx-auto flex flex-col items-center justify-center my-auto text-center space-y-5">
+            <div className="w-16 h-20 rounded-xl apple-card border border-[var(--glass-border)] flex items-center justify-center shadow-sm">
+              <BookOpen className="w-6 h-6 text-[var(--text-tertiary)] stroke-[1.5]" />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
+                Your Bookshelf is Empty
+              </h2>
+              <p className="text-xs text-[var(--text-secondary)] italic max-w-xs mx-auto leading-relaxed">
+                Bind your first volume to begin capturing quiet observations,
+                photographs, and marginalia.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("medium");
+                setIsCreating(true);
+              }}
+              className="h-9 px-5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Bind Your First Volume</span>
+            </button>
+          </div>
+        ) : shelfLayout === "spines" ? (
           /* SPINES MODE (Contained) */
           <div className="w-full max-w-md px-4 mx-auto flex flex-col items-center justify-center my-auto">
             <div className="relative w-full flex items-end justify-center overflow-x-auto no-scrollbar pt-10 pb-0 px-2 z-20">
@@ -586,7 +612,7 @@ export function BookshelfView({
               <div className="w-full mt-5 text-center flex flex-col items-center px-4 animate-in fade-in duration-300">
                 <div className="flex items-center justify-center gap-2 mb-1.5">
                   <span className="text-[10px] uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
-                    {activeSelected.isShared ? "Shared" : "Personal"}
+                    Edition
                   </span>
                   <span className="text-[10px] text-[var(--text-tertiary)] opacity-40">
                     •
@@ -820,7 +846,7 @@ export function BookshelfView({
                           className="uppercase tracking-widest font-sans opacity-70"
                           style={{ color: foil }}
                         >
-                          {space.isShared ? "Shared" : "Personal"}
+                          Edition
                         </span>
                         <span
                           className="font-serif italic opacity-75"
@@ -878,10 +904,7 @@ export function BookshelfView({
                   onClick={handleOpenActive}
                 >
                   <div className="text-[10px] uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
-                    {activeSelected.isShared
-                      ? "Shared Edition"
-                      : "Personal Edition"}{" "}
-                    • {notesCountMap[activeSelected.id] || 0} notices
+                    Edition • {notesCountMap[activeSelected.id] || 0} notices
                   </div>
                   <h3 className="text-base font-serif font-bold text-[var(--text-primary)] truncate">
                     {activeSelected.name}
@@ -1150,8 +1173,8 @@ export function BookshelfView({
                 <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl apple-card shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                   {[
                     { id: "editorial", name: "Newsreader", desc: "Serif" },
-                    { id: "sans", name: "Jakarta", desc: "Modern" },
-                    { id: "display", name: "Fraunces", desc: "Display" },
+                    { id: "sans", name: "Urbanist", desc: "Modern" },
+                    { id: "display", name: "Cormorant", desc: "Classic" },
                   ].map((f) => {
                     const isSelected = editFont === f.id;
                     return (
@@ -1174,43 +1197,6 @@ export function BookshelfView({
                     );
                   })}
                 </div>
-              </div>
-
-              {/* iOS Switch: Shared Space */}
-              <div className="flex items-center justify-between p-3.5 rounded-2xl apple-card shadow-[0_8px_20px_-6px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.85)]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center text-[var(--text-primary)]">
-                    <Users className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-[var(--text-primary)]">
-                      Shared Space
-                    </div>
-                    <div className="text-[10px] text-[var(--text-tertiary)]">
-                      {editShared ? "Synchronized" : "Private notebook"}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic("light");
-                    setEditShared(!editShared);
-                  }}
-                  className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] ${
-                    editShared
-                      ? "bg-[var(--text-primary)]"
-                      : "bg-neutral-300 dark:bg-neutral-700"
-                  }`}
-                  role="switch"
-                  aria-checked={editShared}
-                >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,0.2)] transform transition-transform duration-200 ${
-                      editShared ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
               </div>
 
               {/* Shelf Position Reorder */}
@@ -1255,18 +1241,16 @@ export function BookshelfView({
               )}
 
               {/* Archive / Delete */}
-              {spaces.length > 1 && (
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleDeleteActive}
-                    className="w-full p-3 rounded-2xl apple-card text-rose-500 hover:text-rose-600 active:scale-98 transition-all text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(244,63,94,0.08)] border border-rose-500/15"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
-                    <span>Archive Volume</span>
-                  </button>
-                </div>
-              )}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleDeleteActive}
+                  className="w-full p-3 rounded-2xl apple-card text-rose-500 hover:text-rose-600 active:scale-98 transition-all text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(244,63,94,0.08)] border border-rose-500/15"
+                >
+                  <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
+                  <span>Archive Volume</span>
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -1316,6 +1300,7 @@ export function BookshelfView({
                 title={newName}
                 coverStyle={newCover}
                 customColor={newCustomColor}
+                fontChoice={newFont}
               />
 
               {/* Title & Epigraph */}
@@ -1443,41 +1428,38 @@ export function BookshelfView({
                 </div>
               </div>
 
-              {/* iOS Switch: Shared Space */}
-              <div className="flex items-center justify-between p-3.5 rounded-2xl apple-card shadow-[0_8px_20px_-6px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.85)]">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center text-[var(--text-primary)]">
-                    <Users className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-[var(--text-primary)]">
-                      Shared Space
-                    </div>
-                    <div className="text-[10px] text-[var(--text-tertiary)]">
-                      Sync moments together
-                    </div>
-                  </div>
+              {/* Folio Typography */}
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] mb-1.5">
+                  Folio Typography
+                </label>
+                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-2xl apple-card shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
+                  {[
+                    { id: "editorial", name: "Newsreader", desc: "Serif" },
+                    { id: "sans", name: "Urbanist", desc: "Modern" },
+                    { id: "display", name: "Cormorant", desc: "Classic" },
+                  ].map((f) => {
+                    const isSelected = newFont === f.id;
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setNewFont(f.id as FontChoice);
+                        }}
+                        className={`py-2 px-1 rounded-xl text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold shadow-xs"
+                            : "inner-pseudo-glass text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                        }`}
+                      >
+                        <div className="text-xs">{f.name}</div>
+                        <div className="text-[9px] opacity-75">{f.desc}</div>
+                      </button>
+                    );
+                  })}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic("light");
-                    setNewShared(!newShared);
-                  }}
-                  className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] ${
-                    newShared
-                      ? "bg-[var(--text-primary)]"
-                      : "bg-neutral-300 dark:bg-neutral-700"
-                  }`}
-                  role="switch"
-                  aria-checked={newShared}
-                >
-                  <div
-                    className={`w-5 h-5 rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,0.2)] transform transition-transform duration-200 ${
-                      newShared ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
               </div>
 
               {/* Submit Button */}
@@ -1496,27 +1478,3 @@ export function BookshelfView({
     </div>
   );
 }
-
-// Backward compatibility alias
-export const BookshelfModal = ({
-  isOpen,
-  onClose,
-  onBackToNotebook: _unusedBack,
-  ...props
-}: Partial<BookshelfViewProps> & {
-  isOpen?: boolean;
-  onClose?: () => void;
-}) => {
-  if (isOpen === false) return null;
-  return (
-    <BookshelfView
-      onBackToNotebook={onClose || _unusedBack || (() => {})}
-      spaces={props.spaces || []}
-      activeSpaceId={props.activeSpaceId || ""}
-      notesCountMap={props.notesCountMap || {}}
-      onSelectSpace={props.onSelectSpace || (() => {})}
-      onCreateSpace={props.onCreateSpace || (() => {})}
-      {...props}
-    />
-  );
-};

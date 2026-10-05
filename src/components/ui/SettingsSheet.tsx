@@ -316,7 +316,7 @@ export function SettingsSheet({
                 </button>
 
                 <p className="text-[10px] font-mono text-center text-[var(--text-tertiary)] opacity-60">
-                  Version 1.0.4
+                  Version 1.0.0
                 </p>
               </div>
             </div>

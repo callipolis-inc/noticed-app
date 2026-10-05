@@ -82,6 +82,8 @@ import {
   syncWithCloud,
   queueCloudDeleteNote,
   queueCloudDeleteSpace,
+  LEGACY_DUMMY_SPACE_IDS,
+  isLegacyDummyNoteId,
 } from "@/lib/syncEngine";
 import {
   ArrowLeft,
@@ -96,163 +98,41 @@ import {
   X,
 } from "lucide-react";
 
-// Initial starter notebooks
-const INITIAL_SPACES: Space[] = [
-  {
-    id: "space-1",
-    name: "Animal Farm",
-    type: "personal",
-    description:
-      "Reflections on revolutions, literature and allegories of power",
-    iconName: "book-open",
-    coverStyle: "klein",
-    fontChoice: "editorial",
-    isShared: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "space-2",
-    name: "Field Notes",
-    type: "personal",
-    description:
-      "Everyday fleeting thoughts, ordinary wonders & quiet noticing",
-    iconName: "compass",
-    coverStyle: "ultramarine",
-    fontChoice: "editorial",
-    isShared: false,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "space-3",
-    name: "Cozy Stash",
-    type: "cozy_stash",
-    description: "Shared journal, mutual memories & unhurried moments together",
-    iconName: "coffee",
-    coverStyle: "alabaster",
-    fontChoice: "sans",
-    isShared: true,
-    partnerName: "Maya",
-    inviteCode: "SN-COZY-742",
-    membersCount: 2,
-    createdAt: new Date().toISOString(),
-  },
-];
+// Default starter notebook for a fresh installation or factory reset
+const DEFAULT_STARTER_SPACE: Space = {
+  id: "space-2",
+  name: "Field Notes",
+  type: "personal",
+  description:
+    "Everyday fleeting thoughts, ordinary wonders & quiet noticing",
+  iconName: "compass",
+  coverStyle: "ultramarine",
+  fontChoice: "editorial",
+  isShared: false,
+  createdAt: new Date().toISOString(),
+};
 
-// Initial field notes matching authentic literary reference
-const INITIAL_NOTES: FieldNote[] = [
-  {
-    id: "note-af-1",
-    spaceId: "space-1",
-    content:
-      "Saya baru sampai Chapter VI. Menarik apabila Animal Farm dilihat sebagai satu alegori tentang revolusi dan politik kuasa.",
-    photos: [
-      "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=800&auto=format&fit=crop",
-    ],
-    marginalia:
-      "Catatan permulaan bab: Menggambarkan transformasi beransur-ansur windmill menjadi simbol cita-cita dan beban haiwan.",
-    quoteSource: "Komentar Bab VI",
-    marginaliaItems: [
-      {
-        id: "m-af-1",
-        content:
-          "Catatan permulaan bab: Menggambarkan transformasi beransur-ansur windmill menjadi simbol cita-cita dan beban haiwan.",
-        citation: "Komentar Bab VI",
-        targetSentence: "Saya baru sampai Chapter VI.",
-      },
-    ],
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-  },
-  {
-    id: "note-af-2",
-    spaceId: "space-1",
-    content:
-      'Awalnya, haiwan-haiwan tu cuba melakukan revolusi untuk membebaskan diri daripada eksploitasi Mr Jones. Selepas mereka berjaya, mereka bina sebuah sistem yang lebih adil dan meletakkan prinsip bahawa "All animals are equal."\n\nTapi bila kuasa mula berfokus pada satu kelompok, struktur kuasa yang baru pun terbentuk. Dalam hal ni, babi-babi yang ada kelebihan dari segi pendidikan dan akses kepada pengetahuan yang pegang tampuk kepimpinan.',
-    photos: [
-      "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=800&auto=format&fit=crop",
-    ],
-    marginalia:
-      "Bab 3: Slogan asal 'All animals are equal' kemudiannya dipinda secara senyap di dinding lumbung kepada '...but some animals are more equal than others.'",
-    quoteSource: "George Orwell (1945)",
-    marginaliaItems: [
-      {
-        id: "m-af-2",
-        content:
-          "Bab 3: Slogan asal 'All animals are equal' kemudiannya dipinda secara senyap di dinding lumbung kepada '...but some animals are more equal than others.'",
-        citation: "George Orwell (1945)",
-        targetSentence:
-          'Selepas mereka berjaya, mereka bina sebuah sistem yang lebih adil dan meletakkan prinsip bahawa "All animals are equal."',
-      },
-    ],
-    createdAt: new Date(Date.now() - 1000 * 60 * 26).toISOString(),
-  },
-  {
-    id: "note-af-3",
-    spaceId: "space-1",
-    content:
-      "Ironinya, kelompok yang pada awalnya menentang eksploitasi akhirnya mula menikmati keistimewaan elit: makanan terbaik, tempat tinggal yang lebih baik, sedangkan kelompok lain terus kerja keras.\n\nAdakah sebuah revolusi benar-benar mampu menghapuskan penindasan atau sekadar memindahkan kuasa daripada satu kelompok dominan kepada kelompok yang lain?",
-    photos: [
-      "https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=800&auto=format&fit=crop",
-    ],
-    marginalia:
-      "Lord Acton: 'Power tends to corrupt, and absolute power corrupts absolutely.' — Surat kepada Uskup Mandell Creighton.",
-    quoteSource: "Acton (1887)",
-    createdAt: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-  },
-  {
-    id: "note-fn-1",
-    spaceId: "space-2",
-    content:
-      "24.09.2026 (3pm)- Pergi tuaran untuk stay satu malam. Berbaloi ambil room ada bathtub, sbb dah sampai lewat petang xmandi kolam. Sampai ja petang ambil peluang g pantai skejap..siap terbangkan drone & ambil2 sikit gambar/video ••\n\n7.40pm - Pergi dinner •",
-    photos: [
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1519046904884-53103b34b206?q=80&w=800&auto=format&fit=crop",
-    ],
-    marginalia:
-      "Bawa lensa 35mm f/1.8 lain kali; pencahayaan twilight di pantai sangat lembut untuk tangkapan refleksi air.",
-    quoteSource: "Catatan Lensa & Sudut",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-  },
-  {
-    id: "note-fn-2",
-    spaceId: "space-2",
-    content:
-      "9.00pm(24.09.2026) ❤️\nMenyempat duduk santai dekat open area atas cafe, ambil angin malam and snap gambar ala estetik gituhh.. maklumlah mau jgk feeling romantis.\n\nAngin malam pun lumayan, sepoi basah dengan Angin Bayu laut. Habis santai around 5minit balik bilik untuk ready to sleep",
-    photos: [
-      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=800&auto=format&fit=crop",
-    ],
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 23.5).toISOString(),
-  },
-  {
-    id: "note-cs-1",
-    spaceId: "space-3",
-    content:
-      "The afternoon sun filtering through the linen curtains looked like diluted honey. Reminded me of that old cafe in Shimokitazawa.",
-    author: {
-      name: "Maya",
-    },
-    photos: [
-      "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=800&auto=format&fit=crop",
-    ],
-    marginalia:
-      "Maya: 'Lagu Bill Evans — Peace Piece tengah main di kafe masa tu kan? Rasa damai sangat.'",
-    quoteSource: "Memori Shimokitazawa",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
-  },
-  {
-    id: "note-cs-2",
-    spaceId: "space-3",
-    content:
-      "Made iced hojicha and roasted sweet potatoes while waiting for the evening rain. The kettle whistle matched the copper wind chimes.",
-    author: {
-      name: "Afa",
-    },
-    photos: [
-      "https://images.unsplash.com/photo-1545048702-7936659f77f0?q=80&w=800&auto=format&fit=crop",
-    ],
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-  },
-];
+const INITIAL_SPACES: Space[] = [DEFAULT_STARTER_SPACE];
+const INITIAL_NOTES: FieldNote[] = [];
+
+function sanitizeLegacyDummyData(
+  rawSpaces: Space[],
+  rawNotes: FieldNote[],
+): { spaces: Space[]; notes: FieldNote[] } {
+  const cleanedNotes = rawNotes.filter((n) => !isLegacyDummyNoteId(n.id));
+  const realNoteSpaceIds = new Set(cleanedNotes.map((n) => n.spaceId));
+  const cleanedSpaces = rawSpaces
+    .filter(
+      (s) => !LEGACY_DUMMY_SPACE_IDS.has(s.id) || realNoteSpaceIds.has(s.id),
+    )
+    .map((s) => ({
+      ...s,
+      isShared: false,
+      partnerName: undefined,
+      inviteCode: undefined,
+    }));
+  return { spaces: cleanedSpaces, notes: cleanedNotes };
+}
 
 export function App() {
   const [theme, setTheme] = useState<ThemePalette>(() => {
@@ -272,26 +152,33 @@ export function App() {
     return "alabaster";
   });
 
-  const [spaces, setSpaces] = useState<Space[]>(() => {
+  const initialSanitized = useMemo(() => {
     try {
-      const saved = localStorage.getItem("sidenotes_spaces");
-      return saved ? JSON.parse(saved) : INITIAL_SPACES;
+      const savedSpacesStr =
+        typeof window !== "undefined"
+          ? localStorage.getItem("sidenotes_spaces")
+          : null;
+      const savedNotesStr =
+        typeof window !== "undefined"
+          ? localStorage.getItem("sidenotes_notes")
+          : null;
+      const rawSpaces: Space[] = savedSpacesStr
+        ? JSON.parse(savedSpacesStr)
+        : INITIAL_SPACES;
+      const rawNotes: FieldNote[] = savedNotesStr
+        ? JSON.parse(savedNotesStr)
+        : INITIAL_NOTES;
+      return sanitizeLegacyDummyData(rawSpaces, rawNotes);
     } catch {
-      return INITIAL_SPACES;
+      return { spaces: INITIAL_SPACES, notes: INITIAL_NOTES };
     }
-  });
+  }, []);
 
-  const [notes, setNotes] = useState<FieldNote[]>(() => {
-    try {
-      const saved = localStorage.getItem("sidenotes_notes");
-      return saved ? JSON.parse(saved) : INITIAL_NOTES;
-    } catch {
-      return INITIAL_NOTES;
-    }
-  });
+  const [spaces, setSpaces] = useState<Space[]>(initialSanitized.spaces);
+  const [notes, setNotes] = useState<FieldNote[]>(initialSanitized.notes);
 
   const [activeSpaceId, setActiveSpaceId] = useState<string>(() => {
-    return spaces[0]?.id || "space-1";
+    return initialSanitized.spaces[0]?.id || DEFAULT_STARTER_SPACE.id;
   });
 
   const [currentView, setCurrentView] = useState<"bookshelf" | "notebook">(
@@ -302,9 +189,10 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [userName, setUserName] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("sidenotes_username") || "Afa";
+      const saved = localStorage.getItem("sidenotes_username");
+      if (saved && saved !== "Afa") return saved;
     }
-    return "Afa";
+    return "Author";
   });
   const [avatarPhoto, setAvatarPhoto] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -321,12 +209,7 @@ export function App() {
       localStorage.removeItem("sidenotes_avatar_photo");
     }
   };
-  const [partnerName, setPartnerName] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("sidenotes_partner_name") || "Maya";
-    }
-    return "Maya";
-  });
+
   const [defaultShelfLayout, setDefaultShelfLayout] = useState<
     "spines" | "covers"
   >(() => {
@@ -402,11 +285,29 @@ export function App() {
           JSON.stringify(result.spaces) !== JSON.stringify(spaces);
         const notesChanged =
           JSON.stringify(result.notes) !== JSON.stringify(notes);
+        const nameChanged =
+          Boolean(result.userName) && result.userName !== userName;
+        const avatarChanged =
+          result.avatarPhoto !== undefined &&
+          result.avatarPhoto !== avatarPhoto;
 
-        if (spacesChanged || notesChanged) {
+        if (spacesChanged || notesChanged || nameChanged || avatarChanged) {
           isApplyingRemoteSyncRef.current = true;
           if (spacesChanged) setSpaces(result.spaces);
           if (notesChanged) setNotes(result.notes);
+          if (nameChanged && result.userName) {
+            setUserName(result.userName);
+            localStorage.setItem("sidenotes_username", result.userName);
+          }
+          if (avatarChanged && result.avatarPhoto !== undefined) {
+            setAvatarPhoto(result.avatarPhoto);
+            if (result.avatarPhoto) {
+              localStorage.setItem(
+                "sidenotes_avatar_photo",
+                result.avatarPhoto,
+              );
+            }
+          }
           setTimeout(() => {
             isApplyingRemoteSyncRef.current = false;
           }, 150);
@@ -496,7 +397,7 @@ export function App() {
     }
   };
 
-  // Hydrate spaces & notes from IndexedDB
+  // Hydrate spaces & notes from IndexedDB and purge any legacy dummy records
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -505,21 +406,35 @@ export function App() {
         loadFromAtelierDB<FieldNote[]>("sidenotes_notes"),
       ]);
       if (!isMounted) return;
-      if (idbSpaces && Array.isArray(idbSpaces) && idbSpaces.length > 0) {
-        setSpaces(idbSpaces);
-      }
-      if (idbNotes && Array.isArray(idbNotes) && idbNotes.length > 0) {
-        setNotes(idbNotes);
+      const rawIdbSpaces =
+        idbSpaces && Array.isArray(idbSpaces) && idbSpaces.length > 0
+          ? idbSpaces
+          : null;
+      const rawIdbNotes =
+        idbNotes && Array.isArray(idbNotes) && idbNotes.length > 0
+          ? idbNotes
+          : null;
+      if (rawIdbSpaces || rawIdbNotes) {
+        const sanitized = sanitizeLegacyDummyData(
+          rawIdbSpaces ?? initialSanitized.spaces,
+          rawIdbNotes ?? initialSanitized.notes,
+        );
+        if (rawIdbSpaces) setSpaces(sanitized.spaces);
+        if (rawIdbNotes) setNotes(sanitized.notes);
       }
       if (typeof window !== "undefined") {
         localStorage.removeItem("sidenotes_is_locked");
         localStorage.removeItem("sidenotes_pin_code");
+        localStorage.removeItem("sidenotes_partner_name");
+        if (localStorage.getItem("sidenotes_username") === "Afa") {
+          localStorage.removeItem("sidenotes_username");
+        }
       }
     })();
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [initialSanitized]);
 
   // Settings Handlers
   const handleUpdateUserName = (name: string) => {
@@ -527,11 +442,6 @@ export function App() {
     localStorage.setItem("sidenotes_username", name);
     setFlyoutMessage(`Author set to ${name}`);
     setTimeout(() => setFlyoutMessage(null), 2000);
-  };
-
-  const handleUpdatePartnerName = (name: string) => {
-    setPartnerName(name);
-    localStorage.setItem("sidenotes_partner_name", name);
   };
 
   const handleUpdateDefaultShelfLayout = (layout: "spines" | "covers") => {
@@ -553,14 +463,12 @@ export function App() {
     setTimeout(() => setFlyoutMessage(null), 2000);
   };
 
-
   const handleExportArchive = () => {
     const archive = {
       app: "noticed",
-      version: "1.0",
+      version: "1.0.0",
       exportedAt: new Date().toISOString(),
       user: userName,
-      partner: partnerName,
       spaces,
       notes,
     };
@@ -588,11 +496,11 @@ export function App() {
           data.notes &&
           Array.isArray(data.notes)
         ) {
-          setSpaces(data.spaces);
-          setNotes(data.notes);
+          const sanitized = sanitizeLegacyDummyData(data.spaces, data.notes);
+          setSpaces(sanitized.spaces);
+          setNotes(sanitized.notes);
           if (data.user) handleUpdateUserName(data.user);
-          if (data.partner) handleUpdatePartnerName(data.partner);
-          setFlyoutMessage(`Restored ${data.notes.length} notices`);
+          setFlyoutMessage(`Restored ${sanitized.notes.length} notices`);
           setTimeout(() => setFlyoutMessage(null), 2500);
         } else {
           setFlyoutMessage("Invalid backup format");
@@ -607,9 +515,10 @@ export function App() {
   };
 
   const handleResetAllData = () => {
-    setSpaces(INITIAL_SPACES);
-    setNotes(INITIAL_NOTES);
-    setActiveSpaceId(INITIAL_SPACES[0].id);
+    setSpaces([DEFAULT_STARTER_SPACE]);
+    setNotes([]);
+    setActiveSpaceId(DEFAULT_STARTER_SPACE.id);
+    setCurrentView("bookshelf");
     localStorage.removeItem("sidenotes_spaces");
     localStorage.removeItem("sidenotes_notes");
     clearAtelierDB();
@@ -648,12 +557,6 @@ export function App() {
     );
     setTimeout(() => setFlyoutMessage(null), 2000);
   };
-
-  // Quick Date Filter state
-  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(
-    null,
-  );
-  const [isFilterMode, setIsFilterMode] = useState(false);
 
   // Global Cmd+K / Ctrl+K keyboard shortcut
   useEffect(() => {
@@ -710,11 +613,6 @@ export function App() {
     editingNote,
   ]);
 
-  useEffect(() => {
-    setSelectedDateFilter(null);
-    setIsFilterMode(false);
-  }, [activeSpaceId]);
-
   // Scroll listener for reading progress bar (RAF-throttled DOM ref update — 0 React re-renders)
   useEffect(() => {
     if (currentView !== "notebook" || !isReadingMode) return;
@@ -748,8 +646,6 @@ export function App() {
 
   const handleSelectSearchNote = (spaceId: string, noteId: string) => {
     setIsSearchOpen(false);
-    setSelectedDateFilter(null);
-    setIsFilterMode(false);
     setActiveSpaceId(spaceId);
     setCurrentView("notebook");
     setHighlightedNoteId(noteId);
@@ -848,29 +744,38 @@ export function App() {
     saveToAtelierDB("sidenotes_notes", notes);
   }, [notes]);
 
-  const activeSpace = spaces.find((s) => s.id === activeSpaceId) || spaces[0];
+  const activeSpace =
+    spaces.find((s) => s.id === activeSpaceId) ||
+    spaces[0] ||
+    DEFAULT_STARTER_SPACE;
   const currentNotebookFont: FontChoice =
     activeSpace?.fontChoice || "editorial";
 
+  useEffect(() => {
+    if (spaces.length === 0 && currentView === "notebook") {
+      setCurrentView("bookshelf");
+    }
+  }, [spaces.length, currentView]);
+
   const handleCreateSpace = (
     name: string,
-    isShared: boolean,
+    _isShared: boolean,
     coverStyle?: CoverStyle,
     description?: string,
     customColor?: string,
+    fontChoice?: FontChoice,
   ) => {
     const newSpace: Space = {
       id: generateId(),
       name,
       description: description || "Everyday fleeting thoughts & quiet noticing",
-      type: isShared ? "cozy_stash" : "personal",
-      iconName: isShared ? "coffee" : "book-open",
+      type: "personal",
+      iconName: "book-open",
       coverStyle: coverStyle || "klein",
       customColor,
-      fontChoice: "editorial",
-      isShared,
-      membersCount: isShared ? 2 : 1,
-      partnerName: isShared ? "Maya" : undefined,
+      fontChoice: fontChoice || "editorial",
+      isShared: false,
+      membersCount: 1,
       createdAt: new Date().toISOString(),
     };
 
@@ -891,7 +796,10 @@ export function App() {
     const spaceNotes = notes.filter((n) => n.spaceId === spaceId);
     setSpaces((prev) => {
       const remaining = prev.filter((s) => s.id !== spaceId);
-      if (activeSpaceId === spaceId && remaining.length > 0) {
+      if (remaining.length === 0) {
+        setActiveSpaceId("");
+        setCurrentView("bookshelf");
+      } else if (activeSpaceId === spaceId) {
         setActiveSpaceId(remaining[0].id);
       }
       return remaining;
@@ -1122,13 +1030,6 @@ export function App() {
     return groups;
   }, [notebookNotes, streamSortOrder]);
 
-  const displayGroupedNotes = useMemo(() => {
-    if (selectedDateFilter && isFilterMode) {
-      return groupedNotes.filter((g) => g.dateKey === selectedDateFilter);
-    }
-    return groupedNotes;
-  }, [groupedNotes, selectedDateFilter, isFilterMode]);
-
   const notebookSubtitle = useMemo(() => {
     const noteCount = notebookNotes.length;
     const noteCountText = `${noteCount} ${noteCount === 1 ? "notice" : "notices"}`;
@@ -1243,15 +1144,6 @@ export function App() {
                   {/* Metadata Badge */}
                   <div className="inline-flex items-center gap-2 px-3 py-0.5 rounded-full inner-pseudo-glass text-[10px] font-mono uppercase tracking-[0.18em] text-[var(--text-tertiary)] shadow-xs">
                     <span>{notebookSubtitle}</span>
-                    {activeSpace.isShared && (
-                      <>
-                        <span>·</span>
-                        <span className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80" />
-                          <span>Shared</span>
-                        </span>
-                      </>
-                    )}
                     {userEmail && (
                       <>
                         <span>·</span>
@@ -1288,15 +1180,6 @@ export function App() {
                     </p>
                   )}
 
-                  {/* Collaborative Stash Info */}
-                  {activeSpace.isShared && (
-                    <div className="text-[11px] opacity-60 font-sans">
-                      {activeSpace.partnerName
-                        ? `Noticing in tandem with ${activeSpace.partnerName}`
-                        : "Shared Stash Edition"}
-                    </div>
-                  )}
-
                   {/* Caustic Ornament Divider */}
                   <div className="pt-3 flex items-center justify-center gap-3 opacity-30">
                     <div className="w-8 sm:w-10 h-px bg-[var(--text-primary)]" />
@@ -1315,7 +1198,7 @@ export function App() {
               )}
 
               {/* Note Stream */}
-              {displayGroupedNotes.length === 0 ? (
+              {groupedNotes.length === 0 ? (
                 <div className="py-24 text-center space-y-3">
                   <p className="text-sm text-[var(--text-tertiary)] italic">
                     A blank page awaits your notice.
@@ -1333,7 +1216,7 @@ export function App() {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {displayGroupedNotes.map((group) => {
+                  {groupedNotes.map((group) => {
                     const sectionId = `date-group-${encodeURIComponent(
                       group.dateKey.toLowerCase().replace(/\s+/g, "-"),
                     )}`;

@@ -9,6 +9,8 @@ import {
 export interface SyncResult {
   spaces: Space[];
   notes: FieldNote[];
+  userName?: string;
+  avatarPhoto?: string | null;
   synced: boolean;
   timestamp?: string;
   error?: string;
@@ -21,11 +23,24 @@ interface PendingDeletes {
 }
 
 const PENDING_DELETES_KEY = "sidenotes_pending_deletes";
-const STARTER_SPACE_IDS = new Set(["space-1", "space-2", "space-3"]);
-const STARTER_NOTE_PREFIXES = ["note-af-", "note-fn-", "note-cs-"];
 
-function isStarterNoteId(id: string): boolean {
-  return STARTER_NOTE_PREFIXES.some((prefix) => id.startsWith(prefix));
+export const LEGACY_DUMMY_SPACE_IDS = new Set(["space-1", "space-3"]);
+export const LEGACY_DUMMY_NOTE_IDS = new Set([
+  "note-af-1",
+  "note-af-2",
+  "note-af-3",
+  "note-fn-1",
+  "note-fn-2",
+  "note-cs-1",
+  "note-cs-2",
+]);
+const LEGACY_DUMMY_NOTE_PREFIXES = ["note-af-", "note-fn-", "note-cs-"];
+
+export function isLegacyDummyNoteId(id: string): boolean {
+  return (
+    LEGACY_DUMMY_NOTE_IDS.has(id) ||
+    LEGACY_DUMMY_NOTE_PREFIXES.some((prefix) => id.startsWith(prefix))
+  );
 }
 
 function getPendingDeletes(): PendingDeletes {
@@ -50,7 +65,7 @@ function savePendingDeletes(pending: PendingDeletes) {
       noteIds: Array.from(new Set(pending.noteIds)),
       spaceIds: Array.from(new Set(pending.spaceIds)),
       mediaUrls: Array.from(new Set(pending.mediaUrls)),
-    })
+    }),
   );
 }
 
@@ -82,7 +97,7 @@ export async function queueCloudDeleteNote(note: FieldNote): Promise<void> {
  */
 export async function queueCloudDeleteSpace(
   spaceId: string,
-  spaceNotes: FieldNote[]
+  spaceNotes: FieldNote[],
 ): Promise<void> {
   const pending = getPendingDeletes();
   pending.spaceIds.push(spaceId);
@@ -148,7 +163,10 @@ export async function flushPendingDeletes(): Promise<void> {
         .delete()
         .in("id", pending.spaceIds);
       if (spaceDelError) {
-        console.warn("[SyncEngine] Pending space delete warning:", spaceDelError);
+        console.warn(
+          "[SyncEngine] Pending space delete warning:",
+          spaceDelError,
+        );
         return;
       }
     }
@@ -258,7 +276,7 @@ export async function syncWithCloud(
   localSpaces: Space[],
   localNotes: FieldNote[],
   userName?: string,
-  avatarPhoto?: string | null
+  avatarPhoto?: string | null,
 ): Promise<SyncResult> {
   const user = await getCurrentUser();
   if (!user) {
@@ -277,29 +295,42 @@ export async function syncWithCloud(
     const pendingDeletedSpaceIds = new Set(remainingPending.spaceIds);
     const pendingDeletedNoteIds = new Set(remainingPending.noteIds);
 
-    // 1. Sync User Profile (offload avatar DataURL to Storage Bucket if needed)
-    if (userName || avatarPhoto) {
-      let resolvedAvatarUrl = avatarPhoto || null;
-      if (resolvedAvatarUrl && resolvedAvatarUrl.startsWith("data:")) {
-        const uploaded = await ensureRemoteMediaUrls(
-          [resolvedAvatarUrl],
-          "avatars"
-        );
-        resolvedAvatarUrl = uploaded[0] || resolvedAvatarUrl;
-      }
+    // 1. Two-Way Profile Sync (Pull remote profile first, then merge & upsert)
+    const { data: remoteProfile } = await supabase
+      .from("profiles")
+      .select("display_name, avatar_url")
+      .eq("id", user.id)
+      .maybeSingle();
 
-      await supabase.from("profiles").upsert(
-        {
-          id: user.id,
-          display_name: userName || "Author",
-          avatar_url: resolvedAvatarUrl,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "id" }
-      );
+    let resolvedUserName = userName?.trim() || "Author";
+    if (
+      (resolvedUserName === "Author" || !resolvedUserName) &&
+      remoteProfile?.display_name &&
+      remoteProfile.display_name !== "Author"
+    ) {
+      resolvedUserName = remoteProfile.display_name;
     }
 
-    // 2. Pull Existing Remote Spaces & Remote Notes to check Cloud-First Priority
+    let resolvedAvatarUrl = avatarPhoto ?? remoteProfile?.avatar_url ?? null;
+    if (resolvedAvatarUrl && resolvedAvatarUrl.startsWith("data:")) {
+      const uploaded = await ensureRemoteMediaUrls(
+        [resolvedAvatarUrl],
+        "avatars",
+      );
+      resolvedAvatarUrl = uploaded[0] || resolvedAvatarUrl;
+    }
+
+    await supabase.from("profiles").upsert(
+      {
+        id: user.id,
+        display_name: resolvedUserName,
+        avatar_url: resolvedAvatarUrl,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    // 2. Pull Existing Remote Spaces & Remote Notes
     const { data: existingRemoteSpaces, error: initialPullSpacesError } =
       await supabase.from("spaces").select("*");
     if (initialPullSpacesError) throw initialPullSpacesError;
@@ -311,25 +342,65 @@ export async function syncWithCloud(
         .order("created_at", { ascending: false });
     if (initialPullNotesError) throw initialPullNotesError;
 
-    const remoteSpaceIds = new Set(
-      (existingRemoteSpaces || []).map((r: any) => r.id)
+    // 2.5 Automatically purge any legacy dummy notes/spaces found in Supabase
+    const remoteDummyNoteIds = (existingRemoteNotes || [])
+      .filter((r: any) => isLegacyDummyNoteId(r.id))
+      .map((r: any) => r.id);
+
+    if (remoteDummyNoteIds.length > 0) {
+      await supabase.from("field_notes").delete().in("id", remoteDummyNoteIds);
+    }
+
+    const realRemoteNotes = (existingRemoteNotes || []).filter(
+      (r: any) => !isLegacyDummyNoteId(r.id),
     );
-    const remoteNoteIds = new Set(
-      (existingRemoteNotes || []).map((r: any) => r.id)
+    const realLocalNotes = localNotes.filter(
+      (n) => !isLegacyDummyNoteId(n.id) && !pendingDeletedNoteIds.has(n.id),
     );
+
+    // A legacy dummy space ('space-1' Animal Farm or 'space-3' Cozy Stash) is purged
+    // unless the user wrote real custom notes inside it.
+    const spaceIdsWithRealNotes = new Set<string>([
+      ...realRemoteNotes.map((r: any) => r.space_id),
+      ...realLocalNotes.map((n) => n.spaceId),
+    ]);
+
+    const remoteDummySpaceIds = (existingRemoteSpaces || [])
+      .filter(
+        (r: any) =>
+          LEGACY_DUMMY_SPACE_IDS.has(r.id) && !spaceIdsWithRealNotes.has(r.id),
+      )
+      .map((r: any) => r.id);
+
+    if (remoteDummySpaceIds.length > 0) {
+      await supabase.from("spaces").delete().in("id", remoteDummySpaceIds);
+    }
+
+    const cleanRemoteSpaces = (existingRemoteSpaces || []).filter(
+      (r: any) =>
+        !LEGACY_DUMMY_SPACE_IDS.has(r.id) || spaceIdsWithRealNotes.has(r.id),
+    );
+
+    const remoteSpaceIds = new Set(cleanRemoteSpaces.map((r: any) => r.id));
+    const remoteNoteIds = new Set(realRemoteNotes.map((r: any) => r.id));
 
     const cloudAlreadyHasData =
       remoteSpaceIds.size > 0 || remoteNoteIds.size > 0;
 
-    // Filter local spaces & notes:
-    // If the cloud account already has data, do NOT re-push default starter spaces/notes
-    // that were previously deleted from the cloud.
+    // Filter local spaces & notes
     const activeLocalSpaces = localSpaces.filter((s) => {
       if (pendingDeletedSpaceIds.has(s.id)) return false;
       if (
+        LEGACY_DUMMY_SPACE_IDS.has(s.id) &&
+        !spaceIdsWithRealNotes.has(s.id)
+      ) {
+        return false;
+      }
+      if (
         cloudAlreadyHasData &&
-        STARTER_SPACE_IDS.has(s.id) &&
-        !remoteSpaceIds.has(s.id)
+        s.id === "space-2" &&
+        !remoteSpaceIds.has("space-2") &&
+        !spaceIdsWithRealNotes.has("space-2")
       ) {
         return false;
       }
@@ -341,21 +412,11 @@ export async function syncWithCloud(
       activeLocalSpaceIds.add(rId);
     }
 
-    const activeLocalNotes = localNotes.filter((n) => {
-      if (
-        pendingDeletedNoteIds.has(n.id) ||
-        pendingDeletedSpaceIds.has(n.spaceId)
-      ) {
+    const activeLocalNotes = realLocalNotes.filter((n) => {
+      if (pendingDeletedSpaceIds.has(n.spaceId)) {
         return false;
       }
       if (!activeLocalSpaceIds.has(n.spaceId)) {
-        return false;
-      }
-      if (
-        cloudAlreadyHasData &&
-        isStarterNoteId(n.id) &&
-        !remoteNoteIds.has(n.id)
-      ) {
         return false;
       }
       return true;
@@ -383,10 +444,13 @@ export async function syncWithCloud(
         : [];
 
       let remoteVoiceMemo = note.voiceMemo;
-      if (note.voiceMemo?.audioUrl && note.voiceMemo.audioUrl.startsWith("data:")) {
+      if (
+        note.voiceMemo?.audioUrl &&
+        note.voiceMemo.audioUrl.startsWith("data:")
+      ) {
         const uploadedAudio = await ensureRemoteMediaUrls(
           [note.voiceMemo.audioUrl],
-          "audio"
+          "audio",
         );
         if (uploadedAudio[0]) {
           remoteVoiceMemo = {
@@ -430,7 +494,11 @@ export async function syncWithCloud(
     const spacesMap = new Map<string, Space>();
     if (remoteSpacesData) {
       remoteSpacesData.forEach((row) => {
-        if (!pendingDeletedSpaceIds.has(row.id)) {
+        if (
+          !pendingDeletedSpaceIds.has(row.id) &&
+          (!LEGACY_DUMMY_SPACE_IDS.has(row.id) ||
+            spaceIdsWithRealNotes.has(row.id))
+        ) {
           const remoteSpace = dbToSpace(row);
           spacesMap.set(remoteSpace.id, remoteSpace);
         }
@@ -439,13 +507,14 @@ export async function syncWithCloud(
     activeLocalSpaces.forEach((s) => spacesMap.set(s.id, s));
     const mergedSpaces = Array.from(spacesMap.values());
 
-    // 7. Merge Notes (Local hydrated notes + cloud notes, excluding deleted)
+    // 7. Merge Notes (Local hydrated notes + cloud notes, excluding deleted & legacy dummy)
     const notesMap = new Map<string, FieldNote>();
     if (remoteNotesData) {
       remoteNotesData.forEach((row) => {
         if (
           !pendingDeletedNoteIds.has(row.id) &&
-          !pendingDeletedSpaceIds.has(row.space_id)
+          !pendingDeletedSpaceIds.has(row.space_id) &&
+          !isLegacyDummyNoteId(row.id)
         ) {
           const remoteNote = dbToNote(row);
           notesMap.set(remoteNote.id, remoteNote);
@@ -467,6 +536,8 @@ export async function syncWithCloud(
     return {
       spaces: mergedSpaces,
       notes: mergedNotes,
+      userName: resolvedUserName,
+      avatarPhoto: resolvedAvatarUrl,
       synced: true,
       timestamp: syncTimestamp,
     };
@@ -480,4 +551,5 @@ export async function syncWithCloud(
     };
   }
 }
+
 

@@ -1,13 +1,25 @@
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
-export const triggerHaptic = async (style: "light" | "medium" | "heavy" = "light") => {
+function isHapticsEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem("sidenotes_haptics_enabled") !== "false";
+  } catch {
+    return true;
+  }
+}
+
+export const triggerHaptic = async (
+  style: "light" | "medium" | "heavy" = "light",
+) => {
+  if (!isHapticsEnabled()) return;
   try {
     const impactStyle =
       style === "heavy"
         ? ImpactStyle.Heavy
         : style === "medium"
-        ? ImpactStyle.Medium
-        : ImpactStyle.Light;
+          ? ImpactStyle.Medium
+          : ImpactStyle.Light;
     await Haptics.impact({ style: impactStyle });
   } catch {
     // Web fallback if supported
@@ -18,6 +30,7 @@ export const triggerHaptic = async (style: "light" | "medium" | "heavy" = "light
 };
 
 export const triggerSuccessHaptic = async () => {
+  if (!isHapticsEnabled()) return;
   try {
     await Haptics.notification({ type: "success" as any });
   } catch {
@@ -26,3 +39,4 @@ export const triggerSuccessHaptic = async () => {
     }
   }
 };
+
