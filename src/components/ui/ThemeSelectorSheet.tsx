@@ -311,15 +311,48 @@ export function ThemeSelectorSheet({
                     })}
                   </div>
 
-                  {/* Font Size Slider */}
-                  <div className="p-3.5 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-[var(--text-primary)]">
-                        Size
-                      </span>
-                      <span className="font-mono text-[11px] text-[var(--text-secondary)] font-medium">
-                        {fontSize}px
-                      </span>
+                  {/* Font Size Slider & Presets */}
+                  <div className="p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-semibold text-[var(--text-primary)]">
+                          Size
+                        </span>
+                        <span className="font-mono text-[10.5px] text-[var(--text-tertiary)] font-medium">
+                          · {fontSize}px
+                        </span>
+                      </div>
+
+                      <div className="p-0.5 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] flex items-center gap-0.5">
+                        {(
+                          [
+                            { label: "Small", size: 14 },
+                            { label: "Default", size: 15.5 },
+                            { label: "Large", size: 17.5 },
+                            { label: "Max", size: 19.5 },
+                          ] as const
+                        ).map((preset) => {
+                          const isActive =
+                            Math.abs(fontSize - preset.size) < 0.25;
+                          return (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => {
+                                triggerHaptic("light");
+                                onSelectFontSize?.(preset.size);
+                              }}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-all duration-200 cursor-pointer ${
+                                isActive
+                                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
+                                  : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2.5">

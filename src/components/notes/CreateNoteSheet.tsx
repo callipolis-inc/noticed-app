@@ -1172,7 +1172,10 @@ export function CreateNoteSheet({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Optional title..."
-                className={`w-full bg-transparent border-0 p-0 text-[18px] sm:text-[20px] font-serif font-bold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none tracking-tight ${
+                style={{
+                  fontSize: "calc(var(--note-font-size, 16px) * 1.16)",
+                }}
+                className={`w-full bg-transparent border-0 p-0 font-serif font-bold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none tracking-tight ${
                   textAlign === "center"
                     ? "text-center"
                     : textAlign === "right"
@@ -1190,7 +1193,8 @@ export function CreateNoteSheet({
                   onKeyDown={handleEditorKeyDown}
                   placeholder="What caught your eye today?"
                   rows={6}
-                  className={`w-full bg-transparent resize-none border-0 p-0 text-[16px] sm:text-[17px] leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none ${
+                  style={{ fontSize: "var(--note-font-size, 16px)" }}
+                  className={`w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none ${
                     textAlign === "center"
                       ? "text-center"
                       : textAlign === "right"
@@ -1206,7 +1210,8 @@ export function CreateNoteSheet({
                     triggerHaptic("light");
                     setEditorMode("write");
                   }}
-                  className={`w-full min-h-[140px] text-[16px] sm:text-[17px] leading-relaxed font-content text-[var(--text-primary)] cursor-text select-text ${
+                  style={{ fontSize: "var(--note-font-size, 16px)" }}
+                  className={`w-full min-h-[140px] leading-relaxed font-content text-[var(--text-primary)] cursor-text select-text ${
                     textAlign === "center"
                       ? "text-center"
                       : textAlign === "right"
@@ -1261,7 +1266,10 @@ export function CreateNoteSheet({
                     onChange={(e) => setMarginaliaText(e.target.value)}
                     placeholder="Side commentary, footnote, or companion thought..."
                     rows={3}
-                    className="w-full bg-transparent resize-none border-0 p-0 text-[13.5px] leading-relaxed font-serif italic text-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none"
+                    style={{
+                      fontSize: "calc(var(--note-font-size, 16px) * 0.88)",
+                    }}
+                    className="w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-serif italic text-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none"
                   />
 
                   <div className="pt-2 border-t border-[var(--glass-border)]/50 flex items-center gap-2">

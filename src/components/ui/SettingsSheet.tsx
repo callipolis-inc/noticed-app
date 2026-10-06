@@ -11,6 +11,7 @@ import {
   BookOpen,
   Check,
   Sparkles,
+  Type,
 } from "lucide-react";
 import { useProStatus, setProUser } from "@/lib/proManager";
 import { AtelierProModal } from "./AtelierProModal";
@@ -25,7 +26,16 @@ interface SettingsSheetProps {
   onResetAllData: () => void;
   currentTheme?: ThemePalette;
   onSelectTheme?: (theme: ThemePalette) => void;
+  fontSize?: number;
+  onSelectFontSize?: (size: number) => void;
 }
+
+const FONT_SIZE_PRESETS = [
+  { label: "Small", size: 14 },
+  { label: "Default", size: 15.5 },
+  { label: "Large", size: 17.5 },
+  { label: "Max", size: 19.5 },
+] as const;
 
 export function SettingsSheet({
   isOpen,
@@ -37,6 +47,8 @@ export function SettingsSheet({
   onResetAllData,
   currentTheme,
   onSelectTheme,
+  fontSize = 15.5,
+  onSelectFontSize,
 }: SettingsSheetProps) {
   // Danger Zone Confirmation Modal
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -70,6 +82,11 @@ export function SettingsSheet({
 
   const currentThemeLabel =
     themeOptions.find((t) => t.id === currentTheme)?.name || "Alabaster";
+
+  const activeSizeLabel =
+    FONT_SIZE_PRESETS.find((p) => Math.abs(p.size - fontSize) < 0.25)?.label ||
+    "Custom";
+  const scalePercent = Math.round((fontSize / 15.5) * 100);
 
   return (
     <AnimatePresence>
@@ -240,6 +257,72 @@ export function SettingsSheet({
                       </button>
                     </div>
                   </div>
+
+                  {/* Text Size Preference Row */}
+                  {onSelectFontSize && (
+                    <div className="p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                              <Type className="w-3.5 h-3.5 opacity-80" />
+                            </div>
+                            <span>Text Size</span>
+                          </div>
+                          <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
+                            {activeSizeLabel} · {scalePercent}% ({fontSize}px)
+                          </div>
+                        </div>
+
+                        {/* Quick Segmented Presets */}
+                        <div className="p-1 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] flex items-center gap-0.5">
+                          {FONT_SIZE_PRESETS.map((preset) => {
+                            const isActive =
+                              Math.abs(fontSize - preset.size) < 0.25;
+                            return (
+                              <button
+                                key={preset.label}
+                                type="button"
+                                onClick={() => {
+                                  triggerHaptic("light");
+                                  onSelectFontSize(preset.size);
+                                }}
+                                className={`px-2.5 py-1 rounded-full text-[10.5px] font-medium transition-all duration-200 cursor-pointer ${
+                                  isActive
+                                    ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_8px_-1px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
+                                    : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                                }`}
+                              >
+                                {preset.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Fine Range Slider */}
+                      <div className="flex items-center gap-2.5 pl-8 pr-1 pt-0.5">
+                        <span className="text-[11px] font-serif font-bold text-[var(--text-tertiary)] select-none">
+                          A
+                        </span>
+                        <input
+                          type="range"
+                          min="13"
+                          max="20"
+                          step="0.5"
+                          value={fontSize}
+                          onChange={(e) => {
+                            onSelectFontSize(Number(e.target.value));
+                          }}
+                          aria-label="Text size slider"
+                          className="w-full h-1.5 rounded-full bg-black/5 dark:bg-white/10 accent-[var(--text-primary)] cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] focus:outline-none"
+                        />
+                        <span className="text-[16px] font-serif font-bold text-[var(--text-primary)] select-none">
+                          A
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

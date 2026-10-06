@@ -462,7 +462,7 @@ export function BookshelfView({
             )}
           </div>
           <div className="flex items-center text-left min-w-0">
-            <span className="text-[11.5px] font-semibold leading-none text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[180px] sm:max-w-[220px]">
+            <span className="text-xs font-semibold leading-none text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[180px] sm:max-w-[220px]">
               {isSyncing
                 ? `Syncing · ${userName}`
                 : `${timeGreeting}, ${userName}`}
@@ -596,12 +596,18 @@ export function BookshelfView({
               <div className="w-full h-8 rounded-2xl dynamic-island-shell border border-[var(--glass-border)] relative shadow-[0_16px_36px_-6px_rgba(0,0,0,0.22)] flex items-center justify-between px-3.5 overflow-hidden backdrop-blur-2xl">
                 <div className="dynamic-island-specular-rim" />
 
-                <div className="flex items-center gap-1.5 text-[9.5px] text-[var(--text-secondary)] font-mono uppercase tracking-widest font-semibold">
+                <div
+                  style={{ fontSize: "calc(10px * var(--font-scale, 1))" }}
+                  className="flex items-center gap-1.5 text-[var(--text-secondary)] font-mono uppercase tracking-widest font-semibold"
+                >
                   <BookOpen className="w-3 h-3 text-[var(--text-tertiary)]" />
                   <span>{spaces.length} Editions</span>
                 </div>
 
-                <span className="text-[9.5px] text-[var(--text-tertiary)] font-mono uppercase tracking-widest">
+                <span
+                  style={{ fontSize: "calc(10px * var(--font-scale, 1))" }}
+                  className="text-[var(--text-tertiary)] font-mono uppercase tracking-widest"
+                >
                   {Object.values(notesCountMap).reduce((a, b) => a + b, 0)}{" "}
                   Notices
                 </span>
@@ -611,14 +617,17 @@ export function BookshelfView({
             {/* Typographic Metadata & Actions */}
             {activeSelected && (
               <div className="w-full mt-5 text-center flex flex-col items-center px-4 animate-in fade-in duration-300">
-                <div className="flex items-center justify-center gap-2 mb-1.5">
-                  <span className="text-[10px] uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
+                <div
+                  style={{ fontSize: "calc(10.5px * var(--font-scale, 1))" }}
+                  className="flex items-center justify-center gap-2 mb-1.5"
+                >
+                  <span className="uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
                     Edition
                   </span>
-                  <span className="text-[10px] text-[var(--text-tertiary)] opacity-40">
+                  <span className="text-[var(--text-tertiary)] opacity-40">
                     •
                   </span>
-                  <span className="text-[10px] font-mono text-[var(--text-tertiary)] font-medium">
+                  <span className="font-mono text-[var(--text-tertiary)] font-medium">
                     {notesCountMap[activeSelected.id] || 0} notices
                   </span>
                 </div>

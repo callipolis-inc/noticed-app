@@ -492,7 +492,10 @@ export const NoteEntry = memo(function NoteEntry({
             >
               {note.title && (
                 <h3
-                  className={`font-bold text-[17px] sm:text-[18px] text-[var(--text-primary)] tracking-tight leading-snug pb-1 ${
+                  style={{
+                    fontSize: "calc(var(--note-font-size, 15.5px) * 1.15)",
+                  }}
+                  className={`font-bold text-[var(--text-primary)] tracking-tight leading-snug pb-1 ${
                     note.fontChoice === "sans"
                       ? "font-sans"
                       : note.fontChoice === "display"
@@ -503,7 +506,10 @@ export const NoteEntry = memo(function NoteEntry({
                   {note.title}
                 </h3>
               )}
-              <span className="text-[11px] sm:text-[11.5px] font-sans font-semibold tracking-wider opacity-45 uppercase select-none mr-2 inline-block">
+              <span
+                style={{ fontSize: "calc(11px * var(--font-scale, 1))" }}
+                className="font-sans font-semibold tracking-wider opacity-45 uppercase select-none mr-2 inline-block"
+              >
                 {note.pinned && (
                   <span
                     className="inline-flex items-center text-[var(--text-primary)] opacity-70 mr-1.5"
@@ -541,7 +547,10 @@ export const NoteEntry = memo(function NoteEntry({
 
           {/* Standalone timestamp if there is no text content */}
           {!note.content && (
-            <div className="text-[11px] font-sans font-semibold tracking-wider text-[var(--text-primary)] uppercase select-none flex items-center justify-between w-full gap-2">
+            <div
+              style={{ fontSize: "calc(11px * var(--font-scale, 1))" }}
+              className="font-sans font-semibold tracking-wider text-[var(--text-primary)] uppercase select-none flex items-center justify-between w-full gap-2"
+            >
               <span className="opacity-45">
                 {note.pinned && (
                   <span
@@ -600,7 +609,10 @@ export const NoteEntry = memo(function NoteEntry({
                           onOpenQuickAnnotator(note);
                         }
                       }}
-                      className={`text-[13px] leading-relaxed font-serif text-[var(--text-secondary)] ${
+                      style={{
+                        fontSize: "calc(var(--note-font-size, 15.5px) * 0.85)",
+                      }}
+                      className={`leading-relaxed font-serif text-[var(--text-secondary)] ${
                         !isReadingMode
                           ? "cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                           : ""
@@ -609,12 +621,12 @@ export const NoteEntry = memo(function NoteEntry({
                         !isReadingMode ? "Tap to edit footnote" : undefined
                       }
                     >
-                      <span className="font-serif font-bold text-[12px] text-[var(--text-primary)] mr-1.5 select-none">
+                      <span className="font-serif font-bold text-xs text-[var(--text-primary)] mr-1.5 select-none">
                         {toSuperscriptNumber(idx + 1)}
                       </span>
                       <span className="italic">{m.content}</span>
                       {m.citation && (
-                        <span className="not-italic text-[11px] font-sans text-[var(--text-tertiary)] ml-1.5">
+                        <span className="not-italic text-xs font-sans text-[var(--text-tertiary)] ml-1.5">
                           — {m.citation}
                         </span>
                       )}
@@ -627,13 +639,17 @@ export const NoteEntry = memo(function NoteEntry({
                     return (
                       <div
                         key={hl.id}
-                        className="text-[13px] leading-relaxed font-serif text-[var(--text-secondary)]"
+                        style={{
+                          fontSize:
+                            "calc(var(--note-font-size, 15.5px) * 0.85)",
+                        }}
+                        className="leading-relaxed font-serif text-[var(--text-secondary)]"
                       >
-                        <span className="font-serif font-bold text-[12px] text-[var(--text-primary)] mr-1.5 select-none">
+                        <span className="font-serif font-bold text-xs text-[var(--text-primary)] mr-1.5 select-none">
                           {toSuperscriptNumber(fnNum)}
                         </span>
                         <span className="italic">{hl.marginalia}</span>
-                        <span className="not-italic text-[11px] font-sans text-[var(--text-tertiary)] ml-1.5">
+                        <span className="not-italic text-xs font-sans text-[var(--text-tertiary)] ml-1.5">
                           (“
                           {hl.selectedText.length > 36
                             ? `${hl.selectedText.slice(0, 36)}…`
@@ -672,8 +688,13 @@ export const NoteEntry = memo(function NoteEntry({
                   `}
                   title={!isReadingMode ? "Click to edit footnote" : undefined}
                 >
-                  <p className="font-serif italic text-[13px] leading-relaxed">
-                    <span className="not-italic font-serif font-bold text-[12px] text-[var(--text-primary)] mr-1 select-none">
+                  <p
+                    style={{
+                      fontSize: "calc(var(--note-font-size, 15.5px) * 0.85)",
+                    }}
+                    className="font-serif italic leading-relaxed"
+                  >
+                    <span className="not-italic font-serif font-bold text-xs text-[var(--text-primary)] mr-1 select-none">
                       {toSuperscriptNumber(idx + 1)}
                     </span>
                     {m.content}
@@ -694,8 +715,13 @@ export const NoteEntry = memo(function NoteEntry({
                     key={hl.id}
                     className="text-xs select-text text-[var(--text-secondary)]"
                   >
-                    <p className="font-serif italic text-[13px] leading-relaxed">
-                      <span className="not-italic font-serif font-bold text-[12px] text-[var(--text-primary)] mr-1 select-none">
+                    <p
+                      style={{
+                        fontSize: "calc(var(--note-font-size, 15.5px) * 0.85)",
+                      }}
+                      className="font-serif italic leading-relaxed"
+                    >
+                      <span className="not-italic font-serif font-bold text-xs text-[var(--text-primary)] mr-1 select-none">
                         {toSuperscriptNumber(fnNum)}
                       </span>
                       {hl.marginalia}

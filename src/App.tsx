@@ -682,6 +682,18 @@ export function App() {
     }
   };
 
+  useEffect(() => {
+    const scale = Math.max(0.84, Math.min(1.3, fontSize / 15.5));
+    document.documentElement.style.setProperty(
+      "--note-font-size",
+      `${fontSize}px`,
+    );
+    document.documentElement.style.setProperty(
+      "--font-scale",
+      scale.toFixed(4),
+    );
+  }, [fontSize]);
+
   const [defaultTextAlign, setDefaultTextAlign] = useState<TextAlign>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidenotes_text_align") as TextAlign;
@@ -1148,13 +1160,13 @@ export function App() {
                   </h1>
 
                   {/* Author Byline (Journal / Academic Paper Style) */}
-                  <p className="font-serif text-[14.5px] sm:text-[15px] text-[var(--text-secondary)] font-medium tracking-wide">
+                  <p className="font-serif text-sm text-[var(--text-secondary)] font-medium tracking-wide">
                     {userName || "Author"}
                   </p>
 
                   {/* Description / Abstract / Epigraph */}
                   {activeSpace.description && (
-                    <p className="font-serif italic text-[13.5px] sm:text-[14px] leading-relaxed text-[var(--text-tertiary)] max-w-xs sm:max-w-md mx-auto pt-0.5">
+                    <p className="font-serif italic text-xs sm:text-sm leading-relaxed text-[var(--text-tertiary)] max-w-xs sm:max-w-md mx-auto pt-0.5">
                       {activeSpace.description}
                     </p>
                   )}
@@ -1578,6 +1590,8 @@ export function App() {
             onResetAllData={handleResetAllData}
             currentTheme={theme}
             onSelectTheme={setTheme}
+            fontSize={fontSize}
+            onSelectFontSize={handleSelectFontSize}
           />
         )}
 
