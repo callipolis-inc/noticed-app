@@ -1,40 +1,43 @@
 Add-Type -AssemblyName System.Drawing
-$src = "D:\Project\Sidenotes\public\logo-dark.png"
-$img = [System.Drawing.Image]::FromFile($src)
 
-# 1. Apple Touch Icon (180x180)
-$bmp180 = New-Object System.Drawing.Bitmap 180, 180
-$g180 = [System.Drawing.Graphics]::FromImage($bmp180)
-$g180.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$g180.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-$g180.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-$g180.DrawImage($img, 0, 0, 180, 180)
-$bmp180.Save("D:\Project\Sidenotes\public\apple-touch-icon.png", [System.Drawing.Imaging.ImageFormat]::Png)
-$g180.Dispose()
-$bmp180.Dispose()
+function Resize-ImageFile {
+    param(
+        [Parameter(Mandatory=$true)] [string]$SrcPath,
+        [Parameter(Mandatory=$true)] [string]$DestPath,
+        [Parameter(Mandatory=$true)] [int]$Width,
+        [Parameter(Mandatory=$true)] [int]$Height
+    )
+    $srcImg = [System.Drawing.Image]::FromFile($SrcPath)
+    $destBmp = New-Object System.Drawing.Bitmap $Width, $Height
+    $g = [System.Drawing.Graphics]::FromImage($destBmp)
+    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
+    $g.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $g.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+    $g.DrawImage($srcImg, 0, 0, $Width, $Height)
+    
+    $parent = [System.IO.Path]::GetDirectoryName($DestPath)
+    if (-not (Test-Path $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    
+    $destBmp.Save($DestPath, [System.Drawing.Imaging.ImageFormat]::Png)
+    $g.Dispose()
+    $destBmp.Dispose()
+    $srcImg.Dispose()
+    Write-Host "Generated: $DestPath ($Width x $Height)"
+}
 
-# 2. PWA 192x192
-$bmp192 = New-Object System.Drawing.Bitmap 192, 192
-$g192 = [System.Drawing.Graphics]::FromImage($bmp192)
-$g192.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$g192.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-$g192.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-$g192.DrawImage($img, 0, 0, 192, 192)
-$bmp192.Save("D:\Project\Sidenotes\public\pwa-192x192.png", [System.Drawing.Imaging.ImageFormat]::Png)
-$g192.Dispose()
-$bmp192.Dispose()
+$srcDark = "D:\Project\Sidenotes\public\logo-dark.png"
+$srcLight = "D:\Project\Sidenotes\public\logo-light.png"
 
-# 3. PWA 512x512
-$bmp512 = New-Object System.Drawing.Bitmap 512, 512
-$g512 = [System.Drawing.Graphics]::FromImage($bmp512)
-$g512.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-$g512.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::HighQuality
-$g512.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-$g512.DrawImage($img, 0, 0, 512, 512)
-$bmp512.Save("D:\Project\Sidenotes\public\pwa-512x512.png", [System.Drawing.Imaging.ImageFormat]::Png)
-$bmp512.Save("D:\Project\Sidenotes\public\maskable-icon-512x512.png", [System.Drawing.Imaging.ImageFormat]::Png)
-$g512.Dispose()
-$bmp512.Dispose()
+# 1. Web & PWA Icons
+Resize-ImageFile $srcDark "D:\Project\Sidenotes\public\apple-touch-icon.png" 180 180
+Resize-ImageFile $srcDark "D:\Project\Sidenotes\public\pwa-192x192.png" 192 192
+Resize-ImageFile $srcDark "D:\Project\Sidenotes\public\pwa-512x512.png" 512 512
+Resize-ImageFile $srcDark "D:\Project\Sidenotes\public\maskable-icon-512x512.png" 512 512
 
-$img.Dispose()
-Write-Output "Icons generated successfully in public/"
+# 2. iOS Native App Icon (1024x1024)
+Resize-ImageFile $srcDark "D:\Project\Sidenotes\ios\App\App\Assets.xcassets\AppIcon.appiconset\AppIcon-512@2x.png" 1024 1024
+
+Write-Output "All icons generated successfully across web, PWA, and iOS!"

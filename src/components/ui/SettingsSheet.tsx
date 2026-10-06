@@ -394,9 +394,21 @@ export function SettingsSheet({
                   <span>Reset All Data</span>
                 </button>
 
-                <p className="text-[10px] font-mono text-center text-[var(--text-tertiary)] opacity-60">
-                  Version 1.0.0
-                </p>
+                <div className="flex flex-col items-center justify-center pt-2 gap-1.5 opacity-80">
+                  <img
+                    src="/logo-dark.png"
+                    alt="Noticed"
+                    className="w-8 h-8 rounded-xl dark:block hidden shadow-xs border border-white/10 object-cover"
+                  />
+                  <img
+                    src="/logo-light.png"
+                    alt="Noticed"
+                    className="w-8 h-8 rounded-xl dark:hidden block shadow-xs border border-black/5 object-cover"
+                  />
+                  <p className="text-[10px] font-mono text-center text-[var(--text-tertiary)]">
+                    Noticed · Version 1.0.0
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>
