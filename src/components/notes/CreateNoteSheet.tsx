@@ -34,7 +34,6 @@ import { AudioTrimmerModal } from "./AudioTrimmerModal";
 import {
   X,
   Check,
-  ChevronDown,
   Camera,
   Image as ImageIcon,
   Video,
@@ -48,8 +47,6 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
-  Calendar,
-  Clock,
   Bold,
   Italic,
   Strikethrough,
