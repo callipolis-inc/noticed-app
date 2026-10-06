@@ -152,16 +152,17 @@ export function CreateNoteSheet({
 
   // Atelier Pro membership modal state
   const [isProModalOpen, setIsProModalOpen] = useState(false);
-  const [proTriggerFeature, setProTriggerFeature] =
-    useState<ProFeature | null>(null);
+  const [proTriggerFeature, setProTriggerFeature] = useState<ProFeature | null>(
+    null,
+  );
 
-  // Audio Trimmer Modal state (for clips > 3 minutes)
+  // Audio Trimmer Modal state
   const [isTrimmerOpen, setIsTrimmerOpen] = useState(false);
   const [fileToTrim, setFileToTrim] = useState<File | null>(null);
 
-  // Rich text formatting & Preview state
+  // Inline Hybrid Editing & Formatting Drawer state
+  const [isEditingContent, setIsEditingContent] = useState(true);
   const [isFormattingOpen, setIsFormattingOpen] = useState(false);
-  const [editorMode, setEditorMode] = useState<"write" | "preview">("write");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -184,7 +185,7 @@ export function CreateNoteSheet({
     }
 
     setIsFormattingOpen(false);
-    setEditorMode("write");
+    setIsEditingContent(true);
     setIsDictatingOnly(false);
     setInterimSpeechText("");
 
@@ -244,7 +245,13 @@ export function CreateNoteSheet({
     setTimeout(() => {
       textareaRef.current?.focus();
     }, 150);
-  }, [isOpen, editingNote, defaultSpaceId, defaultTextAlign, defaultFontChoice]);
+  }, [
+    isOpen,
+    editingNote,
+    defaultSpaceId,
+    defaultTextAlign,
+    defaultFontChoice,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -510,7 +517,7 @@ export function CreateNoteSheet({
   };
 
   const handleAudioFileSelect = async (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -523,12 +530,10 @@ export function CreateNoteSheet({
       }
 
       if (inspection.needsTrimming) {
-        // Exceeds 3 minutes: open Archival Waveform Trimmer
         triggerHaptic("medium");
         setFileToTrim(file);
         setIsTrimmerOpen(true);
       } else {
-        // Within 3 minutes: process and attach directly
         const result = await processAudioFile(file);
         setRecordedAudio({
           blob: result.blob,
@@ -539,7 +544,8 @@ export function CreateNoteSheet({
       }
     } catch (err: unknown) {
       console.error("Audio import error:", err);
-      const msg = err instanceof Error ? err.message : "Failed to process audio file.";
+      const msg =
+        err instanceof Error ? err.message : "Failed to process audio file.";
       setAudioError(msg);
       triggerHaptic("heavy");
       setTimeout(() => setAudioError(null), 5000);
@@ -588,7 +594,6 @@ export function CreateNoteSheet({
 
     triggerSuccessHaptic();
 
-    // Parse custom Date & Time
     const parsedDate = new Date(`${noteDate}T${noteTime || "00:00"}`);
     const finalCreatedAt = !isNaN(parsedDate.getTime())
       ? parsedDate.toISOString()
@@ -691,7 +696,7 @@ export function CreateNoteSheet({
     setCitationText("");
     setIsMarginaliaOpen(false);
     setIsFormattingOpen(false);
-    setEditorMode("write");
+    setIsEditingContent(true);
     setPhotos([]);
     setVideos([]);
     setRecordedAudio(null);
@@ -705,6 +710,7 @@ export function CreateNoteSheet({
     placeholder: string = "text",
   ) => {
     triggerHaptic("light");
+    setIsEditingContent(true);
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -724,17 +730,12 @@ export function CreateNoteSheet({
 
       setTimeout(() => {
         textarea.focus();
-        textarea.setSelectionRange(
-          start + prefix.length,
-          end + prefix.length,
-        );
+        textarea.setSelectionRange(start + prefix.length, end + prefix.length);
       }, 10);
     } else {
       const insertText = `${prefix}${placeholder}${suffix}`;
       const nextVal =
-        currentVal.substring(0, start) +
-        insertText +
-        currentVal.substring(end);
+        currentVal.substring(0, start) + insertText + currentVal.substring(end);
       setContent(nextVal);
 
       setTimeout(() => {
@@ -746,11 +747,9 @@ export function CreateNoteSheet({
     }
   };
 
-  const applyMarkdownBlock = (
-    prefix: string,
-    placeholder: string = "text",
-  ) => {
+  const applyMarkdownBlock = (prefix: string, placeholder: string = "text") => {
     triggerHaptic("light");
+    setIsEditingContent(true);
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -846,8 +845,7 @@ export function CreateNoteSheet({
   const formattedPreviewTime = formatTimeOnly(validPreviewDate);
   const formattedPreviewDate = new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
-    month: "long",
-    year: "numeric",
+    month: "short",
   }).format(validPreviewDate);
 
   return (
@@ -929,190 +927,86 @@ export function CreateNoteSheet({
               className="hidden"
             />
 
-            {/* 1. Header Bar: Two-Tier Collision-Free Layout */}
-            <header className="px-5 py-3 border-b border-[var(--glass-border)]/50 flex flex-col gap-2 shrink-0 relative z-10">
-              {/* Top Tier: Space Picker (Left) & Font Style + Close X (Right) */}
-              <div className="flex items-center justify-between gap-2">
+            {/* 1. Header Bar: Strict 1-Row Layout */}
+            <header className="px-4 py-3 border-b border-[var(--glass-border)]/50 flex items-center justify-between gap-2 shrink-0 relative z-10 bg-[var(--sheet-bg)]/80 backdrop-blur-md">
+              {/* Kiri: Close Button (HANYA X YANG DIBUNGKUS GLASS) */}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  onClose();
+                }}
+                className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs shrink-0"
+                title="Cancel"
+              >
+                <X className="w-3.5 h-3.5 stroke-[2.2]" />
+              </button>
+
+              {/* Tengah: Notebook Picker & Date/Time strictly 1 BARIS */}
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 flex-1 text-center">
                 {/* Space Picker */}
-                <div className="relative">
+                <div className="relative shrink-0">
                   <button
                     type="button"
                     onClick={() => {
                       triggerHaptic("light");
                       setShowSpacePicker(!showSpacePicker);
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)] hover:opacity-80 transition-opacity cursor-pointer group"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--text-primary)] hover:opacity-80 transition-opacity cursor-pointer group"
                   >
-                    <span className="truncate max-w-[170px]">
+                    <span className="truncate max-w-[110px] sm:max-w-[140px]">
                       {currentSpace?.name || "Field Notes"}
                     </span>
-                    <ChevronDown className="w-3.5 h-3.5 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] transition-colors" />
-                  </button>
-
-                  {/* Space Dropdown */}
-                  {showSpacePicker && (
-                    <div className="absolute top-7 left-0 z-50 w-52 rounded-2xl bg-[var(--sheet-bg)] border border-[var(--glass-border)] shadow-2xl p-1.5 animate-in fade-in zoom-in-95 duration-150">
-                      {spaces.map((s) => (
-                        <button
-                          key={s.id}
-                          type="button"
-                          onClick={() => {
-                            triggerHaptic("light");
-                            setSelectedSpaceId(s.id);
-                            if (!editingNote && s.fontChoice) {
-                              setFontChoice(s.fontChoice);
-                            }
-                            setShowSpacePicker(false);
-                          }}
-                          className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs transition-colors cursor-pointer ${
-                            s.id === selectedSpaceId
-                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-semibold shadow-xs"
-                              : "text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          <span className="truncate">{s.name}</span>
-                          {s.id === selectedSpaceId && (
-                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Top Right: Font Selector & Close Button */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Font Style Pill Track */}
-                  <div className="apple-segmented-track p-0.5" title="Typography choice">
-                    {(
-                      [
-                        { id: "editorial", label: "Serif", title: "Newsreader Serif" },
-                        { id: "sans", label: "Sans", title: "Modern Sans" },
-                        { id: "display", label: "Classic", title: "Cormorant Garamond" },
-                      ] as const
-                    ).map((f) => (
-                      <button
-                        key={f.id}
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic("light");
-                          setFontChoice(f.id);
-                        }}
-                        className={`px-2 py-0.5 rounded-full text-[10.5px] transition-all cursor-pointer ${
-                          f.id === "editorial"
-                            ? "font-serif"
-                            : f.id === "display"
-                              ? "font-serif italic"
-                              : "font-sans font-medium"
-                        } ${
-                          fontChoice === f.id
-                            ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] font-semibold shadow-xs"
-                            : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                        }`}
-                        title={f.title}
-                      >
-                        {f.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Close (X) */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("light");
-                      onClose();
-                    }}
-                    className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs shrink-0"
-                    title="Close"
-                  >
-                    <X className="w-3.5 h-3.5 stroke-[2.2]" />
                   </button>
                 </div>
-              </div>
 
-              {/* Bottom Tier: Date / Time / Now (Left) & Text Alignment (Right) */}
-              <div className="flex items-center justify-between gap-2 pt-0.5">
+                <span className="text-[11px] text-[var(--text-tertiary)] opacity-40 select-none">
+                  ·
+                </span>
+
                 {/* Inline Date & Time */}
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] font-sans not-italic select-none">
+                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] font-sans not-italic select-none truncate">
                   <label
-                    className="relative inline-flex items-center gap-1 cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                    className="relative inline-flex items-center cursor-pointer hover:text-[var(--text-primary)] transition-colors truncate"
                     title="Change date"
                   >
-                    <Calendar className="w-3 h-3 text-[var(--text-tertiary)] shrink-0" />
+                    <span>{formattedPreviewDate}</span>
                     <input
                       type="date"
                       value={noteDate}
                       onChange={(e) => setNoteDate(e.target.value)}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
-                    <span>{formattedPreviewDate}</span>
                   </label>
 
                   <span className="opacity-40">·</span>
 
                   <label
-                    className="relative inline-flex items-center gap-1 cursor-pointer hover:text-[var(--text-primary)] transition-colors"
+                    className="relative inline-flex items-center cursor-pointer hover:text-[var(--text-primary)] transition-colors"
                     title="Change time"
                   >
-                    <Clock className="w-3 h-3 text-[var(--text-tertiary)] shrink-0" />
+                    <span>{formattedPreviewTime}</span>
                     <input
                       type="time"
                       value={noteTime}
                       onChange={(e) => setNoteTime(e.target.value)}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
-                    <span>{formattedPreviewTime}</span>
                   </label>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("light");
-                      const now = new Date();
-                      setNoteDate(toDateInputString(now));
-                      setNoteTime(toTimeInputString(now));
-                    }}
-                    className="text-[10px] uppercase font-mono tracking-wider text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors ml-0.5 cursor-pointer font-semibold"
-                    title="Reset to current time"
-                  >
-                    Now
-                  </button>
-                </div>
-
-                {/* Text Alignment Cluster */}
-                <div className="apple-segmented-track p-0.5">
-                  {(
-                    [
-                      { id: "left", icon: AlignLeft, label: "Left" },
-                      { id: "center", icon: AlignCenter, label: "Center" },
-                      { id: "right", icon: AlignRight, label: "Right" },
-                      { id: "justify", icon: AlignJustify, label: "Justify" },
-                    ] as const
-                  ).map((opt) => {
-                    const Icon = opt.icon;
-                    const isActive = textAlign === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic("light");
-                          setTextAlign(opt.id);
-                        }}
-                        className={`p-1 rounded-full transition-all cursor-pointer ${
-                          isActive
-                            ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] shadow-xs"
-                            : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                        }`}
-                        title={opt.label}
-                      >
-                        <Icon className="w-3 h-3 stroke-[2]" />
-                      </button>
-                    );
-                  })}
                 </div>
               </div>
+
+              {/* Kanan: Primary Action (Notice / Save) */}
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!canSave}
+                className="px-3.5 py-1.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center gap-1 disabled:opacity-30 active:scale-95 transition-transform cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.12)] shrink-0"
+                title={editingNote ? "Save changes" : "Notice into timeline"}
+              >
+                <span>{editingNote ? "Save" : "Notice"}</span>
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
             </header>
 
             {/* 2. Writing Pad Content */}
@@ -1184,13 +1078,25 @@ export function CreateNoteSheet({
                 }`}
               />
 
-              {/* Main Content Area */}
-              {editorMode === "write" ? (
+              {/* Hybrid Inline Markdown Editing */}
+              {isEditingContent ? (
                 <textarea
                   ref={textareaRef}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   onKeyDown={handleEditorKeyDown}
+                  onBlur={(e) => {
+                    const related = e.relatedTarget as HTMLElement | null;
+                    if (
+                      related?.closest(".formatting-toolbar") ||
+                      related?.closest(".formatting-btn")
+                    ) {
+                      return;
+                    }
+                    if (content.trim()) {
+                      setIsEditingContent(false);
+                    }
+                  }}
                   placeholder="What caught your eye today?"
                   rows={6}
                   style={{ fontSize: "var(--note-font-size, 16px)" }}
@@ -1208,7 +1114,8 @@ export function CreateNoteSheet({
                 <div
                   onClick={() => {
                     triggerHaptic("light");
-                    setEditorMode("write");
+                    setIsEditingContent(true);
+                    setTimeout(() => textareaRef.current?.focus(), 50);
                   }}
                   style={{ fontSize: "var(--note-font-size, 16px)" }}
                   className={`w-full min-h-[140px] leading-relaxed font-content text-[var(--text-primary)] cursor-text select-text ${
@@ -1220,14 +1127,9 @@ export function CreateNoteSheet({
                           ? "text-justify"
                           : "text-left"
                   }`}
+                  title="Click to edit"
                 >
-                  {content.trim() ? (
-                    <EditorialMarkdown content={content} />
-                  ) : (
-                    <p className="font-serif italic text-[var(--text-tertiary)]/50 select-none">
-                      Nothing to preview yet. Switch back to write.
-                    </p>
-                  )}
+                  <EditorialMarkdown content={content} />
                 </div>
               )}
 
@@ -1338,7 +1240,7 @@ export function CreateNoteSheet({
                               className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm"
                               title="Remove"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         ))}
@@ -1372,7 +1274,7 @@ export function CreateNoteSheet({
                             className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors cursor-pointer"
                             title="Remove"
                           >
-                            <X className="w-3 h-3" />
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ))}
@@ -1395,7 +1297,10 @@ export function CreateNoteSheet({
                 <div className="mt-2 space-y-3">
                   {videos.map((vid, idx) => (
                     <div key={idx} className="relative group">
-                      <InlineVideoPlayer src={vid} className="w-full max-h-72" />
+                      <InlineVideoPlayer
+                        src={vid}
+                        className="w-full max-h-72"
+                      />
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1412,7 +1317,7 @@ export function CreateNoteSheet({
                 </div>
               )}
 
-              {/* Video Processing or Error Toast */}
+              {/* Status Toasts */}
               {isVideoProcessing && (
                 <div className="mt-2 p-2.5 rounded-xl apple-card text-xs text-[var(--text-secondary)] flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[var(--text-primary)] animate-ping" />
@@ -1456,7 +1361,7 @@ export function CreateNoteSheet({
               )}
             </main>
 
-            {/* 2.5 Markdown Formatting Toolbar Drawer */}
+            {/* 3. Laci Format Teks "Aa" */}
             <AnimatePresence>
               {isFormattingOpen && (
                 <motion.div
@@ -1464,13 +1369,81 @@ export function CreateNoteSheet({
                   animate={{ opacity: 1, height: "auto" }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="px-4 py-2 border-t border-[var(--glass-border)]/50 bg-black/[0.02] dark:bg-white/[0.02] overflow-hidden shrink-0 z-10"
+                  className="formatting-toolbar px-4 py-2.5 border-t border-[var(--glass-border)]/50 bg-black/[0.02] dark:bg-white/[0.02] overflow-hidden shrink-0 z-10 space-y-2"
                 >
+                  {/* Baris 1: Font Family & Paragraph Alignment */}
+                  <div className="flex items-center justify-between gap-2">
+                    {/* Font Choice */}
+                    <div className="apple-segmented-track p-0.5">
+                      {(
+                        [
+                          { id: "editorial", label: "Serif" },
+                          { id: "sans", label: "Sans" },
+                          { id: "display", label: "Classic" },
+                        ] as const
+                      ).map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic("light");
+                            setFontChoice(f.id);
+                          }}
+                          className={`px-2.5 py-0.5 rounded-full text-[10.5px] transition-all cursor-pointer ${
+                            fontChoice === f.id
+                              ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] font-semibold shadow-xs"
+                              : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Paragraph Alignment */}
+                    <div className="apple-segmented-track p-0.5">
+                      {(
+                        [
+                          { id: "left", icon: AlignLeft, label: "Left" },
+                          { id: "center", icon: AlignCenter, label: "Center" },
+                          { id: "right", icon: AlignRight, label: "Right" },
+                          {
+                            id: "justify",
+                            icon: AlignJustify,
+                            label: "Justify",
+                          },
+                        ] as const
+                      ).map((opt) => {
+                        const Icon = opt.icon;
+                        const isActive = textAlign === opt.id;
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => {
+                              triggerHaptic("light");
+                              setTextAlign(opt.id);
+                            }}
+                            className={`p-1 rounded-full transition-all cursor-pointer ${
+                              isActive
+                                ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] shadow-xs"
+                                : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                            }`}
+                            title={opt.label}
+                          >
+                            <Icon className="w-3 h-3 stroke-[2]" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Baris 2: Markdown Quick Actions */}
                   <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
                     <button
                       type="button"
                       onClick={() => applyMarkdownWrap("**", "**", "bold")}
-                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0 shadow-2xs"
+                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0"
                       title="Bold (Cmd+B)"
                     >
                       <Bold className="w-3.5 h-3.5 stroke-[2.4]" />
@@ -1480,7 +1453,7 @@ export function CreateNoteSheet({
                     <button
                       type="button"
                       onClick={() => applyMarkdownWrap("*", "*", "italic")}
-                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0 shadow-2xs"
+                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0"
                       title="Italic (Cmd+I)"
                     >
                       <Italic className="w-3.5 h-3.5 stroke-[2.2]" />
@@ -1492,7 +1465,7 @@ export function CreateNoteSheet({
                       onClick={() =>
                         applyMarkdownWrap("~~", "~~", "strikethrough")
                       }
-                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer line-through opacity-80 shrink-0 shadow-2xs"
+                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer line-through opacity-80 shrink-0"
                       title="Strikethrough (Cmd+Shift+X)"
                     >
                       <Strikethrough className="w-3.5 h-3.5 stroke-[2]" />
@@ -1502,19 +1475,19 @@ export function CreateNoteSheet({
                     <button
                       type="button"
                       onClick={() => applyMarkdownWrap("`", "`", "code")}
-                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-mono shrink-0 shadow-2xs"
+                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-mono shrink-0"
                       title="Inline Code (Cmd+E)"
                     >
                       <Code className="w-3.5 h-3.5 stroke-[2]" />
                       <span className="text-[11px]">Code</span>
                     </button>
 
-                    <div className="w-px h-4 bg-[var(--glass-border)] mx-1 shrink-0" />
+                    <div className="w-px h-3.5 bg-[var(--glass-border)] mx-1 shrink-0" />
 
                     <button
                       type="button"
                       onClick={() => applyMarkdownBlock("> ", "quote")}
-                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
                       title="Quote block"
                     >
                       <Quote className="w-3.5 h-3.5 stroke-[2]" />
@@ -1524,7 +1497,7 @@ export function CreateNoteSheet({
                     <button
                       type="button"
                       onClick={() => applyMarkdownBlock("- ", "item")}
-                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
                       title="Bullet list"
                     >
                       <List className="w-3.5 h-3.5 stroke-[2]" />
@@ -1534,7 +1507,7 @@ export function CreateNoteSheet({
                     <button
                       type="button"
                       onClick={() => applyMarkdownBlock("1. ", "item")}
-                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
                       title="Numbered list"
                     >
                       <ListOrdered className="w-3.5 h-3.5 stroke-[2]" />
@@ -1544,7 +1517,7 @@ export function CreateNoteSheet({
                     <button
                       type="button"
                       onClick={() => applyMarkdownBlock("---\n", "")}
-                      className="px-2.5 py-1 rounded-xl inner-pseudo-glass text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 shadow-2xs"
+                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
                       title="Horizontal divider"
                     >
                       <Minus className="w-3.5 h-3.5 stroke-[2.2]" />
@@ -1575,8 +1548,8 @@ export function CreateNoteSheet({
               )}
             </AnimatePresence>
 
-            {/* 3. Bottom Action Bar with Floating Capsule Action Dock */}
-            <footer className="px-4 py-2.5 border-t border-[var(--glass-border)]/50 flex items-center justify-between gap-2 shrink-0 relative z-10 bg-[var(--sheet-bg)]/80 backdrop-blur-md">
+            {/* 4. Bottom Action Bar: Polos Tanpa Bungkus Glass */}
+            <footer className="px-3.5 py-2 border-t border-[var(--glass-border)]/50 flex items-center justify-between gap-2 shrink-0 relative z-10 bg-[var(--sheet-bg)]/80 backdrop-blur-md">
               {/* Audio Menu Popover */}
               <AnimatePresence>
                 {showAudioMenu && !isRecording && !isDictatingOnly && (
@@ -1590,9 +1563,8 @@ export function CreateNoteSheet({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 8, scale: 0.95 }}
                       transition={{ duration: 0.16, ease: "easeOut" }}
-                      className="absolute bottom-[calc(100%+8px)] left-4 sm:left-20 z-40 w-64 rounded-2xl bg-[var(--sheet-bg)] border border-[var(--glass-border)] shadow-2xl p-1.5 flex flex-col gap-1 backdrop-blur-xl"
+                      className="absolute bottom-[calc(100%+8px)] left-4 sm:left-16 z-40 w-64 rounded-2xl bg-[var(--sheet-bg)] border border-[var(--glass-border)] shadow-2xl p-1.5 flex flex-col gap-1 backdrop-blur-xl"
                     >
-                      {/* Top Header: Language Switcher Pill (ID / EN) */}
                       <div className="px-2.5 py-1.5 flex items-center justify-between border-b border-[var(--glass-border)]/50 mb-0.5">
                         <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">
                           Voice Language
@@ -1633,7 +1605,6 @@ export function CreateNoteSheet({
                         </div>
                       </div>
 
-                      {/* 1. Pure Voice-to-Text Dictation */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1643,7 +1614,7 @@ export function CreateNoteSheet({
                         className="w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-98 transition-all cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg inner-pseudo-glass flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
                             <Type className="w-3.5 h-3.5 stroke-[2]" />
                           </div>
                           <div>
@@ -1652,14 +1623,15 @@ export function CreateNoteSheet({
                             </div>
                             <div className="text-[10px] text-[var(--text-tertiary)]">
                               Live speech to manuscript (
-                              {dictationLang === "id-ID" ? "Indonesia" : "English"}
+                              {dictationLang === "id-ID"
+                                ? "Indonesia"
+                                : "English"}
                               )
                             </div>
                           </div>
                         </div>
                       </button>
 
-                      {/* 2. Record Voice Memo + Auto-Transcribe Toggle */}
                       <div className="w-full px-3 py-2 rounded-xl flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 transition-all">
                         <button
                           type="button"
@@ -1669,7 +1641,7 @@ export function CreateNoteSheet({
                           }}
                           className="flex items-center gap-2.5 text-left flex-1 cursor-pointer active:scale-98 transition-transform"
                         >
-                          <div className="w-7 h-7 rounded-lg inner-pseudo-glass flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
                             <Mic className="w-3.5 h-3.5 stroke-[2]" />
                           </div>
                           <div>
@@ -1692,7 +1664,7 @@ export function CreateNoteSheet({
                           }}
                           className={`px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 border ${
                             autoTranscribeMemo
-                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] border-transparent shadow-2xs"
+                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] border-transparent"
                               : "bg-transparent text-[var(--text-tertiary)] border-[var(--glass-border)] hover:text-[var(--text-primary)]"
                           }`}
                           title="Toggle simultaneous text transcription while recording"
@@ -1701,7 +1673,6 @@ export function CreateNoteSheet({
                         </button>
                       </div>
 
-                      {/* 3. Import Audio File (Atelier Pro) */}
                       <button
                         type="button"
                         onClick={() => {
@@ -1718,7 +1689,7 @@ export function CreateNoteSheet({
                         className="w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-98 transition-all cursor-pointer"
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg inner-pseudo-glass flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
                             <Upload className="w-3.5 h-3.5 stroke-[2]" />
                           </div>
                           <div>
@@ -1742,35 +1713,35 @@ export function CreateNoteSheet({
               </AnimatePresence>
 
               {!isRecording && !isDictatingOnly ? (
-                <div className="flex items-center justify-between w-full gap-2">
-                  {/* Left: Media Tool Icons & Format Drawers */}
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+                <div className="flex items-center justify-between w-full">
+                  {/* Klaster Kiri: Input Media (Polos tanpa glass) */}
+                  <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar py-0.5">
                     <button
                       type="button"
                       onClick={handleTriggerPhotoSelect}
-                      className="w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer shrink-0"
+                      className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0"
                       title="Add photos"
                     >
-                      <ImageIcon className="w-3.5 h-3.5 stroke-[1.85]" />
+                      <ImageIcon className="w-4 h-4 stroke-[1.85]" />
                     </button>
 
                     <button
                       type="button"
                       onClick={handleTriggerCameraSelect}
-                      className="w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer shrink-0"
+                      className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0"
                       title="Take photo"
                     >
-                      <Camera className="w-3.5 h-3.5 stroke-[1.85]" />
+                      <Camera className="w-4 h-4 stroke-[1.85]" />
                     </button>
 
                     <button
                       type="button"
                       onClick={handleTriggerVideoSelect}
                       disabled={isVideoProcessing}
-                      className="w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer disabled:opacity-50 shrink-0"
-                      title="Add short video clip"
+                      className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                      title="Add video"
                     >
-                      <Video className="w-3.5 h-3.5 stroke-[1.85]" />
+                      <Video className="w-4 h-4 stroke-[1.85]" />
                     </button>
 
                     <button
@@ -1779,14 +1750,14 @@ export function CreateNoteSheet({
                         triggerHaptic("light");
                         setShowAudioMenu((prev) => !prev);
                       }}
-                      className={`w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center active:scale-95 transition-all cursor-pointer shrink-0 ${
+                      className={`p-2 rounded-xl active:scale-90 transition-all cursor-pointer shrink-0 ${
                         showAudioMenu
-                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
-                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)]"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
                       }`}
-                      title="Audio & dictation options"
+                      title="Audio & dictation"
                     >
-                      <Mic className="w-3.5 h-3.5 stroke-[1.85]" />
+                      <Mic className="w-4 h-4 stroke-[1.85]" />
                     </button>
 
                     <button
@@ -1795,16 +1766,19 @@ export function CreateNoteSheet({
                         triggerHaptic("light");
                         setIsEditingLocation(!isEditingLocation);
                       }}
-                      className={`w-7.5 h-7.5 rounded-full inner-pseudo-glass flex items-center justify-center active:scale-95 transition-transform cursor-pointer shrink-0 ${
+                      className={`p-2 rounded-xl active:scale-90 transition-all cursor-pointer shrink-0 ${
                         locationName
                           ? "text-[var(--text-primary)] font-semibold"
-                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
                       }`}
                       title="Add location"
                     >
-                      <MapPin className="w-3.5 h-3.5 stroke-[1.85]" />
+                      <MapPin className="w-4 h-4 stroke-[1.85]" />
                     </button>
+                  </div>
 
+                  {/* Klaster Kanan: Anotasi, Laci Format "Aa", & Counter (Polos tanpa glass) */}
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1820,14 +1794,14 @@ export function CreateNoteSheet({
                           return next;
                         });
                       }}
-                      className={`px-2.5 py-1 rounded-full text-xs font-serif font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                      className={`px-2.5 py-1.5 rounded-xl text-xs font-serif transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
                         isMarginaliaOpen || marginaliaText
-                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
-                          : "inner-pseudo-glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
                       }`}
                       title="Attach sidenote"
                     >
-                      <span>¹</span>
+                      <span className="font-bold">¹</span>
                       <span className="font-sans font-medium text-[11px]">
                         Note
                       </span>
@@ -1838,16 +1812,13 @@ export function CreateNoteSheet({
                       onClick={() => {
                         triggerHaptic("light");
                         setIsFormattingOpen((prev) => !prev);
-                        if (editorMode === "preview") {
-                          setEditorMode("write");
-                        }
                       }}
-                      className={`px-2.5 py-1 rounded-full text-xs font-serif font-bold transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                      className={`formatting-btn px-2.5 py-1.5 rounded-xl text-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
                         isFormattingOpen
-                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
-                          : "inner-pseudo-glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
                       }`}
-                      title="Formatting toolbar"
+                      title="Formatting & Typography"
                     >
                       <Type className="w-3.5 h-3.5 stroke-[2]" />
                       <span className="font-sans font-medium text-[11px]">
@@ -1861,58 +1832,10 @@ export function CreateNoteSheet({
                       </span>
                     )}
                   </div>
-
-                  {/* Right: Floating Capsule Action Dock */}
-                  <div className="flex items-center gap-1.5 p-1 rounded-full inner-pseudo-glass border border-[var(--glass-border)] shadow-[0_4px_16px_rgba(0,0,0,0.06)] bg-white/60 dark:bg-white/[0.06] backdrop-blur-md shrink-0">
-                    {/* Segmented Write | Preview */}
-                    <div className="apple-segmented-track p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic("light");
-                          setEditorMode("write");
-                        }}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-sans font-medium transition-all cursor-pointer ${
-                          editorMode === "write"
-                            ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] font-semibold shadow-xs"
-                            : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                        }`}
-                      >
-                        Write
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          triggerHaptic("light");
-                          setEditorMode("preview");
-                        }}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-sans font-medium transition-all cursor-pointer ${
-                          editorMode === "preview"
-                            ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] font-semibold shadow-xs"
-                            : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                        }`}
-                      >
-                        Preview
-                      </button>
-                    </div>
-
-                    {/* Primary Notice / Save Action */}
-                    <button
-                      type="button"
-                      onClick={handleSave}
-                      disabled={!canSave}
-                      className="px-3.5 py-1.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center gap-1.5 disabled:opacity-30 active:scale-95 transition-transform cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.12)] shrink-0"
-                      title={editingNote ? "Save changes" : "Notice into timeline"}
-                    >
-                      <span>{editingNote ? "Save" : "Notice"}</span>
-                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </button>
-                  </div>
                 </div>
               ) : (
-                /* Active Recording / Live Dictation Control Bar */
+                /* Active Recording / Live Dictation Bar */
                 <div className="flex items-center justify-between w-full px-1 py-0.5 gap-2">
-                  {/* Left: Timer & Mode Status */}
                   <div className="flex items-center gap-2 text-rose-500 font-sans font-medium text-xs shrink-0">
                     <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                     <span className="font-mono">
@@ -1924,14 +1847,12 @@ export function CreateNoteSheet({
                     </span>
                   </div>
 
-                  {/* Center: Quick ID / EN Pill Toggle & Live Levels */}
                   <div className="flex items-center gap-2">
-                    {/* Quick ID / EN Pill */}
                     <button
                       type="button"
                       onClick={handleToggleDictationLang}
-                      className="px-2 py-0.5 rounded-full inner-pseudo-glass border border-[var(--glass-border)] text-[10px] font-mono font-bold text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer shadow-2xs"
-                      title="Switch dictation language (Indonesia / English)"
+                      className="px-2 py-0.5 rounded-lg border border-[var(--glass-border)] text-[10px] font-mono font-bold text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer"
+                      title="Switch language"
                     >
                       {dictationLang === "id-ID" ? "ID" : "EN"}
                     </button>
@@ -1940,12 +1861,12 @@ export function CreateNoteSheet({
                       <button
                         type="button"
                         onClick={handleToggleAutoTranscribe}
-                        className={`px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-semibold transition-all cursor-pointer border ${
+                        className={`px-2 py-0.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-semibold transition-all cursor-pointer border ${
                           autoTranscribeMemo
                             ? "bg-[var(--text-primary)] text-[var(--accent-ink)] border-transparent"
                             : "bg-transparent text-[var(--text-tertiary)] border-[var(--glass-border)]"
                         }`}
-                        title="Toggle live transcription"
+                        title="Toggle transcription"
                       >
                         {autoTranscribeMemo ? "Text ON" : "Text OFF"}
                       </button>
@@ -1964,7 +1885,6 @@ export function CreateNoteSheet({
                     )}
                   </div>
 
-                  {/* Right: Stop / Done Button */}
                   <button
                     type="button"
                     onClick={
