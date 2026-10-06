@@ -17,7 +17,7 @@ export interface VideoMetadata {
 const STORAGE_BUCKET = "noticed-media";
 export const MAX_VIDEO_DURATION_SECONDS = 35;
 export const MAX_VIDEO_FILE_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
-export const MAX_AUDIO_DURATION_SECONDS = 120; // 2 minutes (120s)
+export const MAX_AUDIO_DURATION_SECONDS = 180; // 3 minutes (180s)
 export const MAX_AUDIO_FILE_SIZE_BYTES = 15 * 1024 * 1024; // 15 MB
 
 export type MediaFolder = "photos" | "videos" | "avatars" | "audio";
@@ -440,7 +440,43 @@ export function validateAudioFile(file: File): { valid: boolean; error?: string 
 }
 
 /**
- * Validates and processes an external audio file, enforcing the 2-minute (120s) limit.
+ * Fast inspection of an audio file to determine duration and whether trimming is required.
+ */
+export async function inspectAudioFile(file: File): Promise<{
+  valid: boolean;
+  error?: string;
+  duration: number;
+  needsTrimming: boolean;
+}> {
+  const validation = validateAudioFile(file);
+  if (!validation.valid) {
+    return {
+      valid: false,
+      error: validation.error,
+      duration: 0,
+      needsTrimming: false,
+    };
+  }
+
+  try {
+    const duration = await extractAudioDuration(file);
+    return {
+      valid: true,
+      duration,
+      needsTrimming: duration > MAX_AUDIO_DURATION_SECONDS,
+    };
+  } catch (err: any) {
+    return {
+      valid: false,
+      error: err?.message || "Failed to inspect audio duration.",
+      duration: 0,
+      needsTrimming: false,
+    };
+  }
+}
+
+/**
+ * Validates and processes an external audio file, enforcing the 3-minute (180s) limit.
  * Uploads to Supabase Storage ('noticed-media/audio') or falls back to local DataURL.
  */
 export async function processAudioFile(file: File): Promise<{
@@ -456,7 +492,7 @@ export async function processAudioFile(file: File): Promise<{
   const duration = await extractAudioDuration(file);
   if (duration > MAX_AUDIO_DURATION_SECONDS) {
     throw new Error(
-      `Audio duration is ${Math.round(duration)}s. Noticed allows voice clips up to 2 minutes (120s).`
+      `Audio duration is ${Math.round(duration)}s. Noticed allows voice clips up to 3 minutes (180s).`
     );
   }
 

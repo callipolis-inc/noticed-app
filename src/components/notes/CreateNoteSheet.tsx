@@ -8,6 +8,7 @@ import {
   processVideoFile,
   processAudioBlob,
   processAudioFile,
+  inspectAudioFile,
 } from "@/lib/mediaStorage";
 import {
   isProUser,
@@ -19,6 +20,7 @@ import { AtelierProModal } from "@/components/ui/AtelierProModal";
 import { TactileAudioRecorder, RecordedAudio } from "@/lib/audioRecorder";
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import { TactileAudioPlayer } from "./TactileAudioPlayer";
+import { AudioTrimmerModal } from "./AudioTrimmerModal";
 import {
   X,
   Check,
@@ -131,6 +133,10 @@ export function CreateNoteSheet({
   const [isProModalOpen, setIsProModalOpen] = useState(false);
   const [proTriggerFeature, setProTriggerFeature] =
     useState<ProFeature | null>(null);
+
+  // Audio Trimmer Modal state (for clips > 3 minutes)
+  const [isTrimmerOpen, setIsTrimmerOpen] = useState(false);
+  const [fileToTrim, setFileToTrim] = useState<File | null>(null);
 
   // Rich text formatting & Preview state
   const [isFormattingOpen, setIsFormattingOpen] = useState(false);
@@ -379,20 +385,60 @@ export function CreateNoteSheet({
 
     setAudioError(null);
     try {
-      const result = await processAudioFile(file);
-      setRecordedAudio({
-        blob: result.blob,
-        url: result.url,
-        durationSeconds: result.duration,
-      });
-      triggerSuccessHaptic();
-    } catch (err: any) {
+      const inspection = await inspectAudioFile(file);
+      if (!inspection.valid) {
+        throw new Error(inspection.error || "Invalid audio file format.");
+      }
+
+      if (inspection.needsTrimming) {
+        // Exceeds 3 minutes: open Archival Waveform Trimmer
+        triggerHaptic("medium");
+        setFileToTrim(file);
+        setIsTrimmerOpen(true);
+      } else {
+        // Within 3 minutes: process and attach directly
+        const result = await processAudioFile(file);
+        setRecordedAudio({
+          blob: result.blob,
+          url: result.url,
+          durationSeconds: result.duration,
+        });
+        triggerSuccessHaptic();
+      }
+    } catch (err: unknown) {
       console.error("Audio import error:", err);
-      setAudioError(err?.message || "Failed to process audio file.");
+      const msg = err instanceof Error ? err.message : "Failed to process audio file.";
+      setAudioError(msg);
       triggerHaptic("heavy");
       setTimeout(() => setAudioError(null), 5000);
     } finally {
       if (audioFileInputRef.current) audioFileInputRef.current.value = "";
+    }
+  };
+
+  const handleTrimComplete = async (trimmed: {
+    blob: Blob;
+    url: string;
+    duration: number;
+  }) => {
+    try {
+      const persistedUrl = await processAudioBlob(trimmed.blob, trimmed.url);
+      setRecordedAudio({
+        blob: trimmed.blob,
+        url: persistedUrl || trimmed.url,
+        durationSeconds: trimmed.duration,
+      });
+      triggerSuccessHaptic();
+    } catch (err) {
+      console.error("Failed to persist trimmed audio:", err);
+      setRecordedAudio({
+        blob: trimmed.blob,
+        url: trimmed.url,
+        durationSeconds: trimmed.duration,
+      });
+    } finally {
+      setIsTrimmerOpen(false);
+      setFileToTrim(null);
     }
   };
 
@@ -1424,7 +1470,7 @@ export function CreateNoteSheet({
                           </div>
                           <div>
                             <div className="font-medium text-xs">Import Audio File</div>
-                            <div className="text-[10px] text-[var(--text-tertiary)]">Max 2 min (MP3, M4A)</div>
+                            <div className="text-[10px] text-[var(--text-tertiary)]">Max 3 min · With Trimmer</div>
                           </div>
                         </div>
                         {!isProUser() && (
@@ -1645,6 +1691,17 @@ export function CreateNoteSheet({
             isOpen={isProModalOpen}
             onClose={() => setIsProModalOpen(false)}
             triggerFeature={proTriggerFeature}
+          />
+
+          {/* Archival Waveform Trimmer Modal */}
+          <AudioTrimmerModal
+            isOpen={isTrimmerOpen}
+            onClose={() => {
+              setIsTrimmerOpen(false);
+              setFileToTrim(null);
+            }}
+            file={fileToTrim}
+            onTrimComplete={handleTrimComplete}
           />
         </div>
       )}

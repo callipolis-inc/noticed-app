@@ -26,7 +26,7 @@ export function AtelierProModal({
 
   const featureDescriptions = {
     video: "Motion & video clip captures are an exclusive Atelier Pro folio feature.",
-    audio_import: "Importing audio & voice memo files is an exclusive Atelier Pro feature.",
+    audio_import: "Importing audio & voice memo files (up to 3 minutes with archival trimmer) is an exclusive Atelier Pro feature.",
     unlimited_photos: "Standard folio holds up to 3 photos per notice. Upgrade to Atelier Pro for unlimited gallery curation.",
   };
 
