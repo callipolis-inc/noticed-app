@@ -41,11 +41,34 @@ export function InlineVideoPlayer({
     return () => window.removeEventListener("noticed:media-play", handleOtherMediaPlay);
   }, []);
 
-  // IntersectionObserver: Smart Viewport Autoplay
+  // Hardware Decoder Guard: only load media stream when near viewport
+  const [isNearViewport, setIsNearViewport] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const nearObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        setIsNearViewport(entry.isIntersecting);
+        if (!entry.isIntersecting && videoRef.current && !videoRef.current.paused) {
+          videoRef.current.pause();
+          setIsPlaying(false);
+        }
+      },
+      { rootMargin: "350px" }
+    );
+
+    nearObserver.observe(el);
+    return () => nearObserver.disconnect();
+  }, []);
+
+  // IntersectionObserver: Smart Viewport Autoplay when visible
   useEffect(() => {
     const el = containerRef.current;
     const video = videoRef.current;
-    if (!el || !video) return;
+    if (!el || !video || !isNearViewport) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -66,7 +89,7 @@ export function InlineVideoPlayer({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [src]);
+  }, [src, isNearViewport]);
 
   // Track playback time for hairline progress bar
   const handleTimeUpdate = () => {
@@ -140,9 +163,9 @@ export function InlineVideoPlayer({
       {/* HTML5 Video element with iOS playsInline & metadata preload */}
       <video
         ref={videoRef}
-        src={src}
+        src={isNearViewport ? src : undefined}
         poster={poster}
-        preload="metadata"
+        preload={isNearViewport ? "metadata" : "none"}
         playsInline
         webkit-playsinline="true"
         loop

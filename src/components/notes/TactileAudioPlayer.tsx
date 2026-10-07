@@ -97,6 +97,15 @@ export function TactileAudioPlayer({
     };
   }, [sourceId]);
 
+  // Zero-idle memory: release audio element buffer when collapsed
+  useEffect(() => {
+    if (!isExpanded && audioRef.current && !isPlaying) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+  }, [isExpanded, isPlaying]);
+
   const initAudioIfNeeded = useCallback(() => {
     if (!audioRef.current && audioUrl) {
       const audio = new Audio(audioUrl);

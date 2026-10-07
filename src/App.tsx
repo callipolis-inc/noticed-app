@@ -1592,6 +1592,12 @@ export function App() {
             onSelectTheme={setTheme}
             fontSize={fontSize}
             onSelectFontSize={handleSelectFontSize}
+            spaces={spaces}
+            notes={notes}
+            onStorageOptimized={(msg) => {
+              setFlyoutMessage(msg);
+              setTimeout(() => setFlyoutMessage(null), 3000);
+            }}
           />
         )}
 

@@ -381,7 +381,7 @@ export const NoteEntry = memo(function NoteEntry({
     <article
       id={`note-${note.id}`}
       className={`
-        group relative transition-all duration-700
+        group relative transition-all duration-700 cv-auto
         ${showMenu ? "z-50" : "z-10"}
         ${isReadingMode ? "mb-10 sm:mb-14" : "mb-9 sm:mb-12"}
         ${
@@ -420,6 +420,7 @@ export const NoteEntry = memo(function NoteEntry({
                     alt="Captured moment"
                     className="w-full h-full object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
                 </div>
               ) : (
@@ -442,6 +443,7 @@ export const NoteEntry = memo(function NoteEntry({
                         alt={`Captured moment ${idx + 1}`}
                         className="w-full h-full object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   ))}

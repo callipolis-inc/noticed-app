@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
-import { ThemePalette } from "@/types";
+import { ThemePalette, Space, FieldNote } from "@/types";
 import {
   X,
   Trash2,
@@ -12,9 +12,16 @@ import {
   Check,
   Sparkles,
   Type,
+  HardDrive,
 } from "lucide-react";
 import { useProStatus, setProUser } from "@/lib/proManager";
 import { AtelierProModal } from "./AtelierProModal";
+import {
+  calculateStorageBreakdown,
+  optimizeAndPurgeStorage,
+  formatBytes,
+  StorageBreakdown,
+} from "@/lib/storageManager";
 
 interface SettingsSheetProps {
   isOpen: boolean;
@@ -28,6 +35,9 @@ interface SettingsSheetProps {
   onSelectTheme?: (theme: ThemePalette) => void;
   fontSize?: number;
   onSelectFontSize?: (size: number) => void;
+  spaces?: Space[];
+  notes?: FieldNote[];
+  onStorageOptimized?: (message: string) => void;
 }
 
 const FONT_SIZE_PRESETS = [
@@ -49,12 +59,47 @@ export function SettingsSheet({
   onSelectTheme,
   fontSize = 15.5,
   onSelectFontSize,
+  spaces = [],
+  notes = [],
+  onStorageOptimized,
 }: SettingsSheetProps) {
   // Danger Zone Confirmation Modal
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState("");
   const isPro = useProStatus();
   const [isProModalOpen, setIsProModalOpen] = useState(false);
+
+  // Storage & Space Management State
+  const [storageData, setStorageData] = useState<StorageBreakdown | null>(null);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizeMessage, setOptimizeMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      calculateStorageBreakdown(notes, spaces).then(setStorageData);
+    }
+  }, [isOpen, notes, spaces]);
+
+  const handleOptimizeStorage = async () => {
+    if (isOptimizing) return;
+    triggerHaptic("medium");
+    setIsOptimizing(true);
+    try {
+      const res = await optimizeAndPurgeStorage(notes, spaces);
+      triggerSuccessHaptic();
+      const updated = await calculateStorageBreakdown(notes, spaces);
+      setStorageData(updated);
+      const msg = `Reclaimed ${formatBytes(res.reclaimedBytes)} of space`;
+      setOptimizeMessage(msg);
+      onStorageOptimized?.(msg);
+      setTimeout(() => setOptimizeMessage(null), 3500);
+    } catch {
+      setOptimizeMessage("Storage optimized");
+      setTimeout(() => setOptimizeMessage(null), 2500);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
 
   const handleConfirmReset = () => {
     if (confirmInput.toUpperCase() === "RESET") {
@@ -463,7 +508,137 @@ export function SettingsSheet({
                 </div>
               </div>
 
-              {/* Group 3: Data Management */}
+              {/* Group 4: Storage & Space Health */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-medium tracking-wide text-[var(--text-tertiary)] px-2">
+                  Storage & Device Space
+                </span>
+
+                <div className="p-3.5 rounded-2xl apple-card space-y-3 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
+                  {/* Header Row */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] text-[var(--text-primary)]">
+                        <HardDrive className="w-3.5 h-3.5 opacity-80" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-semibold text-[var(--text-primary)]">
+                          Device Storage
+                        </div>
+                        <div className="text-[10px] text-[var(--text-tertiary)]">
+                          {storageData
+                            ? `${formatBytes(storageData.totalAppBytes)} used across ${notes.length} notices`
+                            : "Calculating space footprint..."}
+                        </div>
+                      </div>
+                    </div>
+
+                    {storageData && (
+                      <span className="font-mono text-xs font-bold text-[var(--text-primary)]">
+                        {formatBytes(storageData.totalAppBytes)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Segmented Proportional Storage Bar */}
+                  {storageData && storageData.totalAppBytes > 0 && (
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="w-full h-2 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden flex shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)]">
+                        {/* Text segment */}
+                        <div
+                          style={{
+                            width: `${Math.max(
+                              4,
+                              (storageData.notesTextBytes /
+                                storageData.totalAppBytes) *
+                                100
+                            )}%`,
+                          }}
+                          className="h-full bg-[var(--text-primary)] opacity-85"
+                          title="Notes Text"
+                        />
+                        {/* Photos segment */}
+                        <div
+                          style={{
+                            width: `${Math.max(
+                              0,
+                              (storageData.photosBytes /
+                                storageData.totalAppBytes) *
+                                100
+                            )}%`,
+                          }}
+                          className="h-full bg-amber-500/80 dark:bg-amber-400/80"
+                          title="Photos & Photostrips"
+                        />
+                        {/* Audio segment */}
+                        <div
+                          style={{
+                            width: `${Math.max(
+                              0,
+                              (storageData.audioBytes /
+                                storageData.totalAppBytes) *
+                                100
+                            )}%`,
+                          }}
+                          className="h-full bg-blue-500/80 dark:bg-blue-400/80"
+                          title="Audio Voice Memos"
+                        />
+                        {/* Video segment */}
+                        {storageData.videosBytes > 0 && (
+                          <div
+                            style={{
+                              width: `${Math.max(
+                                0,
+                                (storageData.videosBytes /
+                                  storageData.totalAppBytes) *
+                                  100
+                              )}%`,
+                            }}
+                            className="h-full bg-rose-500/80 dark:bg-rose-400/80"
+                            title="Video Captures"
+                          />
+                        )}
+                      </div>
+
+                      {/* Legend Chips */}
+                      <div className="flex items-center justify-between text-[9.5px] font-mono text-[var(--text-secondary)] pt-0.5">
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-primary)] opacity-85" />
+                          Text {formatBytes(storageData.notesTextBytes)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500/80 dark:bg-amber-400/80" />
+                          Photos ({storageData.photosCount}){" "}
+                          {formatBytes(storageData.photosBytes)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500/80 dark:bg-blue-400/80" />
+                          Audio ({storageData.audioCount}){" "}
+                          {formatBytes(storageData.audioBytes)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Optimize & Purge Action */}
+                  <div className="pt-1 flex items-center justify-between gap-2 border-t border-[var(--glass-border)]/40">
+                    <span className="text-[10.5px] text-[var(--text-tertiary)] truncate">
+                      {optimizeMessage || "Clean dangling cache & compact DB"}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={isOptimizing}
+                      onClick={handleOptimizeStorage}
+                      className="px-3 py-1.5 rounded-full inner-pseudo-glass text-[11px] font-semibold text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0 disabled:opacity-50"
+                    >
+                      <Sparkles className="w-3 h-3 stroke-[2] text-[var(--text-primary)]" />
+                      <span>{isOptimizing ? "Compacting..." : "Optimize Space"}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Group 5: Data Management */}
               <div className="space-y-2 pt-1">
                 <button
                   type="button"
