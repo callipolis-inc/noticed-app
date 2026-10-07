@@ -22,6 +22,7 @@ import {
 } from "@/types";
 import { NoteEntry } from "@/components/notes/NoteEntry";
 import { DateGroupDivider } from "@/components/notes/DateGroupDivider";
+import { TimelineScrubber } from "@/components/notes/TimelineScrubber";
 import { BookshelfView } from "@/components/spaces/BookshelfModal";
 import { DynamicFlyout } from "@/components/ui/DynamicFlyout";
 
@@ -1260,6 +1261,12 @@ export function App() {
                 </div>
               )}
             </main>
+
+            {/* Chronological Timeline Scrubber Rail */}
+            <TimelineScrubber
+              groups={groupedNotes}
+              isReadingMode={isReadingMode}
+            />
 
             {/* 2. Unified Floating Bottom Dock (Apple Dynamic Island Pods) */}
             {!isReadingMode ? (

@@ -1710,13 +1710,13 @@ export function CreateNoteSheet({
               </AnimatePresence>
 
               {!isRecording && !isDictatingOnly ? (
-                <div className="flex items-center justify-between w-full">
-                  {/* Klaster Kiri: Input Media (Polos tanpa glass) */}
-                  <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar py-0.5">
+                <div className="flex items-center justify-between w-full min-w-0 gap-1.5">
+                  {/* Klaster Kiri: Input Media & Metadata */}
+                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0">
                     <button
                       type="button"
                       onClick={handleTriggerPhotoSelect}
-                      className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0"
+                      className="w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0"
                       title="Add photos"
                     >
                       <ImageIcon className="w-4 h-4 stroke-[1.85]" />
@@ -1725,7 +1725,7 @@ export function CreateNoteSheet({
                     <button
                       type="button"
                       onClick={handleTriggerCameraSelect}
-                      className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0"
+                      className="w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0"
                       title="Take photo"
                     >
                       <Camera className="w-4 h-4 stroke-[1.85]" />
@@ -1735,7 +1735,7 @@ export function CreateNoteSheet({
                       type="button"
                       onClick={handleTriggerVideoSelect}
                       disabled={isVideoProcessing}
-                      className="p-2 rounded-xl text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                      className="w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer disabled:opacity-50 shrink-0"
                       title="Add video"
                     >
                       <Video className="w-4 h-4 stroke-[1.85]" />
@@ -1747,7 +1747,7 @@ export function CreateNoteSheet({
                         triggerHaptic("light");
                         setShowAudioMenu((prev) => !prev);
                       }}
-                      className={`p-2 rounded-xl active:scale-90 transition-all cursor-pointer shrink-0 ${
+                      className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center active:scale-90 transition-all cursor-pointer shrink-0 ${
                         showAudioMenu
                           ? "bg-[var(--text-primary)] text-[var(--accent-ink)]"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
@@ -1757,25 +1757,30 @@ export function CreateNoteSheet({
                       <Mic className="w-4 h-4 stroke-[1.85]" />
                     </button>
 
+                    <div className="w-px h-3.5 bg-[var(--glass-border)] opacity-60 mx-0.5 shrink-0" />
+
                     <button
                       type="button"
                       onClick={() => {
                         triggerHaptic("light");
                         setIsEditingLocation(!isEditingLocation);
                       }}
-                      className={`p-2 rounded-xl active:scale-90 transition-all cursor-pointer shrink-0 ${
+                      className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center active:scale-90 transition-all cursor-pointer shrink-0 relative ${
                         locationName
-                          ? "text-[var(--text-primary)] font-semibold"
+                          ? "text-[var(--text-primary)] font-semibold bg-[var(--text-primary)]/10"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
                       }`}
-                      title="Add location"
+                      title={locationName ? `Location: ${locationName}` : "Add location"}
                     >
                       <MapPin className="w-4 h-4 stroke-[1.85]" />
+                      {locationName && (
+                        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--text-primary)]" />
+                      )}
                     </button>
                   </div>
 
-                  {/* Klaster Kanan: Anotasi, Laci Format "Aa", & Counter (Polos tanpa glass) */}
-                  <div className="flex items-center gap-1 shrink-0">
+                  {/* Klaster Kanan: Anotasi, Laci Format "Aa", & Counter */}
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => {
@@ -1791,9 +1796,9 @@ export function CreateNoteSheet({
                           return next;
                         });
                       }}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-serif transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                      className={`h-8.5 px-2.5 rounded-xl text-xs font-serif transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
                         isMarginaliaOpen || marginaliaText
-                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold"
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold shadow-2xs"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
                       }`}
                       title="Attach sidenote"
@@ -1810,9 +1815,9 @@ export function CreateNoteSheet({
                         triggerHaptic("light");
                         setIsFormattingOpen((prev) => !prev);
                       }}
-                      className={`formatting-btn px-2.5 py-1.5 rounded-xl text-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                      className={`formatting-btn h-8.5 px-2.5 rounded-xl text-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
                         isFormattingOpen
-                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold"
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold shadow-2xs"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
                       }`}
                       title="Formatting & Typography"
@@ -1824,7 +1829,7 @@ export function CreateNoteSheet({
                     </button>
 
                     {content.length > 0 && (
-                      <span className="text-[10px] text-[var(--text-tertiary)] font-mono hidden sm:inline select-none pl-1">
+                      <span className="text-[10px] text-[var(--text-tertiary)] font-mono hidden md:inline select-none pl-0.5">
                         {content.length}c
                       </span>
                     )}

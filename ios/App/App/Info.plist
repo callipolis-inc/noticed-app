@@ -26,6 +26,8 @@
 	<string>Noticed needs camera access to capture photos and video moments for your personal journal.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Noticed needs microphone access to record voice memos and audio for your field notes.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Noticed needs speech recognition access to transcribe spoken thoughts into written field notes.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Noticed needs photo library access to attach photos and videos to your notes.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
