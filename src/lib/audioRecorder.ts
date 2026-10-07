@@ -12,6 +12,7 @@ export class TactileAudioRecorder {
   private stream: MediaStream | null = null;
   private startTime: number = 0;
   private animationFrameId: number | null = null;
+  private chosenMimeType: string = "";
 
   public async start(onAudioLevels?: (levels: number[]) => void): Promise<boolean> {
     try {
@@ -21,35 +22,44 @@ export class TactileAudioRecorder {
       // Set up AudioContext & AnalyserNode for live visualization
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       this.audioContext = new AudioCtx();
+      if (this.audioContext.state === "suspended") {
+        await this.audioContext.resume().catch(() => {});
+      }
       const source = this.audioContext.createMediaStreamSource(this.stream);
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 64;
       source.connect(this.analyser);
 
-      // MediaRecorder initialization
-      let mimeType = "audio/webm";
-      if (!MediaRecorder.isTypeSupported("audio/webm")) {
+      // MediaRecorder initialization: prioritize universal MP4 (AAC) for iOS & Chrome compatibility
+      let mimeType = "";
+      if (typeof MediaRecorder !== "undefined" && typeof MediaRecorder.isTypeSupported === "function") {
         if (MediaRecorder.isTypeSupported("audio/mp4")) {
           mimeType = "audio/mp4";
+        } else if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+          mimeType = "audio/webm;codecs=opus";
+        } else if (MediaRecorder.isTypeSupported("audio/webm")) {
+          mimeType = "audio/webm";
+        } else if (MediaRecorder.isTypeSupported("audio/aac")) {
+          mimeType = "audio/aac";
         } else if (MediaRecorder.isTypeSupported("audio/ogg")) {
           mimeType = "audio/ogg";
-        } else {
-          mimeType = "";
         }
       }
+      this.chosenMimeType = mimeType;
 
       this.mediaRecorder = mimeType
         ? new MediaRecorder(this.stream, { mimeType })
         : new MediaRecorder(this.stream);
 
       this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           this.audioChunks.push(event.data);
         }
       };
 
       this.startTime = Date.now();
-      this.mediaRecorder.start(100);
+      // Omit timeslice parameter: iOS WebKit corrupts MP4 container clusters when timesliced
+      this.mediaRecorder.start();
 
       // Real-time audio waveform loop
       if (onAudioLevels && this.analyser) {
@@ -97,7 +107,8 @@ export class TactileAudioRecorder {
       const duration = Math.max(1, Math.round((Date.now() - this.startTime) / 1000));
 
       this.mediaRecorder.onstop = () => {
-        const mimeType = this.mediaRecorder?.mimeType || "audio/webm";
+        const mimeType =
+          this.mediaRecorder?.mimeType || this.chosenMimeType || "audio/mp4";
         const audioBlob = new Blob(this.audioChunks, { type: mimeType });
         this.cleanup();
 

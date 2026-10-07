@@ -192,12 +192,16 @@ export async function processAudioBlob(blob: Blob, fallbackDataUrl?: string): Pr
     }
   }
 
-  if (fallbackDataUrl) return fallbackDataUrl;
+  // Only return fallbackDataUrl if it's already a persistent data: URL or remote URL, NOT an ephemeral blob: URL
+  if (fallbackDataUrl && !fallbackDataUrl.startsWith("blob:")) {
+    return fallbackDataUrl;
+  }
 
+  // Convert binary Blob to persistent base64 DataURL so it survives page reloads and storage persistence
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => resolve((e.target?.result as string) || "");
-    reader.onerror = () => resolve("");
+    reader.onerror = () => resolve(fallbackDataUrl || "");
     reader.readAsDataURL(blob);
   });
 }

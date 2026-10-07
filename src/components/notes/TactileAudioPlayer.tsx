@@ -112,10 +112,19 @@ export function TactileAudioPlayer({
       audio.preload = "metadata";
       audio.playbackRate = playbackSpeed;
 
+      if (currentTime > 0 && currentTime < effectiveDuration) {
+        audio.currentTime = currentTime;
+      }
+
       audio.ontimeupdate = () => {
         if (!isScrubbing && audioRef.current) {
           setCurrentTime(audioRef.current.currentTime);
         }
+      };
+
+      audio.onerror = (e) => {
+        console.error("[TactileAudioPlayer] Audio playback error:", audio.error, e);
+        setIsPlaying(false);
       };
 
       audio.onended = () => {
@@ -138,9 +147,9 @@ export function TactileAudioPlayer({
 
       audioRef.current = audio;
     }
-  }, [audioUrl, playbackSpeed, isScrubbing]);
+  }, [audioUrl, playbackSpeed, isScrubbing, currentTime, effectiveDuration]);
 
-  const togglePlay = (e: React.MouseEvent) => {
+  const togglePlay = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!audioUrl) return;
 
@@ -163,9 +172,14 @@ export function TactileAudioPlayer({
           detail: { sourceId },
         })
       );
-      audioRef.current.play().catch(console.error);
-      setIsPlaying(true);
       setIsExpanded(true);
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (err) {
+        console.error("[TactileAudioPlayer] Playback was prevented or failed:", err);
+        setIsPlaying(false);
+      }
     }
   };
 
@@ -181,15 +195,20 @@ export function TactileAudioPlayer({
     }
   };
 
-  const handleRestart = (e: React.MouseEvent) => {
+  const handleRestart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     triggerHaptic("light");
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
       setCurrentTime(0);
       if (!isPlaying) {
-        audioRef.current.play().catch(console.error);
-        setIsPlaying(true);
+        try {
+          await audioRef.current.play();
+          setIsPlaying(true);
+        } catch (err) {
+          console.error("[TactileAudioPlayer] Restart error:", err);
+          setIsPlaying(false);
+        }
       }
     }
   };

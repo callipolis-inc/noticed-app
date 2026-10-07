@@ -319,13 +319,37 @@ export function PhotostripModal({
 
       // Photos
       for (let i = 0; i < photosToDraw.length; i++) {
+        const rawPhoto = photosToDraw[i];
+        let resolvedSrc = rawPhoto;
+        let blobUrlToRevoke: string | null = null;
+
+        // If remote URL, pre-fetch as blob to guarantee no canvas tainting on export
+        if (rawPhoto.startsWith("http://") || rawPhoto.startsWith("https://")) {
+          try {
+            const resp = await fetch(rawPhoto, { mode: "cors" });
+            if (resp.ok) {
+              const b = await resp.blob();
+              resolvedSrc = URL.createObjectURL(b);
+              blobUrlToRevoke = resolvedSrc;
+            }
+          } catch {
+            // Keep original src if fetch fails
+          }
+        }
+
         const img = new Image();
-        img.crossOrigin = "anonymous";
+        if (resolvedSrc.startsWith("http")) {
+          img.crossOrigin = "anonymous";
+        }
         await new Promise((resolve) => {
           img.onload = resolve;
           img.onerror = resolve;
-          img.src = photosToDraw[i];
+          img.src = resolvedSrc;
         });
+
+        if (blobUrlToRevoke) {
+          URL.revokeObjectURL(blobUrlToRevoke);
+        }
 
         ctx.fillStyle = activePalette.cardBg;
         ctx.fillRect(
@@ -451,13 +475,76 @@ export function PhotostripModal({
       );
 
       canvas.toBlob(async (blob) => {
-        if (!blob) return;
+        if (!blob) {
+          setExportedStatus("Export failed");
+          setTimeout(() => setExportedStatus(null), 2500);
+          return;
+        }
 
-        if (mode === "share" && navigator.share && navigator.canShare) {
-          const file = new File([blob], `noticed-excerpt-${note.id}.png`, {
-            type: "image/png",
-          });
-          if (navigator.canShare({ files: [file] })) {
+        const fileName = `noticed-${aspectRatio.replace(":", "x")}-${note.id.substring(0, 6)}.png`;
+        const file = new File([blob], fileName, { type: "image/png" });
+        const isMobileDevice =
+          typeof navigator !== "undefined" &&
+          (/iPad|iPhone|iPod|Android/i.test(navigator.userAgent) ||
+            (navigator.maxTouchPoints && navigator.maxTouchPoints > 2));
+
+        // ========================================================
+        // CASE 1: SAVE CARD (MOBILE GALLERY / CAMERA ROLL OR DESKTOP)
+        // ========================================================
+        if (mode === "download") {
+          // On iOS/Android, native Web Share with files triggers the iOS/Android
+          // system action sheet containing "Save Image" ("Simpan Gambar") directly into Photos/Gallery.
+          if (
+            isMobileDevice &&
+            navigator.share &&
+            navigator.canShare &&
+            navigator.canShare({ files: [file] })
+          ) {
+            try {
+              await navigator.share({
+                title: space?.name || "Noticed Excerpt",
+                files: [file],
+              });
+              triggerSuccessHaptic();
+              setExportedStatus("Saved to Gallery");
+              setTimeout(() => setExportedStatus(null), 3000);
+              return;
+            } catch (err: unknown) {
+              if (err instanceof Error && err.name === "AbortError") {
+                // User dismissed native sheet
+                return;
+              }
+            }
+          }
+
+          // Desktop fallback or when share is unavailable: anchor download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 200);
+
+          triggerSuccessHaptic();
+          setExportedStatus("Saved to device");
+          setTimeout(() => setExportedStatus(null), 2500);
+          return;
+        }
+
+        // ========================================================
+        // CASE 2: SHARE (FILE -> TEXT -> CLIPBOARD COPY)
+        // ========================================================
+        if (mode === "share") {
+          // 2.A: Native Share Sheet with Image File
+          if (
+            navigator.share &&
+            navigator.canShare &&
+            navigator.canShare({ files: [file] })
+          ) {
             try {
               await navigator.share({
                 title: space?.name || "Noticed Excerpt",
@@ -469,25 +556,75 @@ export function PhotostripModal({
               setTimeout(() => setExportedStatus(null), 2500);
               return;
             } catch (err: unknown) {
-              if (err instanceof Error && err.name !== "AbortError") {
-                console.error(err);
+              if (err instanceof Error && err.name === "AbortError") {
+                return;
               }
             }
           }
+
+          // 2.B: Native Share Sheet with Text/Title (if file sharing unsupported)
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: space?.name || "Noticed Excerpt",
+                text: `${note.title ? `${note.title}\n\n` : ""}${note.content || ""}\n\n— noticed`,
+              });
+              triggerSuccessHaptic();
+              setExportedStatus("Shared");
+              setTimeout(() => setExportedStatus(null), 2500);
+              return;
+            } catch (err: unknown) {
+              if (err instanceof Error && err.name === "AbortError") {
+                return;
+              }
+            }
+          }
+
+          // 2.C: Clipboard Fallback (Copy PNG Image to system clipboard)
+          try {
+            if (
+              navigator.clipboard &&
+              typeof (window as any).ClipboardItem !== "undefined"
+            ) {
+              const ClipboardItemClass = (window as any).ClipboardItem;
+              await navigator.clipboard.write([
+                new ClipboardItemClass({ "image/png": blob }),
+              ]);
+              triggerSuccessHaptic();
+              setExportedStatus("Image copied to clipboard");
+              setTimeout(() => setExportedStatus(null), 3000);
+              return;
+            }
+          } catch {
+            // Fall through to text clipboard copy
+          }
+
+          // 2.D: Text Clipboard Copy
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(
+              `${note.title ? `${note.title}\n\n` : ""}${note.content || ""}\n\n— noticed`,
+            );
+            triggerSuccessHaptic();
+            setExportedStatus("Excerpt copied to clipboard");
+            setTimeout(() => setExportedStatus(null), 2500);
+            return;
+          }
+
+          // 2.E: Desktop fallback: file download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 200);
+          triggerSuccessHaptic();
+          setExportedStatus("Saved to device");
+          setTimeout(() => setExportedStatus(null), 2500);
         }
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `noticed-${aspectRatio.replace(":", "x")}-${note.id.substring(0, 6)}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        triggerSuccessHaptic();
-        setExportedStatus("Saved to device");
-        setTimeout(() => setExportedStatus(null), 2500);
       }, "image/png");
     } catch (err) {
       console.error("Export error:", err);

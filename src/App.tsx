@@ -469,7 +469,7 @@ export function App() {
     setTimeout(() => setFlyoutMessage(null), 2000);
   };
 
-  const handleExportArchive = () => {
+  const handleExportArchive = async () => {
     const archive = {
       app: "noticed",
       version: "1.0.0",
@@ -478,15 +478,45 @@ export function App() {
       spaces,
       notes,
     };
+    const fileName = `noticed-archive-${new Date().toISOString().slice(0, 10)}.json`;
     const blob = new Blob([JSON.stringify(archive, null, 2)], {
       type: "application/json",
     });
+
+    const isMobileDevice =
+      typeof navigator !== "undefined" &&
+      (/iPad|iPhone|iPod|Android/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 2));
+
+    if (isMobileDevice && navigator.share && navigator.canShare) {
+      const file = new File([blob], fileName, { type: "application/json" });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: "Noticed Archive Backup",
+            files: [file],
+          });
+          setFlyoutMessage("Archive exported");
+          setTimeout(() => setFlyoutMessage(null), 2500);
+          return;
+        } catch (err: unknown) {
+          if (err instanceof Error && err.name === "AbortError") {
+            return;
+          }
+        }
+      }
+    }
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `noticed-archive-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = fileName;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 200);
     setFlyoutMessage("Archive exported (JSON)");
     setTimeout(() => setFlyoutMessage(null), 2500);
   };

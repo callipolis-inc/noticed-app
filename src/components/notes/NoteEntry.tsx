@@ -18,6 +18,7 @@ import {
   AlignRight,
   AlignJustify,
   Pencil,
+  Copy,
 } from "lucide-react";
 
 interface NoteEntryProps {
@@ -303,6 +304,27 @@ export const NoteEntry = memo(function NoteEntry({
                   >
                     <Share2 className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
                     <span className="font-medium">Share Excerpt</span>
+                  </button>
+                )}
+
+                {/* Copy Text Action */}
+                {note.content && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      triggerHaptic("light");
+                      setShowMenu(false);
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(
+                          `${note.title ? `${note.title}\n\n` : ""}${note.content}\n\n— noticed`,
+                        );
+                      }
+                    }}
+                    className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    <Copy className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
+                    <span className="font-medium">Copy Text</span>
                   </button>
                 )}
 
