@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote, FilterCategory } from "@/types";
-import { formatTimeOnly } from "@/lib/utils";
+import { formatTimeOnly, formatNoteRelativeDate } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
 import {
   Search,
@@ -55,7 +55,6 @@ export function SpotlightSearchModal({
   const [timeframe, setTimeframe] = useState<
     "all" | "today" | "week" | "month"
   >("all");
-  const [scope, setScope] = useState<"all" | "current">("all");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,91 +85,92 @@ export function SpotlightSearchModal({
   const filteredNotes = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
 
-    return notes.filter((note) => {
-      // 1. Scope filter
-      if (
-        scope === "current" &&
-        activeSpaceId &&
-        note.spaceId !== activeSpaceId
-      ) {
-        return false;
-      }
-
-      // 2. Category filter
-      if (category === "photos" && (!note.photos || note.photos.length === 0)) {
-        return false;
-      }
-      if (category === "videos" && (!note.videos || note.videos.length === 0)) {
-        return false;
-      }
-      if (category === "voice" && !note.voiceMemo) {
-        return false;
-      }
-      if (
-        category === "marginalia" &&
-        !note.marginalia &&
-        (!note.marginaliaItems || note.marginaliaItems.length === 0) &&
-        !(note.highlights && note.highlights.some((h) => Boolean(h.marginalia)))
-      ) {
-        return false;
-      }
-      if (category === "pinned" && !note.pinned) {
-        return false;
-      }
-
-      // 3. Timeframe filter
-      if (timeframe !== "all") {
-        const noteDate = new Date(note.createdAt);
-        const now = new Date();
-        if (timeframe === "today") {
-          if (noteDate.toDateString() !== now.toDateString()) return false;
-        } else if (timeframe === "week") {
-          const diffDays =
-            (now.getTime() - noteDate.getTime()) / (1000 * 3600 * 24);
-          if (diffDays > 7) return false;
-        } else if (timeframe === "month") {
-          const diffDays =
-            (now.getTime() - noteDate.getTime()) / (1000 * 3600 * 24);
-          if (diffDays > 30) return false;
+    return notes
+      .filter((note) => {
+        // 1. Strict scope filter: Jika dibuka dari dalam notebook, kunci hanya untuk notebook tersebut
+        if (activeSpaceId && note.spaceId !== activeSpaceId) {
+          return false;
         }
-      }
 
-      // 4. Query search match
-      if (!trimmed) return true;
+        // 2. Category filter
+        if (category === "photos" && (!note.photos || note.photos.length === 0)) {
+          return false;
+        }
+        if (category === "videos" && (!note.videos || note.videos.length === 0)) {
+          return false;
+        }
+        if (category === "voice" && !note.voiceMemo) {
+          return false;
+        }
+        if (
+          category === "marginalia" &&
+          !note.marginalia &&
+          (!note.marginaliaItems || note.marginaliaItems.length === 0) &&
+          !(note.highlights && note.highlights.some((h) => Boolean(h.marginalia)))
+        ) {
+          return false;
+        }
+        if (category === "pinned" && !note.pinned) {
+          return false;
+        }
 
-      const title = note.title?.toLowerCase() || "";
-      const spaceName = spacesMap.get(note.spaceId)?.name.toLowerCase() || "";
-      const content = note.content.toLowerCase();
-      const marginalia = note.marginalia?.toLowerCase() || "";
-      const quoteSource = note.quoteSource?.toLowerCase() || "";
-      const location = note.locationName?.toLowerCase() || "";
-      const hasMatchingMarginaliaItem = Boolean(
-        note.marginaliaItems?.some(
-          (m) =>
-            m.content.toLowerCase().includes(trimmed) ||
-            (m.citation && m.citation.toLowerCase().includes(trimmed)),
-        ),
-      );
-      const hasMatchingHighlight = Boolean(
-        note.highlights?.some(
-          (h) =>
-            (h.marginalia && h.marginalia.toLowerCase().includes(trimmed)) ||
-            h.selectedText.toLowerCase().includes(trimmed),
-        ),
-      );
+        // 3. Timeframe filter
+        if (timeframe !== "all") {
+          const noteDate = new Date(note.createdAt);
+          const now = new Date();
+          if (timeframe === "today") {
+            if (noteDate.toDateString() !== now.toDateString()) return false;
+          } else if (timeframe === "week") {
+            const diffDays =
+              (now.getTime() - noteDate.getTime()) / (1000 * 3600 * 24);
+            if (diffDays > 7) return false;
+          } else if (timeframe === "month") {
+            const diffDays =
+              (now.getTime() - noteDate.getTime()) / (1000 * 3600 * 24);
+            if (diffDays > 30) return false;
+          }
+        }
 
-      return (
-        title.includes(trimmed) ||
-        content.includes(trimmed) ||
-        marginalia.includes(trimmed) ||
-        quoteSource.includes(trimmed) ||
-        spaceName.includes(trimmed) ||
-        location.includes(trimmed) ||
-        hasMatchingMarginaliaItem ||
-        hasMatchingHighlight
+        // 4. Query search match
+        if (!trimmed) return true;
+
+        const title = note.title?.toLowerCase() || "";
+        const spaceName = spacesMap.get(note.spaceId)?.name.toLowerCase() || "";
+        const content = note.content.toLowerCase();
+        const marginalia = note.marginalia?.toLowerCase() || "";
+        const quoteSource = note.quoteSource?.toLowerCase() || "";
+        const location = note.locationName?.toLowerCase() || "";
+        const hasMatchingMarginaliaItem = Boolean(
+          note.marginaliaItems?.some(
+            (m) =>
+              m.content.toLowerCase().includes(trimmed) ||
+              (m.citation && m.citation.toLowerCase().includes(trimmed)),
+          ),
+        );
+        const hasMatchingHighlight = Boolean(
+          note.highlights?.some(
+            (h) =>
+              (h.marginalia && h.marginalia.toLowerCase().includes(trimmed)) ||
+              h.selectedText.toLowerCase().includes(trimmed),
+          ),
+        );
+
+        return (
+          title.includes(trimmed) ||
+          content.includes(trimmed) ||
+          marginalia.includes(trimmed) ||
+          quoteSource.includes(trimmed) ||
+          spaceName.includes(trimmed) ||
+          location.includes(trimmed) ||
+          hasMatchingMarginaliaItem ||
+          hasMatchingHighlight
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
-    });
-  }, [notes, query, category, timeframe, scope, activeSpaceId, spacesMap]);
+  }, [notes, query, category, timeframe, activeSpaceId, spacesMap]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -273,8 +273,8 @@ export function SpotlightSearchModal({
                     setSelectedIndex(0);
                   }}
                   placeholder={
-                    scope === "current" && currentSpace
-                      ? `In ${currentSpace.name}...`
+                    activeSpaceId && currentSpace
+                      ? `Search in ${currentSpace.name}...`
                       : "Search notes, marginalia, audio..."
                   }
                   className="flex-1 bg-transparent border-0 p-0 text-[15px] font-sans text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 focus:outline-none tracking-tight"
@@ -303,7 +303,7 @@ export function SpotlightSearchModal({
                 </button>
               </div>
 
-              {/* Row 2: Unified Filter Ribbon (Categories + Timeframe + Scope) */}
+              {/* Row 2: Unified Filter Ribbon (Categories + Timeframe) */}
               <div className="flex items-center justify-between gap-2 pt-1 border-t border-[var(--glass-border)]/40 text-xs">
                 {/* Horizontal Scroll Filter Chips */}
                 <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1 min-w-0">
@@ -360,31 +360,6 @@ export function SpotlightSearchModal({
                     );
                   })}
                 </div>
-
-                {/* Scope Switcher (Buku Saat Ini vs Semua Buku) */}
-                {activeSpaceId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("light");
-                      setScope((prev) => (prev === "all" ? "current" : "all"));
-                      setSelectedIndex(0);
-                    }}
-                    className={`px-2.5 py-1 rounded-full text-[10.5px] font-semibold shrink-0 flex items-center gap-1.5 transition-all cursor-pointer ${
-                      scope === "current"
-                        ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
-                        : "inner-pseudo-glass text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-xs"
-                    }`}
-                    title="Switch search scope"
-                  >
-                    <BookOpen className="w-3 h-3 stroke-[2] shrink-0" />
-                    <span className="truncate max-w-[90px]">
-                      {scope === "current"
-                        ? currentSpace?.name || "This Book"
-                        : "All Books"}
-                    </span>
-                  </button>
-                )}
               </div>
             </div>
 
@@ -397,8 +372,12 @@ export function SpotlightSearchModal({
                 <div className="py-14 text-center space-y-1">
                   <p className="text-sm font-serif italic text-[var(--text-tertiary)]">
                     {query
-                      ? `No notes matching "${query}"`
-                      : "No notes found in this filter"}
+                      ? `No notes matching "${query}"${
+                          currentSpace ? ` in ${currentSpace.name}` : ""
+                        }`
+                      : `No notes found in this filter${
+                          currentSpace ? ` (${currentSpace.name})` : ""
+                        }`}
                   </p>
                   <span className="text-[11px] text-[var(--text-tertiary)]/70">
                     Try another keyword or change your filters
@@ -464,10 +443,18 @@ export function SpotlightSearchModal({
                       {/* Note Metadata */}
                       <div className="flex items-center justify-between text-[10.5px] uppercase tracking-wider mb-1 text-[var(--text-tertiary)] font-semibold">
                         <div className="flex items-center gap-1.5 truncate max-w-[240px]">
-                          <BookOpen className="w-3 h-3 shrink-0 opacity-70" />
-                          <span className="truncate text-[var(--text-secondary)]">
-                            {space?.name || "Notebook"}
-                          </span>
+                          {activeSpaceId ? (
+                            <span className="truncate text-[var(--text-secondary)] font-mono">
+                              {formatNoteRelativeDate(note.createdAt)}
+                            </span>
+                          ) : (
+                            <>
+                              <BookOpen className="w-3 h-3 shrink-0 opacity-70" />
+                              <span className="truncate text-[var(--text-secondary)]">
+                                {space?.name || "Notebook"}
+                              </span>
+                            </>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
@@ -485,9 +472,11 @@ export function SpotlightSearchModal({
                               ¹
                             </span>
                           )}
-                          <span className="opacity-60">
-                            {formatTimeOnly(note.createdAt)}
-                          </span>
+                          {!activeSpaceId && (
+                            <span className="opacity-60 font-mono">
+                              {formatTimeOnly(note.createdAt)}
+                            </span>
+                          )}
                         </div>
                       </div>
 
