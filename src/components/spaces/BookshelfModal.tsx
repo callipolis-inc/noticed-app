@@ -675,7 +675,7 @@ export function BookshelfView({
             {/* Viewport Track membentang penuh ke tepi layar ponsel tanpa terpotong max-w-md */}
             <div
               ref={carouselRef}
-              className="w-full overflow-x-auto no-scrollbar py-6 flex items-center gap-5 sm:gap-6 snap-x snap-mandatory px-[calc(50%-82px)] [perspective:1400px]"
+              className="w-full overflow-x-auto no-scrollbar pt-6 pb-11 flex items-center gap-5 sm:gap-6 snap-x snap-mandatory px-[calc(50%-82px)] [perspective:1400px]"
               style={{
                 maskImage:
                   "linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%)",
@@ -738,11 +738,11 @@ export function BookshelfView({
                         backgroundColor: color,
                         boxShadow: isSelected
                           ? isLight
-                            ? "0 18px 36px -6px rgba(28,25,23,0.15), 0 6px 14px -2px rgba(28,25,23,0.08), inset 0 1px 1px rgba(255,255,255,0.7), inset 0 -1.5px 1.5px rgba(0,0,0,0.12)"
-                            : "0 24px 44px -8px rgba(0,0,0,0.5), 0 8px 18px -4px rgba(0,0,0,0.32), inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -1.5px 1.5px rgba(0,0,0,0.4)"
+                            ? "0 12px 28px -6px rgba(28,25,23,0.12), 0 4px 10px -2px rgba(28,25,23,0.06), inset 0 1px 1px rgba(255,255,255,0.7), inset 0 -1.5px 1.5px rgba(0,0,0,0.10)"
+                            : "0 16px 34px -8px rgba(0,0,0,0.45), 0 6px 14px -3px rgba(0,0,0,0.28), inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -1.5px 1.5px rgba(0,0,0,0.35)"
                           : isLight
-                            ? "0 8px 20px -4px rgba(28,25,23,0.08), 0 2px 6px -1px rgba(28,25,23,0.04), inset 0 1px 1px rgba(255,255,255,0.6)"
-                            : "0 10px 22px -6px rgba(0,0,0,0.35), inset 0 1px 1px rgba(255,255,255,0.15)",
+                            ? "0 6px 16px -4px rgba(28,25,23,0.07), 0 2px 5px -1px rgba(28,25,23,0.03), inset 0 1px 1px rgba(255,255,255,0.6)"
+                            : "0 8px 18px -5px rgba(0,0,0,0.30), inset 0 1px 1px rgba(255,255,255,0.15)",
                         border: isLight
                           ? "1px solid rgba(0,0,0,0.06)"
                           : "1px solid rgba(255,255,255,0.12)",
@@ -870,15 +870,15 @@ export function BookshelfView({
                       <div className="absolute inset-0 foil-shimmer rounded-l-[4px] rounded-r-[10px] pointer-events-none" />
                     </div>
 
-                    {/* Rapi & Cermat: Soft Diffuse Radial Contact Shadow (Bukan pil hitam kaku) */}
+                    {/* Soft Diffuse Radial Contact Shadow */}
                     <div
-                      className="w-[84%] mx-auto h-3 -mt-0.5 rounded-full pointer-events-none transition-all duration-300"
+                      className="w-[82%] mx-auto h-3 -mt-0.5 rounded-full pointer-events-none transition-all duration-300"
                       style={{
                         background:
-                          "radial-gradient(ellipse 60% 40% at 50% 40%, rgba(0,0,0,0.16) 0%, rgba(0,0,0,0.03) 50%, transparent 75%)",
-                        opacity: isSelected ? 1 : 0.45,
-                        transform: isSelected ? "scale(1.04)" : "scale(0.88)",
-                        filter: isSelected ? "blur(2px)" : "blur(1.5px)",
+                          "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,0,0,0.14) 0%, rgba(0,0,0,0.02) 65%, transparent 100%)",
+                        opacity: isSelected ? 1 : 0.4,
+                        transform: isSelected ? "scale(1.02)" : "scale(0.86)",
+                        filter: isSelected ? "blur(2.5px)" : "blur(1.8px)",
                       }}
                     />
                   </div>
@@ -886,46 +886,42 @@ export function BookshelfView({
               })}
             </div>
 
-            {/* Carousel Navigation Dots */}
-            <div className="flex items-center justify-center gap-1.5 mt-0.5 mb-2">
-              {spaces.map((space) => {
-                const isSelected = space.id === activeSelected?.id;
-                return (
-                  <button
-                    key={space.id}
-                    type="button"
-                    onClick={() => handleSelectBook(space.id)}
-                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                      isSelected
-                        ? "w-5 bg-[var(--text-primary)] shadow-xs"
-                        : "w-1.5 bg-[var(--text-primary)]/20 hover:bg-[var(--text-primary)]/40"
-                    }`}
-                    title={space.name}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Clean Typographic Console (Aligned to max-w-md like header) */}
+            {/* Typographic Metadata & Actions (Harmonized with Spines Mode) */}
             {activeSelected && (
-              <div className="w-full max-w-md mx-auto pt-3 pb-1 flex items-center justify-between gap-3 px-5 border-t border-[var(--glass-border)]/50 mt-1">
+              <div className="w-full max-w-md mx-auto text-center flex flex-col items-center px-4 animate-in fade-in duration-300">
                 <div
-                  className="flex-1 min-w-0 cursor-pointer"
-                  onClick={handleOpenActive}
+                  style={{ fontSize: "calc(10.5px * var(--font-scale, 1))" }}
+                  className="flex items-center justify-center gap-2 mb-1.5"
                 >
-                  <div className="text-[10px] uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
-                    Edition • {notesCountMap[activeSelected.id] || 0} notices
-                  </div>
-                  <h3 className="text-base font-serif font-bold text-[var(--text-primary)] truncate">
-                    {activeSelected.name}
-                  </h3>
+                  <span className="uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
+                    Edition
+                  </span>
+                  <span className="text-[var(--text-tertiary)] opacity-40">
+                    •
+                  </span>
+                  <span className="font-mono text-[var(--text-tertiary)] font-medium">
+                    {notesCountMap[activeSelected.id] || 0} notices
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <h2
+                  onClick={handleOpenActive}
+                  className="text-2xl font-serif font-bold text-[var(--text-primary)] tracking-tight cursor-pointer hover:opacity-85 active:scale-98 transition-all truncate max-w-full"
+                >
+                  {activeSelected.name}
+                </h2>
+
+                {activeSelected.description && (
+                  <p className="text-xs text-[var(--text-secondary)] italic mt-1.5 max-w-xs line-clamp-2 opacity-80">
+                    {activeSelected.description}
+                  </p>
+                )}
+
+                <div className="mt-5 flex items-center justify-center gap-2.5">
                   <button
                     type="button"
                     onClick={handleStartEdit}
-                    className="h-8.5 px-3.5 rounded-full inner-pseudo-glass text-[var(--text-primary)] text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-transform cursor-pointer shadow-xs"
+                    className="h-9 px-4 rounded-full inner-pseudo-glass text-[var(--text-primary)] text-xs font-semibold flex items-center gap-1.5 shadow-xs active:scale-95 transition-transform cursor-pointer"
                     title="Edit Notebook"
                   >
                     <Pencil className="w-3.5 h-3.5 stroke-[2]" />
@@ -936,10 +932,10 @@ export function BookshelfView({
                     type="button"
                     disabled={isOpening}
                     onClick={handleOpenActive}
-                    className="h-8.5 px-4 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide flex items-center gap-1.5 active:scale-95 transition-all shadow-sm disabled:opacity-60 cursor-pointer"
+                    className="h-9 px-5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
                   >
-                    <span>{isOpening ? "Opening..." : "Open"}</span>
-                    <ArrowRight className="w-3 h-3 stroke-[2.5]" />
+                    <span>{isOpening ? "Opening..." : "Open Notebook"}</span>
+                    <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
                   </button>
                 </div>
               </div>
