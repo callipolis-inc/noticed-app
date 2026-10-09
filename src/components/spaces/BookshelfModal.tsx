@@ -434,7 +434,7 @@ export function BookshelfView({
             triggerHaptic("light");
             onOpenProfile?.();
           }}
-          className="flex items-center gap-2 p-1 pl-1 pr-3.5 rounded-full dynamic-island-shell cursor-pointer hover:opacity-95 active:scale-95 transition-all shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)]"
+          className="flex items-center gap-2 py-1 pl-1 pr-3.5 h-9 rounded-full dynamic-island-shell cursor-pointer hover:opacity-95 active:scale-95 transition-all shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)]"
           title="Profile"
         >
           <div className="dynamic-island-specular-rim" />
@@ -461,8 +461,8 @@ export function BookshelfView({
               />
             )}
           </div>
-          <div className="flex items-center text-left min-w-0">
-            <span className="text-xs font-semibold leading-none text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[180px] sm:max-w-[220px]">
+          <div className="flex items-center text-left min-w-0 py-0.5">
+            <span className="text-xs font-semibold leading-snug text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[180px] sm:max-w-[220px]">
               {isSyncing
                 ? `Syncing · ${userName}`
                 : `${timeGreeting}, ${userName}`}

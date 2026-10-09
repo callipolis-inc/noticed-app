@@ -70,6 +70,7 @@ export interface FieldNote {
   voiceMemo?: VoiceMemo;
   tags?: string[];
   pinned?: boolean;
+  archived?: boolean;
   photostripLayout?: 'polaroid' | 'strip' | 'grid';
   createdAt: string;
   marginalia?: string;

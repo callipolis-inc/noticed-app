@@ -19,6 +19,7 @@ import {
   AlignJustify,
   Pencil,
   Copy,
+  Archive,
 } from "lucide-react";
 
 interface NoteEntryProps {
@@ -30,6 +31,7 @@ interface NoteEntryProps {
   defaultTextAlign?: TextAlign;
   imageFrameSize?: ImageFrameSize;
   onPinToggle?: (id: string) => void;
+  onArchiveToggle?: (id: string) => void;
   onDeleteNote?: (id: string) => void;
   onEditNote?: (note: FieldNote) => void;
   onOpenPhotostrip?: (note: FieldNote) => void;
@@ -46,6 +48,7 @@ export const NoteEntry = memo(function NoteEntry({
   defaultTextAlign = "left",
   imageFrameSize = "editorial",
   onPinToggle,
+  onArchiveToggle,
   onDeleteNote,
   onEditNote,
   onOpenPhotostrip,
@@ -343,6 +346,25 @@ export const NoteEntry = memo(function NoteEntry({
                     <Pin className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
                     <span className="font-medium">
                       {note.pinned ? "Unpin Bookmark" : "Bookmark Note"}
+                    </span>
+                  </button>
+                )}
+
+                {/* Archive Toggle */}
+                {onArchiveToggle && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      triggerHaptic("medium");
+                      setShowMenu(false);
+                      onArchiveToggle(note.id);
+                    }}
+                    className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
+                  >
+                    <Archive className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
+                    <span className="font-medium">
+                      {note.archived ? "Unarchive Note" : "Archive Note"}
                     </span>
                   </button>
                 )}

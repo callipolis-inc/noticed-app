@@ -216,6 +216,23 @@ export function App() {
     }
   };
 
+  const [authorBio, setAuthorBio] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return (
+        localStorage.getItem("sidenotes_author_bio") ||
+        "Quiet observations & daily marginalia"
+      );
+    }
+    return "Quiet observations & daily marginalia";
+  });
+
+  const handleUpdateAuthorBio = (bio: string) => {
+    setAuthorBio(bio);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidenotes_author_bio", bio);
+    }
+  };
+
   const [defaultShelfLayout, setDefaultShelfLayout] = useState<
     "spines" | "covers"
   >(() => {
@@ -939,6 +956,23 @@ export function App() {
     );
   }, []);
 
+  const handleArchiveNoteToggle = useCallback((noteId: string) => {
+    triggerHaptic("medium");
+    setNotes((prev) =>
+      prev.map((n) => {
+        if (n.id === noteId) {
+          const isArchivedNow = !n.archived;
+          setFlyoutMessage(
+            isArchivedNow ? "Notice moved to Archive Vault" : "Notice restored to notebook",
+          );
+          setTimeout(() => setFlyoutMessage(null), 3000);
+          return { ...n, archived: isArchivedNow };
+        }
+        return n;
+      }),
+    );
+  }, []);
+
   const handleEditNoteCallback = useCallback((note: FieldNote) => {
     setEditingNote(note);
   }, []);
@@ -1055,13 +1089,15 @@ export function App() {
   const notesCountMap = useMemo(() => {
     const map: Record<string, number> = {};
     for (const note of notes) {
-      map[note.spaceId] = (map[note.spaceId] || 0) + 1;
+      if (!note.archived) {
+        map[note.spaceId] = (map[note.spaceId] || 0) + 1;
+      }
     }
     return map;
   }, [notes]);
 
   const notebookNotes = useMemo(() => {
-    return notes.filter((n) => n.spaceId === activeSpace.id);
+    return notes.filter((n) => n.spaceId === activeSpace.id && !n.archived);
   }, [notes, activeSpace.id]);
 
   const groupedNotes = useMemo(() => {
@@ -1270,6 +1306,7 @@ export function App() {
                               defaultTextAlign={defaultTextAlign}
                               imageFrameSize={imageFrameSize}
                               onPinToggle={handlePinToggle}
+                              onArchiveToggle={handleArchiveNoteToggle}
                               onDeleteNote={handleDeleteNote}
                               onEditNote={handleEditNoteCallback}
                               onOpenPhotostrip={handleOpenPhotostripCallback}
@@ -1600,12 +1637,18 @@ export function App() {
             onClose={() => setIsProfileOpen(false)}
             userName={userName}
             onUpdateUserName={handleUpdateUserName}
+            authorBio={authorBio}
+            onUpdateAuthorBio={handleUpdateAuthorBio}
             avatarPhoto={avatarPhoto}
             onUpdateAvatarPhoto={handleUpdateAvatarPhoto}
             totalVolumes={spaces.length}
             totalNotes={notes.length}
+            notes={notes}
+            spaces={spaces}
             onExportArchive={handleExportArchive}
             onImportArchive={handleImportArchive}
+            onUnarchiveNote={handleArchiveNoteToggle}
+            onDeleteNote={handleDeleteNote}
             userEmail={userEmail}
             onSignOut={handleSignOut}
             onAuthSuccess={handleAuthSuccess}

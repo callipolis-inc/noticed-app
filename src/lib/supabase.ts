@@ -106,3 +106,19 @@ export function onAuthStateChange(
 ) {
   return supabase.auth.onAuthStateChange(callback);
 }
+
+/**
+ * Updates the password for the current authenticated user
+ */
+export async function updateUserPassword(newPassword: string) {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured.");
+  }
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  if (error) {
+    throw error;
+  }
+  return data;
+}
