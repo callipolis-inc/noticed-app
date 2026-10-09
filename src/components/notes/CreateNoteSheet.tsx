@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Space, FieldNote, TextAlign, FontChoice } from "@/types";
+import { Space, FieldNote, TextAlign, FontChoice, PhotoMeta } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { generateId, formatTimeOnly } from "@/lib/utils";
 import {
@@ -31,6 +31,7 @@ import {
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import { TactileAudioPlayer } from "./TactileAudioPlayer";
 import { AudioTrimmerModal } from "./AudioTrimmerModal";
+import { DarkroomModal } from "./DarkroomModal";
 import {
   X,
   Check,
@@ -43,6 +44,7 @@ import {
   MapPin,
   Trash2,
   Plus,
+  Sliders,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -108,6 +110,8 @@ export function CreateNoteSheet({
   const [locationName, setLocationName] = useState("");
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
+  const [photosMeta, setPhotosMeta] = useState<PhotoMeta[]>([]);
+  const [darkroomIndex, setDarkroomIndex] = useState<number | null>(null);
   const [videos, setVideos] = useState<string[]>([]);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [isVideoProcessing, setIsVideoProcessing] = useState(false);
@@ -194,6 +198,8 @@ export function CreateNoteSheet({
       setSelectedSpaceId(editingNote.spaceId || defaultSpaceId);
       setLocationName(editingNote.locationName || "");
       setPhotos(editingNote.photos ? [...editingNote.photos] : []);
+      setPhotosMeta(editingNote.photosMeta ? [...editingNote.photosMeta] : []);
+      setDarkroomIndex(null);
       setVideos(editingNote.videos ? [...editingNote.videos] : []);
 
       const firstMarg = editingNote.marginaliaItems?.[0];
@@ -227,6 +233,8 @@ export function CreateNoteSheet({
       setSelectedSpaceId(defaultSpaceId);
       setLocationName("");
       setPhotos([]);
+      setPhotosMeta([]);
+      setDarkroomIndex(null);
       setVideos([]);
       setVideoError(null);
       setAudioError(null);
@@ -335,6 +343,7 @@ export function CreateNoteSheet({
   const handleRemovePhoto = (index: number) => {
     triggerHaptic("light");
     setPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotosMeta((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -639,6 +648,7 @@ export function CreateNoteSheet({
             : undefined,
         locationName: locationName.trim() || undefined,
         photos: photos.length > 0 ? photos : undefined,
+        photosMeta: photosMeta.length > 0 ? photosMeta : undefined,
         videos: videos.length > 0 ? videos : undefined,
         voiceMemo: recordedAudio
           ? {
@@ -675,6 +685,7 @@ export function CreateNoteSheet({
         : undefined,
       locationName: locationName.trim() || undefined,
       photos: photos.length > 0 ? photos : undefined,
+      photosMeta: photosMeta.length > 0 ? photosMeta : undefined,
       videos: videos.length > 0 ? videos : undefined,
       voiceMemo: recordedAudio
         ? {
@@ -1194,9 +1205,35 @@ export function CreateNoteSheet({
                       <img
                         src={photos[0]}
                         alt="Captured moment"
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover transition-all duration-300 ${
+                          photosMeta[0]?.filter
+                            ? `film-filter-${photosMeta[0].filter}`
+                            : ""
+                        }`}
                       />
-                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                      {photosMeta[0]?.hasGrain && (
+                        <div className="film-grain-overlay" />
+                      )}
+
+                      {/* Top Overlay Controls */}
+                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic("light");
+                            setDarkroomIndex(0);
+                          }}
+                          className={`px-2.5 py-1 rounded-full text-white text-[11px] font-sans font-medium flex items-center gap-1 active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs ${
+                            photosMeta[0]?.filter &&
+                            photosMeta[0].filter !== "natural"
+                              ? "bg-stone-900 border border-white/30"
+                              : "bg-black/65 hover:bg-black/85"
+                          }`}
+                          title="Analog Darkroom"
+                        >
+                          <Sliders className="w-3 h-3" />
+                          <span>Darkroom</span>
+                        </button>
                         <button
                           type="button"
                           onClick={handleTriggerPhotoSelect}
@@ -1215,6 +1252,13 @@ export function CreateNoteSheet({
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
+
+                      {/* Inscription preview badge if present */}
+                      {photosMeta[0]?.caption?.trim() && (
+                        <div className="absolute bottom-2.5 left-2.5 right-2.5 px-3 py-1.5 rounded-xl bg-black/65 backdrop-blur-xs text-white font-typewriter text-[11px] truncate z-10">
+                          {photosMeta[0].caption}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1229,16 +1273,47 @@ export function CreateNoteSheet({
                             <img
                               src={p}
                               alt={`Photo ${idx + 1}`}
-                              className="w-full h-full object-cover"
+                              className={`w-full h-full object-cover transition-all duration-300 ${
+                                photosMeta[idx]?.filter
+                                  ? `film-filter-${photosMeta[idx].filter}`
+                                  : ""
+                              }`}
                             />
-                            <button
-                              type="button"
-                              onClick={() => handleRemovePhoto(idx)}
-                              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm"
-                              title="Remove"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
+                            {photosMeta[idx]?.hasGrain && (
+                              <div className="film-grain-overlay" />
+                            )}
+                            <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  triggerHaptic("light");
+                                  setDarkroomIndex(idx);
+                                }}
+                                className={`w-6 h-6 rounded-full text-white flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs ${
+                                  photosMeta[idx]?.filter &&
+                                  photosMeta[idx].filter !== "natural"
+                                    ? "bg-stone-900 border border-white/30"
+                                    : "bg-black/65 hover:bg-black/85"
+                                }`}
+                                title="Darkroom"
+                              >
+                                <Sliders className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePhoto(idx)}
+                                className="w-6 h-6 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm"
+                                title="Remove"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {photosMeta[idx]?.caption?.trim() && (
+                              <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded-lg bg-black/65 backdrop-blur-xs text-white font-typewriter text-[10px] truncate z-10">
+                                {photosMeta[idx].caption}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1263,16 +1338,47 @@ export function CreateNoteSheet({
                           <img
                             src={p}
                             alt={`Filmstrip ${idx + 1}`}
-                            className="w-full h-full object-cover"
+                            className={`w-full h-full object-cover transition-all duration-300 ${
+                              photosMeta[idx]?.filter
+                                ? `film-filter-${photosMeta[idx].filter}`
+                                : ""
+                            }`}
                           />
-                          <button
-                            type="button"
-                            onClick={() => handleRemovePhoto(idx)}
-                            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors cursor-pointer"
-                            title="Remove"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          {photosMeta[idx]?.hasGrain && (
+                            <div className="film-grain-overlay" />
+                          )}
+                          <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                triggerHaptic("light");
+                                setDarkroomIndex(idx);
+                              }}
+                              className={`w-6 h-6 rounded-full text-white flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs ${
+                                photosMeta[idx]?.filter &&
+                                photosMeta[idx].filter !== "natural"
+                                  ? "bg-stone-900 border border-white/30"
+                                  : "bg-black/60 hover:bg-black/80"
+                              }`}
+                              title="Darkroom"
+                            >
+                              <Sliders className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemovePhoto(idx)}
+                              className="w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors cursor-pointer"
+                              title="Remove"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {photosMeta[idx]?.caption?.trim() && (
+                            <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded-lg bg-black/65 backdrop-blur-xs text-white font-typewriter text-[10px] truncate z-10">
+                              {photosMeta[idx].caption}
+                            </div>
+                          )}
                         </div>
                       ))}
 
@@ -1921,6 +2027,24 @@ export function CreateNoteSheet({
             file={fileToTrim}
             onTrimComplete={handleTrimComplete}
           />
+
+          {/* Analog Darkroom & Polaroid Studio Modal */}
+          {darkroomIndex !== null && photos[darkroomIndex] && (
+            <DarkroomModal
+              isOpen={darkroomIndex !== null}
+              onClose={() => setDarkroomIndex(null)}
+              photoUrl={photos[darkroomIndex]}
+              photoIndex={darkroomIndex}
+              initialMeta={photosMeta[darkroomIndex]}
+              onSave={(idx, meta) => {
+                setPhotosMeta((prev) => {
+                  const next = [...prev];
+                  next[idx] = meta;
+                  return next;
+                });
+              }}
+            />
+          )}
         </div>
       )}
     </AnimatePresence>

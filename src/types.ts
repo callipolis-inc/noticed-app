@@ -57,6 +57,16 @@ export interface TextHighlight {
   createdAt: string;
 }
 
+export type FilmFilter = 'natural' | 'silver' | 'trix' | 'sepia' | 'editorial';
+
+export interface PhotoMeta {
+  url?: string;
+  filter?: FilmFilter;
+  caption?: string;
+  hasGrain?: boolean;
+  frameMode?: 'polaroid' | 'borderless';
+}
+
 export interface FieldNote {
   id: string;
   spaceId: string;
@@ -66,6 +76,7 @@ export interface FieldNote {
   fontChoice?: FontChoice;
   locationName?: string;
   photos?: string[];
+  photosMeta?: PhotoMeta[];
   videos?: string[];
   voiceMemo?: VoiceMemo;
   tags?: string[];

@@ -364,6 +364,19 @@ export function PhotostripModal({
         ctx.rect(padding, currentY, innerWidth, photoHeight);
         ctx.clip();
 
+        const meta = note.photosMeta?.[i];
+        if (meta?.filter === "silver") {
+          ctx.filter = "grayscale(100%) contrast(128%) brightness(96%)";
+        } else if (meta?.filter === "trix") {
+          ctx.filter =
+            "grayscale(100%) contrast(112%) brightness(102%) sepia(10%)";
+        } else if (meta?.filter === "sepia") {
+          ctx.filter =
+            "sepia(68%) contrast(106%) brightness(92%) hue-rotate(-12deg)";
+        } else if (meta?.filter === "editorial") {
+          ctx.filter = "saturate(65%) contrast(96%) brightness(104%)";
+        }
+
         const imgAspect = (img.width || 4) / (img.height || 3);
         const targetImgAspect = innerWidth / photoHeight;
         let sWidth = img.width;
@@ -392,9 +405,19 @@ export function PhotostripModal({
             photoHeight,
           );
         }
+        ctx.filter = "none";
         ctx.restore();
 
-        currentY += photoHeight + photoGap;
+        if (meta?.caption) {
+          ctx.save();
+          ctx.font = '400 12px "Courier Prime", monospace';
+          ctx.fillStyle = activePalette.sub;
+          ctx.textAlign = "center";
+          ctx.fillText(meta.caption, width / 2, currentY + photoHeight + 14);
+          ctx.restore();
+        }
+
+        currentY += photoHeight + (meta?.caption ? photoGap + 18 : photoGap);
       }
 
       if (photosToDraw.length > 0) {
@@ -841,32 +864,49 @@ export function PhotostripModal({
               >
                 {previewPhotos.length > 0 && (
                   <div className="space-y-2.5">
-                    {previewPhotos.map((src, index) => (
-                      <div
-                        key={index}
-                        className="p-1.5 rounded-2xl shadow-xs"
-                        style={{
-                          backgroundColor: activePalette.cardBg,
-                          border: `1px solid ${activePalette.border}`,
-                        }}
-                      >
+                    {previewPhotos.map((src, index) => {
+                      const meta = note.photosMeta?.[index];
+                      const filterClass = meta?.filter
+                        ? `film-filter-${meta.filter}`
+                        : "";
+                      return (
                         <div
-                          className={`relative rounded-xl overflow-hidden bg-black/5 ${
-                            layoutMode === "photostrip"
-                              ? "aspect-[4/3]"
-                              : isStory
-                                ? "aspect-[4/3] max-h-[165px] w-full"
-                                : "aspect-[16/10] max-h-[130px] w-full"
-                          }`}
+                          key={index}
+                          className="p-1.5 rounded-2xl shadow-xs"
+                          style={{
+                            backgroundColor: activePalette.cardBg,
+                            border: `1px solid ${activePalette.border}`,
+                          }}
                         >
-                          <img
-                            src={src}
-                            alt={`Frame ${index + 1}`}
-                            className="w-full h-full object-cover"
-                          />
+                          <div
+                            className={`relative rounded-xl overflow-hidden bg-black/5 ${
+                              layoutMode === "photostrip"
+                                ? "aspect-[4/3]"
+                                : isStory
+                                  ? "aspect-[4/3] max-h-[165px] w-full"
+                                  : "aspect-[16/10] max-h-[130px] w-full"
+                            }`}
+                          >
+                            <img
+                              src={src}
+                              alt={`Frame ${index + 1}`}
+                              className={`w-full h-full object-cover transition-all duration-300 ${filterClass}`}
+                            />
+                            {meta?.hasGrain && (
+                              <div className="film-grain-overlay" />
+                            )}
+                          </div>
+                          {meta?.caption?.trim() && (
+                            <p
+                              className="font-typewriter text-[10.5px] text-center pt-1.5 opacity-85 truncate px-1"
+                              style={{ color: activePalette.sub }}
+                            >
+                              {meta.caption}
+                            </p>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
