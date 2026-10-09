@@ -65,6 +65,11 @@ const SpotlightSearchModal = lazy(() =>
     default: m.SpotlightSearchModal,
   })),
 );
+const ManuscriptExportModal = lazy(() =>
+  import("@/components/spaces/ManuscriptExportModal").then((m) => ({
+    default: m.ManuscriptExportModal,
+  })),
+);
 import { triggerHaptic } from "@/lib/haptics";
 import { generateId, getDateGroupKey } from "@/lib/utils";
 import {
@@ -259,6 +264,7 @@ export function App() {
   const [editingNote, setEditingNote] = useState<FieldNote | null>(null);
   const [photostripNote, setPhotostripNote] = useState<FieldNote | null>(null);
   const [annotatorNote, setAnnotatorNote] = useState<FieldNote | null>(null);
+  const [exportingSpace, setExportingSpace] = useState<Space | null>(null);
   const [flyoutMessage, setFlyoutMessage] = useState<string | null>(null);
 
   // Cloud Auth & Sync State
@@ -1186,6 +1192,7 @@ export function App() {
                 setActiveSpaceId(id);
                 setCurrentView("notebook");
               }}
+              onExportManuscript={(s) => setExportingSpace(s)}
               onCreateSpace={handleCreateSpace}
               onUpdateSpace={handleUpdateSpace}
               onDeleteSpace={handleDeleteSpace}
@@ -1588,6 +1595,20 @@ export function App() {
             note={photostripNote}
             space={activeSpace}
             defaultTheme={theme}
+          />
+        )}
+
+        {/* Folio Manuscript Print & Export Modal */}
+        {Boolean(exportingSpace) && (
+          <ManuscriptExportModal
+            isOpen={Boolean(exportingSpace)}
+            onClose={() => setExportingSpace(null)}
+            space={exportingSpace!}
+            notes={notes.filter(
+              (n) => n.spaceId === exportingSpace!.id && !n.archived,
+            )}
+            userName={userName}
+            authorBio={authorBio}
           />
         )}
 

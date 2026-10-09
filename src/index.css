@@ -1441,3 +1441,40 @@ a.liquid-glass:active {
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
+/* ============================================================
+   Luxury Print & Folio Manuscript Engine
+   ============================================================ */
+@media print {
+  @page {
+    size: auto;
+    margin: 18mm 16mm 22mm 16mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* When printing, hide all app UI shells and show only the manuscript */
+  .manuscript-modal-backdrop,
+  .manuscript-modal-controls,
+  .no-print,
+  #root > div > *:not(.manuscript-print-active-host) {
+    display: none !important;
+  }
+
+  .manuscript-page-break {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  .manuscript-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+

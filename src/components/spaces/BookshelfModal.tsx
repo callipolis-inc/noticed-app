@@ -23,6 +23,7 @@ import {
   Columns3,
   LayoutGrid,
   Check,
+  Share2,
 } from "lucide-react";
 
 export interface BookshelfViewProps {
@@ -34,6 +35,7 @@ export interface BookshelfViewProps {
   defaultShelfLayout?: "spines" | "covers";
   onSelectSpace: (spaceId: string) => void;
   onBackToNotebook?: () => void;
+  onExportManuscript?: (space: Space) => void;
   onCreateSpace: (
     name: string,
     isShared: boolean,
@@ -239,6 +241,7 @@ export function BookshelfView({
   avatarPhoto,
   defaultShelfLayout = "spines",
   onSelectSpace,
+  onExportManuscript,
   onCreateSpace,
   onUpdateSpace,
   onDeleteSpace,
@@ -656,6 +659,20 @@ export function BookshelfView({
                     <span>Edit</span>
                   </button>
 
+                  {onExportManuscript && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        onExportManuscript(activeSelected);
+                      }}
+                      className="w-9 h-9 rounded-full inner-pseudo-glass text-[var(--text-primary)] flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer border border-[var(--glass-border)]"
+                      title="Export Folio Manuscript"
+                    >
+                      <Share2 className="w-3.5 h-3.5 stroke-[2]" />
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     disabled={isOpening}
@@ -927,6 +944,20 @@ export function BookshelfView({
                     <Pencil className="w-3.5 h-3.5 stroke-[2]" />
                     <span>Edit</span>
                   </button>
+
+                  {onExportManuscript && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        onExportManuscript(activeSelected);
+                      }}
+                      className="w-9 h-9 rounded-full inner-pseudo-glass text-[var(--text-primary)] flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer border border-[var(--glass-border)]"
+                      title="Export Folio Manuscript"
+                    >
+                      <Share2 className="w-3.5 h-3.5 stroke-[2]" />
+                    </button>
+                  )}
 
                   <button
                     type="button"
