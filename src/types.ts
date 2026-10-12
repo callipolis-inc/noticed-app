@@ -11,10 +11,10 @@ export type CoverStyle =
   | 'electric'
   | 'ultramarine'
   | 'periwinkle'
-  | 'alabaster';
+  | 'alabaster'
+  | 'espresso';
 
 export interface Space {
-
   id: string;
   name: string;
   type: SpaceType;
@@ -22,6 +22,7 @@ export interface Space {
   iconName: string;
   coverStyle?: CoverStyle;
   customColor?: string;
+  foilColor?: string;
   fontChoice?: FontChoice;
   isShared: boolean;
   inviteCode?: string;

@@ -6,6 +6,7 @@ import {
   getCoverPalette,
   SpineMotifGlyph,
   getLuminance,
+  LUXURY_FOIL_PRESETS,
 } from "./BookshelfSpine";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { getTimeGreeting } from "@/lib/greetings";
@@ -43,6 +44,7 @@ export interface BookshelfViewProps {
     description?: string,
     customColor?: string,
     fontChoice?: FontChoice,
+    foilColor?: string,
   ) => void;
   onUpdateSpace?: (space: Space) => void;
   onDeleteSpace?: (spaceId: string) => void;
@@ -62,40 +64,52 @@ export const MODERN_PALETTES: {
   desc: string;
 }[] = [
   {
-    id: "klein",
-    name: "Cobalt Royal",
-    color: "#1d4ed8",
-    desc: "Rich archival cobalt blue",
-  },
-  {
-    id: "alabaster",
-    name: "Cream Linen",
-    color: "#f3eee4",
-    desc: "Cream paper with royal cobalt foil",
-  },
-  {
-    id: "electric",
-    name: "Electric Indigo",
-    color: "#4338ca",
-    desc: "Electric indigo velvet",
-  },
-  {
-    id: "marble",
-    name: "Forest Pine",
-    color: "#1b3a2a",
-    desc: "Botanical deep evergreen leather",
-  },
-  {
-    id: "kraft",
-    name: "Terracotta Rust",
-    color: "#9a3f24",
-    desc: "Warm Italian sienna amber",
+    id: "espresso",
+    name: "Vintage Espresso",
+    color: "#1d1512",
+    desc: "Aged leather with warm gold foil",
   },
   {
     id: "obsidian",
     name: "Obsidian Velvet",
-    color: "#141416",
+    color: "#111215",
     desc: "Deep monochrome night",
+  },
+  {
+    id: "klein",
+    name: "Midnight Navy",
+    color: "#0d1424",
+    desc: "Dark nocturnal blue with gold leaf",
+  },
+  {
+    id: "marble",
+    name: "Forest Moss",
+    color: "#0e1c14",
+    desc: "Botanical deep evergreen cloth",
+  },
+  {
+    id: "electric",
+    name: "Royal Burgundy",
+    color: "#1d1018",
+    desc: "Deep crimson wine with rose foil",
+  },
+  {
+    id: "kraft",
+    name: "Vintage Sienna",
+    color: "#221612",
+    desc: "Warm earth tones with ivory foil",
+  },
+  {
+    id: "periwinkle",
+    name: "Slate Charcoal",
+    color: "#1a1d22",
+    desc: "Architectural graphite with chalk foil",
+  },
+  {
+    id: "alabaster",
+    name: "Cream Vellum",
+    color: "#f2ede4",
+    desc: "Warm archival paper with ink stamp",
   },
 ];
 
@@ -104,16 +118,19 @@ function LiveSpinePreview({
   coverStyle,
   customColor,
   fontChoice,
+  foilColor,
 }: {
   title: string;
   coverStyle: CoverStyle;
   customColor?: string;
   fontChoice?: FontChoice;
+  foilColor?: string;
 }) {
-  const { color, foil, motif } = getCoverPalette(
+  const { color, gradient, foil, motif } = getCoverPalette(
     coverStyle,
     customColor,
     title,
+    foilColor,
   );
   const displayTitle = title.trim() || "Untitled";
   const isLight = getLuminance(color) > 0.6;
@@ -121,27 +138,34 @@ function LiveSpinePreview({
   const getFontFamily = () => {
     switch (fontChoice) {
       case "sans":
-        return "var(--font-sans, sans-serif)";
-      case "display":
-        return "var(--font-display, serif)";
+        return "var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif)";
       case "editorial":
+        return "var(--font-serif, 'Newsreader', Georgia, serif)";
+      case "display":
       default:
-        return "var(--font-serif, Georgia, serif)";
+        return "var(--font-display, 'Cormorant Garamond', Georgia, serif)";
     }
   };
 
   return (
     <div className="w-full h-28 rounded-2xl apple-card flex items-center justify-center relative overflow-hidden shrink-0 select-none shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
       <div
-        className="w-10 h-24 rounded-t-[6px] rounded-b-[4px] relative overflow-hidden flex flex-col items-center justify-between py-2 transition-all duration-300"
+        className="w-10 h-24 rounded-t-[5px] rounded-b-[3px] relative overflow-hidden flex flex-col items-center justify-between py-2 transition-all duration-300"
         style={{
-          backgroundColor: color,
+          background: gradient,
+          borderTop: "1px solid rgba(255,255,255,0.25)",
+          borderLeft: "1px solid rgba(255,255,255,0.15)",
+          borderRight: "1px solid rgba(0,0,0,0.6)",
           boxShadow:
-            "0 6px 14px -2px rgba(0,0,0,0.22), inset 0 1px 1px rgba(255,255,255,0.18), inset 0 -1.5px 1.5px rgba(0,0,0,0.4), inset 1.5px 0 2px rgba(255,255,255,0.1), inset -1.5px 0 2px rgba(0,0,0,0.3)",
+            "0 6px 14px -2px rgba(0,0,0,0.4), inset 2px 0 4px rgba(255,255,255,0.08), inset -2px 0 4px rgba(0,0,0,0.6)",
         }}
       >
+        {/* Spine Cylindrical Highlight Streaks */}
+        <div className="absolute inset-y-0 left-0.5 w-1.5 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
+        <div className="absolute inset-y-0 right-0.5 w-1 bg-gradient-to-l from-black/40 to-transparent pointer-events-none" />
+
         <div
-          className="absolute inset-0 pointer-events-none opacity-16 mix-blend-overlay"
+          className="absolute inset-0 pointer-events-none opacity-14 mix-blend-overlay"
           style={{
             backgroundImage: `
               radial-gradient(rgba(255,255,255,0.7) 15%, transparent 20%),
@@ -156,38 +180,20 @@ function LiveSpinePreview({
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(90deg, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.18) 7%, rgba(0,0,0,0.0) 20%, rgba(255,255,255,0.05) 38%, rgba(0,0,0,0.0) 58%, rgba(0,0,0,0.16) 82%, rgba(0,0,0,0.55) 100%)",
+              "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.14) 10%, rgba(0,0,0,0) 30%, rgba(255,255,255,0.04) 55%, rgba(0,0,0,0.14) 80%, rgba(0,0,0,0.55) 100%)",
           }}
         />
 
         <div
-          className="absolute top-0 bottom-0 left-[2px] w-[1px] pointer-events-none z-10 opacity-75"
+          className="w-4 h-[1px] rounded-full shrink-0 z-10 opacity-80"
           style={{
-            background:
-              "linear-gradient(90deg, rgba(0,0,0,0.45) 0%, rgba(255,255,255,0.12) 100%)",
-          }}
-        />
-        <div
-          className="absolute top-0 bottom-0 right-[2px] w-[1px] pointer-events-none z-10 opacity-75"
-          style={{
-            background:
-              "linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0.45) 100%)",
-          }}
-        />
-
-        <div
-          className="w-4 h-[1.25px] rounded-full shrink-0 z-10 opacity-80"
-          style={{
-            backgroundColor: foil,
-            boxShadow: isLight
-              ? "0 -0.5px 0.5px rgba(0,0,0,0.3), 0 0.5px 0.5px rgba(255,255,255,0.7)"
-              : "0 -0.5px 0.5px rgba(0,0,0,0.6), 0 0.5px 0.5px rgba(255,255,255,0.2)",
+            backgroundColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.25)",
           }}
         />
 
         <div className="z-10 flex-1 flex items-center justify-center py-1 overflow-hidden px-0.5 my-1">
           <span
-            className="text-[10px] tracking-tight font-semibold whitespace-nowrap truncate max-h-[60px]"
+            className="text-[10px] tracking-[0.14em] font-normal whitespace-nowrap truncate max-h-[60px]"
             style={{
               writingMode: "vertical-rl",
               transform: "rotate(180deg)",
@@ -195,7 +201,7 @@ function LiveSpinePreview({
               fontFamily: getFontFamily(),
               textShadow: isLight
                 ? "0 -0.5px 0.5px rgba(0,0,0,0.35), 0 0.5px 0.5px rgba(255,255,255,0.85)"
-                : "0 -0.5px 0.5px rgba(0,0,0,0.7), 0 0.5px 0.5px rgba(255,255,255,0.2)",
+                : "0 1px 2px rgba(0,0,0,0.9)",
             }}
           >
             {displayTitle}
@@ -208,18 +214,15 @@ function LiveSpinePreview({
             style={{
               filter: isLight
                 ? "drop-shadow(0 -0.5px 0.5px rgba(0,0,0,0.3)) drop-shadow(0 0.5px 0.5px rgba(255,255,255,0.7))"
-                : "drop-shadow(0 -0.5px 0.5px rgba(0,0,0,0.6)) drop-shadow(0 0.5px 0.5px rgba(255,255,255,0.2))",
+                : "drop-shadow(0 1px 2px rgba(0,0,0,0.8))",
             }}
           >
             <SpineMotifGlyph motif={motif} foil={foil} />
           </div>
           <div
-            className="w-4 h-[1.25px] rounded-full shrink-0 opacity-80"
+            className="w-4 h-[1px] rounded-full shrink-0 opacity-80"
             style={{
-              backgroundColor: foil,
-              boxShadow: isLight
-                ? "0 -0.5px 0.5px rgba(0,0,0,0.3), 0 0.5px 0.5px rgba(255,255,255,0.7)"
-                : "0 -0.5px 0.5px rgba(0,0,0,0.6), 0 0.5px 0.5px rgba(255,255,255,0.2)",
+              backgroundColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.25)",
             }}
           />
         </div>
@@ -273,18 +276,24 @@ export function BookshelfView({
   // Edit State
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
-  const [editCover, setEditCover] = useState<CoverStyle>("klein");
+  const [editCover, setEditCover] = useState<CoverStyle>("espresso");
   const [editFont, setEditFont] = useState<FontChoice>("editorial");
   const [editCustomColor, setEditCustomColor] = useState<string | undefined>(
+    undefined,
+  );
+  const [editFoilColor, setEditFoilColor] = useState<string | undefined>(
     undefined,
   );
 
   // Create State
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newCover, setNewCover] = useState<CoverStyle>("klein");
+  const [newCover, setNewCover] = useState<CoverStyle>("espresso");
   const [newFont, setNewFont] = useState<FontChoice>("editorial");
   const [newCustomColor, setNewCustomColor] = useState<string | undefined>(
+    undefined,
+  );
+  const [newFoilColor, setNewFoilColor] = useState<string | undefined>(
     undefined,
   );
 
@@ -336,9 +345,10 @@ export function BookshelfView({
     triggerHaptic("light");
     setEditName(activeSelected.name);
     setEditDesc(activeSelected.description || "");
-    setEditCover(activeSelected.coverStyle || "klein");
+    setEditCover(activeSelected.coverStyle || "espresso");
     setEditFont(activeSelected.fontChoice || "editorial");
     setEditCustomColor(activeSelected.customColor);
+    setEditFoilColor(activeSelected.foilColor);
     setIsEditing(true);
   };
 
@@ -371,6 +381,7 @@ export function BookshelfView({
         coverStyle: editCover,
         fontChoice: editFont,
         customColor: editCustomColor,
+        foilColor: editFoilColor,
         isShared: false,
       });
     }
@@ -405,17 +416,21 @@ export function BookshelfView({
       newDesc.trim(),
       newCustomColor,
       newFont,
+      newFoilColor,
     );
     setNewName("");
     setNewDesc("");
     setNewCustomColor(undefined);
+    setNewFoilColor(undefined);
     setNewFont("editorial");
     setIsCreating(false);
   };
 
   const selectedPalette = getCoverPalette(
-    activeSelected?.coverStyle || "klein",
+    activeSelected?.coverStyle || "espresso",
     activeSelected?.customColor,
+    activeSelected?.name,
+    activeSelected?.foilColor,
   );
 
   return (
@@ -1076,6 +1091,7 @@ export function BookshelfView({
                 coverStyle={editCover}
                 customColor={editCustomColor}
                 fontChoice={editFont}
+                foilColor={editFoilColor}
               />
 
               {/* Title & Epigraph */}
@@ -1116,9 +1132,9 @@ export function BookshelfView({
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
                       {editCustomColor
-                        ? `Custom`
+                        ? "Custom"
                         : MODERN_PALETTES.find((p) => p.id === editCover)
-                            ?.name || "Cobalt Royal"}
+                            ?.name || "Vintage Espresso"}
                     </span>
                     {editCustomColor && (
                       <button
@@ -1188,7 +1204,7 @@ export function BookshelfView({
                   >
                     <input
                       type="color"
-                      value={editCustomColor || "#163cb8"}
+                      value={editCustomColor || "#1d1512"}
                       onChange={(e) => {
                         triggerHaptic("light");
                         setEditCustomColor(e.target.value);
@@ -1199,6 +1215,59 @@ export function BookshelfView({
                       className={`w-3 h-3 stroke-[2.2] ${editCustomColor ? (getLuminance(editCustomColor) > 0.6 ? "text-black" : "text-white") : "text-white drop-shadow-xs"}`}
                     />
                   </label>
+                </div>
+              </div>
+
+              {/* Title Foil Color (Letterpress Leaf) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                    Title Foil Color
+                  </label>
+                  <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
+                    {LUXURY_FOIL_PRESETS.find(
+                      (f) =>
+                        f.color.toLowerCase() ===
+                        (editFoilColor || selectedPalette.foil).toLowerCase(),
+                    )?.name || "Default Foil"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-1.5 p-2 rounded-2xl apple-card shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
+                  {LUXURY_FOIL_PRESETS.map((foilItem) => {
+                    const isSelected =
+                      (editFoilColor || selectedPalette.foil).toLowerCase() ===
+                      foilItem.color.toLowerCase();
+                    const isLightFoil = getLuminance(foilItem.color) > 0.6;
+                    return (
+                      <button
+                        key={foilItem.id}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setEditFoilColor(foilItem.color);
+                        }}
+                        className="relative w-6.5 h-6.5 rounded-full transition-all duration-200 active:scale-90 flex items-center justify-center cursor-pointer group"
+                        style={{
+                          backgroundColor: foilItem.color,
+                          boxShadow: isSelected
+                            ? "0 4px 12px -1px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.7)"
+                            : "0 2px 6px -1px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.4)",
+                          border: isSelected
+                            ? "1.5px solid rgba(255, 255, 255, 0.95)"
+                            : "1px solid rgba(0, 0, 0, 0.2)",
+                        }}
+                        title={`${foilItem.name} (${foilItem.desc})`}
+                      >
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/40 via-transparent to-black/15 pointer-events-none" />
+                        {isSelected && (
+                          <Check
+                            className={`w-3.5 h-3.5 stroke-[2.8] relative z-10 ${isLightFoil ? "text-neutral-900" : "text-white"}`}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1338,6 +1407,7 @@ export function BookshelfView({
                 coverStyle={newCover}
                 customColor={newCustomColor}
                 fontChoice={newFont}
+                foilColor={newFoilColor}
               />
 
               {/* Title & Epigraph */}
@@ -1379,9 +1449,9 @@ export function BookshelfView({
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
                       {newCustomColor
-                        ? `Custom`
+                        ? "Custom"
                         : MODERN_PALETTES.find((p) => p.id === newCover)
-                            ?.name || "Cobalt Royal"}
+                            ?.name || "Vintage Espresso"}
                     </span>
                     {newCustomColor && (
                       <button
@@ -1451,7 +1521,7 @@ export function BookshelfView({
                   >
                     <input
                       type="color"
-                      value={newCustomColor || "#163cb8"}
+                      value={newCustomColor || "#1d1512"}
                       onChange={(e) => {
                         triggerHaptic("light");
                         setNewCustomColor(e.target.value);
@@ -1462,6 +1532,67 @@ export function BookshelfView({
                       className={`w-3 h-3 stroke-[2.2] ${newCustomColor ? (getLuminance(newCustomColor) > 0.6 ? "text-black" : "text-white") : "text-white drop-shadow-xs"}`}
                     />
                   </label>
+                </div>
+              </div>
+
+              {/* Title Foil Color (Letterpress Leaf) */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                    Title Foil Color
+                  </label>
+                  <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
+                    {LUXURY_FOIL_PRESETS.find(
+                      (f) =>
+                        f.color.toLowerCase() ===
+                        (
+                          newFoilColor ||
+                          getCoverPalette(newCover, newCustomColor, newName).foil
+                        ).toLowerCase(),
+                    )?.name || "Default Foil"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-1.5 p-2 rounded-2xl apple-card shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
+                  {LUXURY_FOIL_PRESETS.map((foilItem) => {
+                    const activeDefaultFoil = getCoverPalette(
+                      newCover,
+                      newCustomColor,
+                      newName,
+                    ).foil;
+                    const isSelected =
+                      (newFoilColor || activeDefaultFoil).toLowerCase() ===
+                      foilItem.color.toLowerCase();
+                    const isLightFoil = getLuminance(foilItem.color) > 0.6;
+                    return (
+                      <button
+                        key={foilItem.id}
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setNewFoilColor(foilItem.color);
+                        }}
+                        className="relative w-6.5 h-6.5 rounded-full transition-all duration-200 active:scale-90 flex items-center justify-center cursor-pointer group"
+                        style={{
+                          backgroundColor: foilItem.color,
+                          boxShadow: isSelected
+                            ? "0 4px 12px -1px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.7)"
+                            : "0 2px 6px -1px rgba(0,0,0,0.15), inset 0 1px 1px rgba(255,255,255,0.4)",
+                          border: isSelected
+                            ? "1.5px solid rgba(255, 255, 255, 0.95)"
+                            : "1px solid rgba(0, 0, 0, 0.2)",
+                        }}
+                        title={`${foilItem.name} (${foilItem.desc})`}
+                      >
+                        <div className="absolute inset-0 rounded-full bg-gradient-to-b from-white/40 via-transparent to-black/15 pointer-events-none" />
+                        {isSelected && (
+                          <Check
+                            className={`w-3.5 h-3.5 stroke-[2.8] relative z-10 ${isLightFoil ? "text-neutral-900" : "text-white"}`}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

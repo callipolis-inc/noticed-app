@@ -20,12 +20,24 @@ export function getLuminance(hex: string): number {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
+export const LUXURY_FOIL_PRESETS = [
+  { id: "gold", name: "Antique Gold", color: "#e6ca85", desc: "Classic 24k leaf letterpress" },
+  { id: "silver", name: "Polished Silver", color: "#f1f5f9", desc: "Cool sterling silver foil" },
+  { id: "rosegold", name: "Rose Gold", color: "#e5b4bd", desc: "Warm coppery blush leaf" },
+  { id: "sage", name: "Pale Sage", color: "#d1dfbe", desc: "Subtle botanical champagne" },
+  { id: "ivory", name: "Warm Ivory", color: "#fae8b2", desc: "Aged vellum warm cream" },
+  { id: "platinum", name: "Platinum", color: "#d0d9ea", desc: "Deep cool noble metal" },
+  { id: "white", name: "Chalk White", color: "#ffffff", desc: "Pure high-contrast letterpress" },
+];
+
 export function getCoverPalette(
-  style: CoverStyle = "klein",
+  style: CoverStyle = "obsidian",
   customColor?: string,
   name: string = "",
+  customFoil?: string,
 ): {
   color: string;
+  gradient: string;
   foil: string;
   textColor: string;
   motif: number;
@@ -36,62 +48,70 @@ export function getCoverPalette(
   }
   const motifIndex = Math.abs(nameHash) % 6;
 
+  let baseColor = "#111215";
+  let gradient = "linear-gradient(90deg, #1c1d22 0%, #111215 35%, #090a0c 100%)";
+  let defaultFoil = "#f1f5f9";
+
   if (customColor) {
+    baseColor = customColor;
+    gradient = `linear-gradient(90deg, ${customColor} 0%, ${customColor} 100%)`;
     const lum = getLuminance(customColor);
-    const isLight = lum > 0.6;
-    return {
-      color: customColor,
-      foil: isLight ? "#1e40af" : "#faf8f2",
-      textColor: isLight ? "#1e40af" : "#faf8f2",
-      motif: motifIndex,
-    };
+    defaultFoil = lum > 0.6 ? "#111215" : "#f1f5f9";
+  } else {
+    switch (style) {
+      case "espresso":
+        baseColor = "#1d1512";
+        gradient = "linear-gradient(90deg, #32211b 0%, #1d1512 35%, #150d0a 100%)";
+        defaultFoil = "#e6ca85";
+        break;
+      case "klein":
+        baseColor = "#0d1424";
+        gradient = "linear-gradient(90deg, #18233a 0%, #0d1424 35%, #080c16 100%)";
+        defaultFoil = "#e8d5a3";
+        break;
+      case "marble":
+        baseColor = "#0e1c14";
+        gradient = "linear-gradient(90deg, #172c21 0%, #0e1c14 35%, #08120c 100%)";
+        defaultFoil = "#d1dfbe";
+        break;
+      case "electric":
+        baseColor = "#1d1018";
+        gradient = "linear-gradient(90deg, #2d1825 0%, #1d1018 35%, #12090e 100%)";
+        defaultFoil = "#e5b4bd";
+        break;
+      case "kraft":
+        baseColor = "#221612";
+        gradient = "linear-gradient(90deg, #32211b 0%, #221612 35%, #150d0a 100%)";
+        defaultFoil = "#fae8b2";
+        break;
+      case "periwinkle":
+        baseColor = "#1a1d22";
+        gradient = "linear-gradient(90deg, #262b32 0%, #1a1d22 35%, #101215 100%)";
+        defaultFoil = "#ffffff";
+        break;
+      case "alabaster":
+        baseColor = "#f2ede4";
+        gradient = "linear-gradient(90deg, #f7f3ec 0%, #f2ede4 35%, #ded7cc 100%)";
+        defaultFoil = "#111215";
+        break;
+      case "obsidian":
+      default:
+        baseColor = "#111215";
+        gradient = "linear-gradient(90deg, #1c1d22 0%, #111215 35%, #090a0c 100%)";
+        defaultFoil = "#f1f5f9";
+        break;
+    }
   }
 
-  switch (style) {
-    case "klein":
-      return {
-        color: "#163cb8",
-        foil: "#faf8f2",
-        textColor: "#faf8f2",
-        motif: motifIndex,
-      };
-    case "marble":
-      return {
-        color: "#163324",
-        foil: "#f4f0e6",
-        textColor: "#f4f0e6",
-        motif: motifIndex,
-      };
-    case "kraft":
-      return {
-        color: "#8e351e",
-        foil: "#fdf8ee",
-        textColor: "#fdf8ee",
-        motif: motifIndex,
-      };
-    case "electric":
-      return {
-        color: "#372db8",
-        foil: "#f5f3ff",
-        textColor: "#f5f3ff",
-        motif: motifIndex,
-      };
-    case "alabaster":
-      return {
-        color: "#f2ede4",
-        foil: "#163cb8",
-        textColor: "#163cb8",
-        motif: motifIndex,
-      };
-    case "obsidian":
-    default:
-      return {
-        color: "#121214",
-        foil: "#f8f8fa",
-        textColor: "#f8f8fa",
-        motif: motifIndex,
-      };
-  }
+  const finalFoil = customFoil || defaultFoil;
+
+  return {
+    color: baseColor,
+    gradient,
+    foil: finalFoil,
+    textColor: finalFoil,
+    motif: motifIndex,
+  };
 }
 
 // Deterministic natural height & width variation for books
@@ -101,8 +121,8 @@ function getBookDimensions(name: string) {
     hash = (hash << 5) - hash + name.charCodeAt(i);
   }
   const positive = Math.abs(hash);
-  const heights = [196, 204, 212, 198, 206];
-  const widths = [36, 40, 38, 42, 37];
+  const heights = [220, 230, 240, 224, 234];
+  const widths = [38, 42, 40, 44, 39];
   return {
     height: heights[positive % heights.length],
     width: widths[positive % widths.length],
@@ -234,10 +254,11 @@ export function BookshelfSpine({
   onSelect,
   onOpen,
 }: BookshelfSpineProps) {
-  const { color, foil, motif } = getCoverPalette(
-    space.coverStyle || "klein",
+  const { color, gradient, foil, motif } = getCoverPalette(
+    space.coverStyle || "espresso",
     space.customColor,
     space.name,
+    space.foilColor,
   );
   const { height: spineHeight, width: spineWidth } = getBookDimensions(
     space.name,
@@ -247,12 +268,12 @@ export function BookshelfSpine({
   const getFontFamily = () => {
     switch (space.fontChoice) {
       case "sans":
-        return "var(--font-sans, sans-serif)";
-      case "display":
-        return "var(--font-display, serif)";
+        return "var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif)";
       case "editorial":
+        return "var(--font-serif, 'Newsreader', Georgia, serif)";
+      case "display":
       default:
-        return "var(--font-serif, Georgia, serif)";
+        return "var(--font-display, 'Cormorant Garamond', Georgia, serif)";
     }
   };
 
@@ -300,27 +321,34 @@ export function BookshelfSpine({
     >
       {/* 3D Spine Body: Archival Buckram Cloth Bound Volume */}
       <div
-        className="w-full h-full rounded-t-[6px] rounded-b-[4px] relative overflow-hidden flex flex-col items-center justify-between py-2.5 transition-all duration-300"
+        className="w-full h-full rounded-t-[5px] rounded-b-[3px] relative overflow-hidden flex flex-col items-center justify-between py-2.5 transition-all duration-300"
         style={{
-          backgroundColor: color,
+          background: gradient,
+          borderTop: `1px solid rgba(255,255,255,${isSelected ? 0.35 : 0.12})`,
+          borderLeft: `1px solid rgba(255,255,255,${isSelected ? 0.25 : 0.08})`,
+          borderRight: "1px solid rgba(0,0,0,0.7)",
           boxShadow: isSelected
-            ? "0 14px 26px -4px rgba(0,0,0,0.42), 0 3px 8px -1px rgba(0,0,0,0.22), inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -1.5px 1.5px rgba(0,0,0,0.4), inset 1.5px 0 2px rgba(255,255,255,0.12), inset -1.5px 0 2px rgba(0,0,0,0.32)"
-            : "0 6px 14px -2px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.14), inset 0 -1.5px 1.5px rgba(0,0,0,0.35), inset 1px 0 1.5px rgba(255,255,255,0.08), inset -1px 0 1.5px rgba(0,0,0,0.25)",
+            ? "0 18px 36px -4px rgba(0,0,0,0.75), 0 0 16px rgba(255,255,255,0.08), inset 2px 0 4px rgba(255,255,255,0.12), inset -3px 0 6px rgba(0,0,0,0.6)"
+            : "0 6px 16px -2px rgba(0,0,0,0.35), inset 2px 0 4px rgba(255,255,255,0.08), inset -3px 0 6px rgba(0,0,0,0.65)",
         }}
       >
+        {/* Spine Cylindrical Highlight Streaks */}
+        <div className="absolute inset-y-0 left-1 w-2 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />
+        <div className="absolute inset-y-0 right-1 w-1.5 bg-gradient-to-l from-black/40 to-transparent pointer-events-none" />
+
         {/* Subtle Specular Top Rim Reflection */}
         <div
           className="absolute top-0 inset-x-1 h-[1.5px] pointer-events-none z-20 rounded-t-xs"
           style={{
             background: isLight
               ? "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.75) 50%, transparent 100%)"
-              : "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.24) 50%, transparent 100%)",
+              : "linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.28) 50%, transparent 100%)",
           }}
         />
 
         {/* Archival Buckram Cloth Weave (Interlocking Micro-Fibers) */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-16 mix-blend-overlay"
+          className="absolute inset-0 pointer-events-none opacity-14 mix-blend-overlay"
           style={{
             backgroundImage: `
               radial-gradient(rgba(255,255,255,0.7) 15%, transparent 20%),
@@ -336,41 +364,38 @@ export function BookshelfSpine({
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(90deg, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.18) 7%, rgba(0,0,0,0.0) 20%, rgba(255,255,255,0.05) 38%, rgba(0,0,0,0.0) 58%, rgba(0,0,0,0.16) 82%, rgba(0,0,0,0.55) 100%)",
+              "linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.14) 10%, rgba(0,0,0,0) 30%, rgba(255,255,255,0.04) 55%, rgba(0,0,0,0.14) 80%, rgba(0,0,0,0.55) 100%)",
           }}
         />
 
         {/* French Groove Hinge Indents (Left & Right Book Joints) */}
         <div
-          className="absolute top-0 bottom-0 left-[2.5px] w-[1.5px] pointer-events-none z-10 opacity-75"
+          className="absolute top-0 bottom-0 left-[2.5px] w-[1px] pointer-events-none z-10"
           style={{
             background:
-              "linear-gradient(90deg, rgba(0,0,0,0.45) 0%, rgba(255,255,255,0.12) 100%)",
+              "linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(0,0,0,0.3) 100%)",
           }}
         />
         <div
-          className="absolute top-0 bottom-0 right-[2.5px] w-[1.5px] pointer-events-none z-10 opacity-75"
+          className="absolute top-0 bottom-0 right-[2.5px] w-[1px] pointer-events-none z-10"
           style={{
             background:
-              "linear-gradient(90deg, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0.45) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.55) 100%)",
           }}
         />
 
         {/* Top Debossed Accent Bar */}
         <div
-          className="w-5 h-[1.5px] rounded-full shrink-0 z-10 opacity-80"
+          className="w-5 h-[1px] rounded-full shrink-0 z-10 opacity-80"
           style={{
-            backgroundColor: foil,
-            boxShadow: isLight
-              ? "0 -0.5px 0.5px rgba(0,0,0,0.3), 0 0.5px 0.5px rgba(255,255,255,0.7)"
-              : "0 -0.5px 0.5px rgba(0,0,0,0.6), 0 0.5px 0.5px rgba(255,255,255,0.2)",
+            backgroundColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.25)",
           }}
         />
 
-        {/* Vertical Stamped Title (Deep Letterpress Deboss Bite into Cloth) */}
+        {/* Vertical Stamped Title (Cormorant Garamond, Letterspaced, Foiled) */}
         <div className="flex-1 flex items-center justify-center z-10 overflow-hidden my-3 px-1">
           <span
-            className="text-[12.5px] font-semibold tracking-tight whitespace-nowrap truncate max-h-[145px]"
+            className="text-[13px] font-normal tracking-[0.16em] whitespace-nowrap truncate max-h-[155px]"
             style={{
               writingMode: "vertical-rl",
               transform: "rotate(180deg)",
@@ -378,7 +403,7 @@ export function BookshelfSpine({
               color: foil,
               textShadow: isLight
                 ? "0 -0.5px 0.5px rgba(0,0,0,0.35), 0 0.5px 0.5px rgba(255,255,255,0.85)"
-                : "0 -0.5px 0.5px rgba(0,0,0,0.7), 0 0.5px 0.5px rgba(255,255,255,0.2)",
+                : "0 1px 3px rgba(0,0,0,0.9), 0 0 1px rgba(0,0,0,0.8)",
             }}
           >
             {space.name}
@@ -392,18 +417,15 @@ export function BookshelfSpine({
             style={{
               filter: isLight
                 ? "drop-shadow(0 -0.5px 0.5px rgba(0,0,0,0.3)) drop-shadow(0 0.5px 0.5px rgba(255,255,255,0.7))"
-                : "drop-shadow(0 -0.5px 0.5px rgba(0,0,0,0.6)) drop-shadow(0 0.5px 0.5px rgba(255,255,255,0.2))",
+                : "drop-shadow(0 1px 2px rgba(0,0,0,0.8))",
             }}
           >
             <SpineMotifGlyph motif={motif} foil={foil} />
           </div>
           <div
-            className="w-5 h-[1.5px] rounded-full shrink-0 opacity-80"
+            className="w-5 h-[1px] rounded-full shrink-0 opacity-80"
             style={{
-              backgroundColor: foil,
-              boxShadow: isLight
-                ? "0 -0.5px 0.5px rgba(0,0,0,0.3), 0 0.5px 0.5px rgba(255,255,255,0.7)"
-                : "0 -0.5px 0.5px rgba(0,0,0,0.6), 0 0.5px 0.5px rgba(255,255,255,0.2)",
+              backgroundColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.25)",
             }}
           />
         </div>

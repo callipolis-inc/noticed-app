@@ -852,6 +852,7 @@ export function App() {
     description?: string,
     customColor?: string,
     fontChoice?: FontChoice,
+    foilColor?: string,
   ) => {
     const newSpace: Space = {
       id: generateId(),
@@ -859,9 +860,10 @@ export function App() {
       description: description || "Everyday fleeting thoughts & quiet noticing",
       type: "personal",
       iconName: "book-open",
-      coverStyle: coverStyle || "klein",
+      coverStyle: coverStyle || "espresso",
       customColor,
       fontChoice: fontChoice || "editorial",
+      foilColor,
       isShared: false,
       membersCount: 1,
       createdAt: new Date().toISOString(),
