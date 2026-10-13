@@ -9,6 +9,11 @@ const config: CapacitorConfig = {
     contentInset: 'never',
     preferredContentMode: 'mobile',
   },
+  android: {
+    backgroundColor: '#121214',
+    allowMixedContent: false,
+    captureInput: true,
+  },
   plugins: {
     CapacitorHttp: {
       enabled: true,

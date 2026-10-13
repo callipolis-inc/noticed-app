@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Noticed</string>
+    <string name="title_activity_main">Noticed</string>
+    <string name="package_name">com.callipolis.noticed</string>
+    <string name="custom_url_scheme">com.callipolis.noticed</string>
+</resources>

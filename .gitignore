@@ -37,3 +37,13 @@ build/
 *.ipa
 *.xcarchive
 *-original.png
+
+# Android Capacitor builds
+.gradle/
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+*.aab
+*.keystore
+*.jks
