@@ -60,7 +60,7 @@ export function appendTranscribedSegment(
   const shouldCapitalize =
     trimmedRight.length === 0 ||
     /[.!?]\s*$/.test(trimmedRight) ||
-    /\n$/.test(trimmedRight);
+    trimmedRight.endsWith("\n");
 
   const formattedSegment = shouldCapitalize
     ? segment.charAt(0).toUpperCase() + segment.slice(1)
@@ -88,6 +88,7 @@ export class TactileSpeechRecognizer {
   private lang: DictationLang;
   private callbacks: SpeechRecognizerCallbacks;
   private restartTimer: number | null = null;
+  private consecutiveErrors: number = 0;
 
   constructor(
     lang: DictationLang = getSavedDictationLang(),
@@ -106,6 +107,7 @@ export class TactileSpeechRecognizer {
     }
 
     this.shouldContinue = true;
+    this.consecutiveErrors = 0;
     return this.initAndStartInstance();
   }
 
@@ -133,10 +135,12 @@ export class TactileSpeechRecognizer {
 
       instance.onstart = () => {
         this.isActive = true;
+        this.consecutiveErrors = 0;
         this.callbacks.onStateChange?.(true);
       };
 
       instance.onresult = (event: any) => {
+        this.consecutiveErrors = 0;
         let interimTranscript = "";
         let finalTranscript = "";
 
@@ -173,19 +177,30 @@ export class TactileSpeechRecognizer {
           );
           return;
         }
-        console.warn("[SpeechRecognizer] Recognition warning:", errCode);
+
+        this.consecutiveErrors += 1;
+        console.warn(`[SpeechRecognizer] Recognition warning (attempt ${this.consecutiveErrors}/3):`, errCode);
+
+        if (this.consecutiveErrors >= 3) {
+          this.shouldContinue = false;
+          this.isActive = false;
+          this.callbacks.onStateChange?.(false);
+          this.callbacks.onError?.(
+            "Dictation paused due to intermittent connection or microphone issues."
+          );
+        }
       };
 
       instance.onend = () => {
         this.callbacks.onInterim?.("");
-        if (this.shouldContinue) {
+        if (this.shouldContinue && this.consecutiveErrors < 3) {
           // Automatically resume continuous listening after natural sentence pauses (especially on iOS WebKit)
           if (this.restartTimer) clearTimeout(this.restartTimer);
           this.restartTimer = window.setTimeout(() => {
-            if (this.shouldContinue) {
+            if (this.shouldContinue && this.consecutiveErrors < 3) {
               this.initAndStartInstance();
             }
-          }, 180);
+          }, 250);
         } else {
           this.isActive = false;
           this.callbacks.onStateChange?.(false);
@@ -219,6 +234,7 @@ export class TactileSpeechRecognizer {
 
   public stop(): void {
     this.shouldContinue = false;
+    this.consecutiveErrors = 0;
     if (this.restartTimer) {
       clearTimeout(this.restartTimer);
       this.restartTimer = null;

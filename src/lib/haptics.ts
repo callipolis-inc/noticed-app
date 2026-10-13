@@ -1,12 +1,37 @@
 import { Haptics, ImpactStyle } from "@capacitor/haptics";
 
-function isHapticsEnabled(): boolean {
+let cachedHapticsEnabled: boolean | null = null;
+
+export function isHapticsEnabled(): boolean {
+  if (cachedHapticsEnabled !== null) return cachedHapticsEnabled;
   if (typeof window === "undefined") return false;
   try {
-    return localStorage.getItem("sidenotes_haptics_enabled") !== "false";
+    cachedHapticsEnabled =
+      localStorage.getItem("sidenotes_haptics_enabled") !== "false";
   } catch {
-    return true;
+    cachedHapticsEnabled = true;
   }
+  return cachedHapticsEnabled;
+}
+
+export function setHapticsEnabled(enabled: boolean): void {
+  cachedHapticsEnabled = enabled;
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem(
+        "sidenotes_haptics_enabled",
+        enabled ? "true" : "false",
+      );
+    } catch {}
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === "sidenotes_haptics_enabled" && e.newValue !== null) {
+      cachedHapticsEnabled = e.newValue !== "false";
+    }
+  });
 }
 
 export const triggerHaptic = async (

@@ -13,6 +13,7 @@ import {
   Sparkles,
   Type,
   HardDrive,
+  ChevronRight,
 } from "lucide-react";
 import { useProStatus, setProUser } from "@/lib/proManager";
 import { AtelierProModal } from "./AtelierProModal";
@@ -33,6 +34,7 @@ interface SettingsSheetProps {
   onResetAllData: () => void;
   currentTheme?: ThemePalette;
   onSelectTheme?: (theme: ThemePalette) => void;
+  onOpenThemeSelector?: () => void;
   fontSize?: number;
   onSelectFontSize?: (size: number) => void;
   spaces?: Space[];
@@ -57,6 +59,7 @@ export function SettingsSheet({
   onResetAllData,
   currentTheme,
   onSelectTheme,
+  onOpenThemeSelector,
   fontSize = 15.5,
   onSelectFontSize,
   spaces = [],
@@ -200,7 +203,19 @@ export function SettingsSheet({
 
                 <div className="rounded-2xl apple-card divide-y divide-[var(--glass-border)]/50 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
                   {/* Theme Palette Row */}
-                  <div className="p-3.5 flex items-center justify-between gap-3">
+                  <div
+                    onClick={() => {
+                      if (onOpenThemeSelector) {
+                        triggerHaptic("light");
+                        onOpenThemeSelector();
+                      }
+                    }}
+                    className={`p-3.5 flex items-center justify-between gap-3 ${
+                      onOpenThemeSelector
+                        ? "cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] active:bg-black/[0.04] dark:active:bg-white/[0.04] transition-colors"
+                        : ""
+                    }`}
+                  >
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
@@ -209,7 +224,7 @@ export function SettingsSheet({
                         <span>Theme</span>
                       </div>
                       <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
-                        {currentThemeLabel}
+                        {currentThemeLabel} {onOpenThemeSelector ? "· Tap to customize" : ""}
                       </div>
                     </div>
 
@@ -222,7 +237,8 @@ export function SettingsSheet({
                           <button
                             key={th.id}
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               triggerHaptic("medium");
                               onSelectTheme?.(th.id);
                             }}
@@ -253,6 +269,9 @@ export function SettingsSheet({
                           </button>
                         );
                       })}
+                      {onOpenThemeSelector && (
+                        <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)] opacity-60 ml-0.5" />
+                      )}
                     </div>
                   </div>
 

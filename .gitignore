@@ -36,3 +36,4 @@ ios/App/Podfile.lock
 build/
 *.ipa
 *.xcarchive
+*-original.png

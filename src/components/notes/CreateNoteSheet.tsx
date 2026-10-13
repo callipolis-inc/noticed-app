@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote, TextAlign, FontChoice, PhotoMeta } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
-import { generateId, formatTimeOnly } from "@/lib/utils";
+import { generateId } from "@/lib/utils";
 import {
   processPhotoFile,
   processVideoFile,
@@ -17,24 +17,18 @@ import {
   type ProFeature,
 } from "@/lib/proManager";
 import { AtelierProModal } from "@/components/ui/AtelierProModal";
-import { TactileAudioRecorder, RecordedAudio } from "@/lib/audioRecorder";
+import { useSpeechDictation } from "@/hooks/useSpeechDictation";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import {
-  TactileSpeechRecognizer,
   isSpeechRecognitionSupported,
-  getSavedDictationLang,
-  setSavedDictationLang,
-  getSavedAutoTranscribe,
-  setSavedAutoTranscribe,
   appendTranscribedSegment,
-  type DictationLang,
 } from "@/lib/speechRecognition";
-import { InlineVideoPlayer } from "./InlineVideoPlayer";
-import { TactileAudioPlayer } from "./TactileAudioPlayer";
 import { AudioTrimmerModal } from "./AudioTrimmerModal";
 import { DarkroomModal } from "./DarkroomModal";
+import { CreateNoteHeader } from "./create/CreateNoteHeader";
+import { CreateNoteMarkdownToolbar } from "./create/CreateNoteMarkdownToolbar";
+import { CreateNoteMediaSection } from "./create/CreateNoteMediaSection";
 import {
-  X,
-  Check,
   Camera,
   Image as ImageIcon,
   Video,
@@ -42,21 +36,7 @@ import {
   Upload,
   Square,
   MapPin,
-  Trash2,
-  Plus,
-  Sliders,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignJustify,
-  Bold,
-  Italic,
-  Strikethrough,
-  Quote,
-  List,
-  ListOrdered,
-  Code,
-  Minus,
+  X,
   Type,
 } from "lucide-react";
 import { EditorialMarkdown } from "@/lib/markdownRenderer";
@@ -106,7 +86,6 @@ export function CreateNoteSheet({
     return s?.fontChoice || defaultFontChoice || "editorial";
   });
   const [selectedSpaceId, setSelectedSpaceId] = useState(defaultSpaceId);
-  const [showSpacePicker, setShowSpacePicker] = useState(false);
   const [locationName, setLocationName] = useState("");
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
@@ -115,6 +94,8 @@ export function CreateNoteSheet({
   const [videos, setVideos] = useState<string[]>([]);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [isVideoProcessing, setIsVideoProcessing] = useState(false);
+  const [isPhotoProcessing, setIsPhotoProcessing] = useState(false);
+  const [mediaProgressMessage, setMediaProgressMessage] = useState<string | null>(null);
 
   // Direct Inline Date & Time state
   const [noteDate, setNoteDate] = useState<string>(() =>
@@ -130,26 +111,8 @@ export function CreateNoteSheet({
   const [citationText, setCitationText] = useState("");
   const marginaliaTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Audio recording state & popover menu
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [audioLevels, setAudioLevels] = useState<number[]>(Array(14).fill(15));
-  const [recordedAudio, setRecordedAudio] = useState<RecordedAudio | null>(
-    null,
-  );
-  const [audioError, setAudioError] = useState<string | null>(null);
+  // Audio recording popover menu
   const [showAudioMenu, setShowAudioMenu] = useState(false);
-
-  // Live Voice-to-Text Dictation state
-  const [isDictatingOnly, setIsDictatingOnly] = useState(false);
-  const [dictationLang, setDictationLang] = useState<DictationLang>(() =>
-    getSavedDictationLang(),
-  );
-  const [autoTranscribeMemo, setAutoTranscribeMemo] = useState<boolean>(() =>
-    getSavedAutoTranscribe(),
-  );
-  const [interimSpeechText, setInterimSpeechText] = useState<string>("");
-  const speechRecognizerRef = useRef<TactileSpeechRecognizer | null>(null);
 
   // Atelier Pro membership modal state
   const [isProModalOpen, setIsProModalOpen] = useState(false);
@@ -169,26 +132,41 @@ export function CreateNoteSheet({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioFileInputRef = useRef<HTMLInputElement>(null);
-  const audioRecorderRef = useRef<TactileAudioRecorder | null>(null);
-  const recordingTimerRef = useRef<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Speech Dictation Hook
+  const speech = useSpeechDictation({
+    onAppendText: useCallback((text: string) => {
+      setContent((prev) => appendTranscribedSegment(prev, text));
+    }, []),
+    onError: useCallback((msg: string) => {
+      recorder.setAudioError(msg);
+      setTimeout(() => recorder.setAudioError(null), 4000);
+    }, []), // eslint-disable-line react-hooks/exhaustive-deps
+  });
+
+  // Audio Recording Hook
+  const recorder = useAudioRecorder({
+    onAutoTranscribeStart: useCallback(() => {
+      if (speech.autoTranscribeMemo) {
+        speech.startLiveTranscription();
+      }
+    }, [speech.autoTranscribeMemo, speech.startLiveTranscription]),
+    onAutoTranscribeStop: useCallback(() => {
+      speech.stopLiveTranscription();
+    }, [speech.stopLiveTranscription]),
+  });
 
   // Sync or reset form state whenever sheet opens or editingNote changes
   useEffect(() => {
     if (!isOpen) {
-      if (speechRecognizerRef.current) {
-        speechRecognizerRef.current.stop();
-        speechRecognizerRef.current = null;
-      }
-      setIsDictatingOnly(false);
-      setInterimSpeechText("");
+      speech.stopDictation();
+      recorder.cancelRecording();
       return;
     }
 
     setIsFormattingOpen(false);
     setIsEditingContent(true);
-    setIsDictatingOnly(false);
-    setInterimSpeechText("");
 
     if (editingNote) {
       setContent(editingNote.content || "");
@@ -210,15 +188,15 @@ export function CreateNoteSheet({
       setIsMarginaliaOpen(Boolean(margText || citText));
 
       if (editingNote.voiceMemo) {
-        setRecordedAudio({
+        recorder.setRecordedAudio({
           blob: new Blob(),
           url: editingNote.voiceMemo.audioUrl || "",
           durationSeconds: editingNote.voiceMemo.durationSeconds,
         });
       } else {
-        setRecordedAudio(null);
+        recorder.setRecordedAudio(null);
       }
-      setAudioError(null);
+      recorder.setAudioError(null);
 
       const d = new Date(editingNote.createdAt);
       const validDate = !isNaN(d.getTime()) ? d : new Date();
@@ -237,11 +215,11 @@ export function CreateNoteSheet({
       setDarkroomIndex(null);
       setVideos([]);
       setVideoError(null);
-      setAudioError(null);
+      recorder.setAudioError(null);
       setMarginaliaText("");
       setCitationText("");
       setIsMarginaliaOpen(false);
-      setRecordedAudio(null);
+      recorder.setRecordedAudio(null);
       const now = new Date();
       setNoteDate(toDateInputString(now));
       setNoteTime(toTimeInputString(now));
@@ -256,18 +234,7 @@ export function CreateNoteSheet({
     defaultSpaceId,
     defaultTextAlign,
     defaultFontChoice,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      if (audioRecorderRef.current) audioRecorderRef.current.cancel();
-      if (speechRecognizerRef.current) speechRecognizerRef.current.stop();
-    };
-  }, []);
-
-  const currentSpace =
-    spaces.find((s) => s.id === selectedSpaceId) || spaces[0];
+  ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTriggerPhotoSelect = () => {
     if (!canUseFeature("unlimited_photos", photos.length)) {
@@ -324,8 +291,17 @@ export function CreateNoteSheet({
       }
     }
 
+    setIsPhotoProcessing(true);
+    setMediaProgressMessage(
+      `Processing ${selectedFiles.length} photo${selectedFiles.length > 1 ? "s" : ""}...`,
+    );
     try {
+      let count = 0;
       for (const file of selectedFiles) {
+        count++;
+        setMediaProgressMessage(
+          `Optimizing photo ${count} of ${selectedFiles.length}...`,
+        );
         const photoUrl = await processPhotoFile(file);
         if (photoUrl) {
           setPhotos((prev) => [...prev, photoUrl]);
@@ -335,6 +311,8 @@ export function CreateNoteSheet({
     } catch (err) {
       console.error("Error processing selected photo:", err);
     } finally {
+      setIsPhotoProcessing(false);
+      setMediaProgressMessage(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
@@ -351,18 +329,22 @@ export function CreateNoteSheet({
     if (!file) return;
 
     setIsVideoProcessing(true);
+    setMediaProgressMessage("Analyzing and preparing video clip...");
     setVideoError(null);
     try {
       const result = await processVideoFile(file);
       setVideos((prev) => [...prev, result.url]);
       triggerSuccessHaptic();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Video processing error:", err);
-      setVideoError(err?.message || "Failed to process video");
+      const msg =
+        err instanceof Error ? err.message : "Failed to process video";
+      setVideoError(msg);
       triggerHaptic("heavy");
       setTimeout(() => setVideoError(null), 4000);
     } finally {
       setIsVideoProcessing(false);
+      setMediaProgressMessage(null);
       if (videoInputRef.current) videoInputRef.current.value = "";
     }
   };
@@ -372,163 +354,13 @@ export function CreateNoteSheet({
     setVideos((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const startSpeechRecognizerSession = (lang: DictationLang) => {
-    if (!isSpeechRecognitionSupported()) return false;
-    if (speechRecognizerRef.current) {
-      speechRecognizerRef.current.stop();
-    }
-    const recognizer = new TactileSpeechRecognizer(lang, {
-      onInterim: (interim) => {
-        setInterimSpeechText(interim);
-      },
-      onFinal: (finalSegment) => {
-        setContent((prev) => appendTranscribedSegment(prev, finalSegment));
-        setInterimSpeechText("");
-      },
-      onError: (msg) => {
-        setAudioError(msg);
-        setTimeout(() => setAudioError(null), 4000);
-      },
-    });
-    speechRecognizerRef.current = recognizer;
-    return recognizer.start();
-  };
-
-  const stopSpeechRecognizerSession = () => {
-    if (speechRecognizerRef.current) {
-      speechRecognizerRef.current.stop();
-      speechRecognizerRef.current = null;
-    }
-    setInterimSpeechText("");
-  };
-
-  const handleToggleDictationLang = () => {
-    triggerHaptic("light");
-    const nextLang: DictationLang =
-      dictationLang === "id-ID" ? "en-US" : "id-ID";
-    setDictationLang(nextLang);
-    setSavedDictationLang(nextLang);
-    if (speechRecognizerRef.current) {
-      speechRecognizerRef.current.setLanguage(nextLang);
-    }
-  };
-
-  const handleToggleAutoTranscribe = () => {
-    triggerHaptic("light");
-    const next = !autoTranscribeMemo;
-    setAutoTranscribeMemo(next);
-    setSavedAutoTranscribe(next);
-
-    if (isRecording) {
-      if (next) {
-        startSpeechRecognizerSession(dictationLang);
-      } else {
-        stopSpeechRecognizerSession();
-      }
-    }
-  };
-
-  const handleStartDictationOnly = () => {
-    triggerHaptic("medium");
-    setAudioError(null);
-
-    if (!isSpeechRecognitionSupported()) {
-      setAudioError(
-        "Voice-to-text dictation is not supported on this browser.",
-      );
-      triggerHaptic("heavy");
-      setTimeout(() => setAudioError(null), 4000);
-      return;
-    }
-
-    const started = startSpeechRecognizerSession(dictationLang);
-    if (started) {
-      setIsDictatingOnly(true);
-      setRecordingSeconds(0);
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = window.setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      setAudioError(
-        "Could not start voice dictation. Check microphone permissions.",
-      );
-      triggerHaptic("heavy");
-      setTimeout(() => setAudioError(null), 4000);
-    }
-  };
-
-  const handleStopDictationOnly = () => {
-    triggerSuccessHaptic();
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-    stopSpeechRecognizerSession();
-    setIsDictatingOnly(false);
-  };
-
-  const handleStartRecording = async () => {
-    triggerHaptic("medium");
-    setAudioError(null);
-    const recorder = new TactileAudioRecorder();
-    audioRecorderRef.current = recorder;
-
-    const started = await recorder.start((levels) => {
-      setAudioLevels(levels);
-    });
-
-    if (started) {
-      setIsRecording(true);
-      setRecordingSeconds(0);
-      if (autoTranscribeMemo && isSpeechRecognitionSupported()) {
-        startSpeechRecognizerSession(dictationLang);
-      }
-      recordingTimerRef.current = window.setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      audioRecorderRef.current = null;
-      setAudioError("Microphone access is required to record a voice memo.");
-      triggerHaptic("heavy");
-      setTimeout(() => setAudioError(null), 4000);
-    }
-  };
-
-  const handleStopRecording = async () => {
-    triggerHaptic("medium");
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-    stopSpeechRecognizerSession();
-
-    if (audioRecorderRef.current) {
-      const audioResult = await audioRecorderRef.current.stop();
-      audioRecorderRef.current = null;
-      if (audioResult) {
-        const persistedUrl = await processAudioBlob(
-          audioResult.blob,
-          audioResult.url,
-        );
-        setRecordedAudio({
-          ...audioResult,
-          url: persistedUrl || audioResult.url,
-        });
-        triggerSuccessHaptic();
-      }
-    }
-
-    setIsRecording(false);
-  };
-
   const handleAudioFileSelect = async (
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setAudioError(null);
+    recorder.setAudioError(null);
     try {
       const inspection = await inspectAudioFile(file);
       if (!inspection.valid) {
@@ -541,7 +373,7 @@ export function CreateNoteSheet({
         setIsTrimmerOpen(true);
       } else {
         const result = await processAudioFile(file);
-        setRecordedAudio({
+        recorder.setRecordedAudio({
           blob: result.blob,
           url: result.url,
           durationSeconds: result.duration,
@@ -552,9 +384,9 @@ export function CreateNoteSheet({
       console.error("Audio import error:", err);
       const msg =
         err instanceof Error ? err.message : "Failed to process audio file.";
-      setAudioError(msg);
+      recorder.setAudioError(msg);
       triggerHaptic("heavy");
-      setTimeout(() => setAudioError(null), 5000);
+      setTimeout(() => recorder.setAudioError(null), 5000);
     } finally {
       if (audioFileInputRef.current) audioFileInputRef.current.value = "";
     }
@@ -567,7 +399,7 @@ export function CreateNoteSheet({
   }) => {
     try {
       const persistedUrl = await processAudioBlob(trimmed.blob, trimmed.url);
-      setRecordedAudio({
+      recorder.setRecordedAudio({
         blob: trimmed.blob,
         url: persistedUrl || trimmed.url,
         durationSeconds: trimmed.duration,
@@ -575,7 +407,7 @@ export function CreateNoteSheet({
       triggerSuccessHaptic();
     } catch (err) {
       console.error("Failed to persist trimmed audio:", err);
-      setRecordedAudio({
+      recorder.setRecordedAudio({
         blob: trimmed.blob,
         url: trimmed.url,
         durationSeconds: trimmed.duration,
@@ -592,7 +424,7 @@ export function CreateNoteSheet({
       !marginaliaText.trim() &&
       photos.length === 0 &&
       videos.length === 0 &&
-      !recordedAudio
+      !recorder.recordedAudio
     ) {
       onClose();
       return;
@@ -650,10 +482,10 @@ export function CreateNoteSheet({
         photos: photos.length > 0 ? photos : undefined,
         photosMeta: photosMeta.length > 0 ? photosMeta : undefined,
         videos: videos.length > 0 ? videos : undefined,
-        voiceMemo: recordedAudio
+        voiceMemo: recorder.recordedAudio
           ? {
-              durationSeconds: recordedAudio.durationSeconds,
-              audioUrl: recordedAudio.url || undefined,
+              durationSeconds: recorder.recordedAudio.durationSeconds,
+              audioUrl: recorder.recordedAudio.url || undefined,
             }
           : undefined,
         createdAt: finalCreatedAt,
@@ -687,10 +519,10 @@ export function CreateNoteSheet({
       photos: photos.length > 0 ? photos : undefined,
       photosMeta: photosMeta.length > 0 ? photosMeta : undefined,
       videos: videos.length > 0 ? videos : undefined,
-      voiceMemo: recordedAudio
+      voiceMemo: recorder.recordedAudio
         ? {
-            durationSeconds: recordedAudio.durationSeconds,
-            audioUrl: recordedAudio.url || undefined,
+            durationSeconds: recorder.recordedAudio.durationSeconds,
+            audioUrl: recorder.recordedAudio.url || undefined,
           }
         : undefined,
       createdAt: finalCreatedAt,
@@ -707,7 +539,7 @@ export function CreateNoteSheet({
     setIsEditingContent(true);
     setPhotos([]);
     setVideos([]);
-    setRecordedAudio(null);
+    recorder.setRecordedAudio(null);
     setLocationName("");
     onClose();
   };
@@ -844,17 +676,7 @@ export function CreateNoteSheet({
     marginaliaText.trim().length > 0 ||
     photos.length > 0 ||
     videos.length > 0 ||
-    recordedAudio !== null;
-
-  const previewDateObj = new Date(`${noteDate}T${noteTime || "00:00"}`);
-  const validPreviewDate = !isNaN(previewDateObj.getTime())
-    ? previewDateObj
-    : new Date();
-  const formattedPreviewTime = formatTimeOnly(validPreviewDate);
-  const formattedPreviewDate = new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-  }).format(validPreviewDate);
+    recorder.recordedAudio !== null;
 
   return (
     <AnimatePresence>
@@ -936,86 +758,19 @@ export function CreateNoteSheet({
             />
 
             {/* 1. Header Bar: Strict 1-Row Layout */}
-            <header className="px-4 py-3 border-b border-[var(--glass-border)]/50 flex items-center justify-between gap-2 shrink-0 relative z-10 bg-[var(--sheet-bg)]/80 backdrop-blur-md">
-              {/* Kiri: Close Button (HANYA X YANG DIBUNGKUS GLASS) */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic("light");
-                  onClose();
-                }}
-                className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs shrink-0"
-                title="Cancel"
-              >
-                <X className="w-3.5 h-3.5 stroke-[2.2]" />
-              </button>
-
-              {/* Tengah: Notebook Picker & Date/Time strictly 1 BARIS */}
-              <div className="flex items-center justify-center gap-1.5 sm:gap-2 min-w-0 flex-1 text-center">
-                {/* Space Picker */}
-                <div className="relative shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("light");
-                      setShowSpacePicker(!showSpacePicker);
-                    }}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--text-primary)] hover:opacity-80 transition-opacity cursor-pointer group"
-                  >
-                    <span className="truncate max-w-[110px] sm:max-w-[140px]">
-                      {currentSpace?.name || "Field Notes"}
-                    </span>
-                  </button>
-                </div>
-
-                <span className="text-[11px] text-[var(--text-tertiary)] opacity-40 select-none">
-                  ·
-                </span>
-
-                {/* Inline Date & Time */}
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] font-sans not-italic select-none truncate">
-                  <label
-                    className="relative inline-flex items-center cursor-pointer hover:text-[var(--text-primary)] transition-colors truncate"
-                    title="Change date"
-                  >
-                    <span>{formattedPreviewDate}</span>
-                    <input
-                      type="date"
-                      value={noteDate}
-                      onChange={(e) => setNoteDate(e.target.value)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    />
-                  </label>
-
-                  <span className="opacity-40">·</span>
-
-                  <label
-                    className="relative inline-flex items-center cursor-pointer hover:text-[var(--text-primary)] transition-colors"
-                    title="Change time"
-                  >
-                    <span>{formattedPreviewTime}</span>
-                    <input
-                      type="time"
-                      value={noteTime}
-                      onChange={(e) => setNoteTime(e.target.value)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Kanan: Primary Action (Notice / Save) */}
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!canSave}
-                className="px-3.5 py-1.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center gap-1 disabled:opacity-30 active:scale-95 transition-transform cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.12)] shrink-0"
-                title={editingNote ? "Save changes" : "Notice into timeline"}
-              >
-                <span>{editingNote ? "Save" : "Notice"}</span>
-                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-              </button>
-            </header>
+            <CreateNoteHeader
+              spaces={spaces}
+              selectedSpaceId={selectedSpaceId}
+              onSelectSpace={setSelectedSpaceId}
+              noteDate={noteDate}
+              setNoteDate={setNoteDate}
+              noteTime={noteTime}
+              setNoteTime={setNoteTime}
+              canSave={canSave}
+              isEditing={Boolean(editingNote)}
+              onClose={onClose}
+              onSave={handleSave}
+            />
 
             {/* 2. Writing Pad Content */}
             <main
@@ -1197,443 +952,39 @@ export function CreateNoteSheet({
                 </div>
               )}
 
-              {/* Photo Previews */}
-              {photos.length > 0 && (
-                <div className="mt-2 space-y-3">
-                  {photos.length === 1 && (
-                    <div className="relative rounded-2xl overflow-hidden shadow-sm border border-[var(--glass-border)] aspect-[4/3] group">
-                      <img
-                        src={photos[0]}
-                        alt="Captured moment"
-                        className={`w-full h-full object-cover transition-all duration-300 ${
-                          photosMeta[0]?.filter
-                            ? `film-filter-${photosMeta[0].filter}`
-                            : ""
-                        }`}
-                      />
-                      {photosMeta[0]?.hasGrain && (
-                        <div className="film-grain-overlay" />
-                      )}
-
-                      {/* Top Overlay Controls */}
-                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            triggerHaptic("light");
-                            setDarkroomIndex(0);
-                          }}
-                          className={`px-2.5 py-1 rounded-full text-white text-[11px] font-sans font-medium flex items-center gap-1 active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs ${
-                            photosMeta[0]?.filter &&
-                            photosMeta[0].filter !== "natural"
-                              ? "bg-stone-900 border border-white/30"
-                              : "bg-black/65 hover:bg-black/85"
-                          }`}
-                          title="Analog Darkroom"
-                        >
-                          <Sliders className="w-3 h-3" />
-                          <span>Darkroom</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleTriggerPhotoSelect}
-                          className="px-2.5 py-1 rounded-full bg-black/65 text-white text-[11px] font-sans font-medium flex items-center gap-1 hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs"
-                          title="Add another photo"
-                        >
-                          <Plus className="w-3 h-3" />
-                          <span>Add</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemovePhoto(0)}
-                          className="w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs"
-                          title="Remove"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-
-                      {/* Inscription preview badge if present */}
-                      {photosMeta[0]?.caption?.trim() && (
-                        <div className="absolute bottom-2.5 left-2.5 right-2.5 px-3 py-1.5 rounded-xl bg-black/65 backdrop-blur-xs text-white font-typewriter text-[11px] truncate z-10">
-                          {photosMeta[0].caption}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {photos.length === 2 && (
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-2 gap-2.5">
-                        {photos.map((p, idx) => (
-                          <div
-                            key={idx}
-                            className="relative rounded-2xl overflow-hidden shadow-sm border border-[var(--glass-border)] aspect-[3/4] group"
-                          >
-                            <img
-                              src={p}
-                              alt={`Photo ${idx + 1}`}
-                              className={`w-full h-full object-cover transition-all duration-300 ${
-                                photosMeta[idx]?.filter
-                                  ? `film-filter-${photosMeta[idx].filter}`
-                                  : ""
-                              }`}
-                            />
-                            {photosMeta[idx]?.hasGrain && (
-                              <div className="film-grain-overlay" />
-                            )}
-                            <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  triggerHaptic("light");
-                                  setDarkroomIndex(idx);
-                                }}
-                                className={`w-6 h-6 rounded-full text-white flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs ${
-                                  photosMeta[idx]?.filter &&
-                                  photosMeta[idx].filter !== "natural"
-                                    ? "bg-stone-900 border border-white/30"
-                                    : "bg-black/65 hover:bg-black/85"
-                                }`}
-                                title="Darkroom"
-                              >
-                                <Sliders className="w-3 h-3" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemovePhoto(idx)}
-                                className="w-6 h-6 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm"
-                                title="Remove"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-
-                            {photosMeta[idx]?.caption?.trim() && (
-                              <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded-lg bg-black/65 backdrop-blur-xs text-white font-typewriter text-[10px] truncate z-10">
-                                {photosMeta[idx].caption}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleTriggerPhotoSelect}
-                        className="w-full py-2 rounded-xl inner-pseudo-glass border border-dashed border-[var(--glass-border)] flex items-center justify-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add Photo</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {photos.length >= 3 && (
-                    <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
-                      {photos.map((p, idx) => (
-                        <div
-                          key={idx}
-                          className="relative rounded-2xl overflow-hidden shadow-sm border border-[var(--glass-border)] w-36 aspect-[3/4] shrink-0 group"
-                        >
-                          <img
-                            src={p}
-                            alt={`Filmstrip ${idx + 1}`}
-                            className={`w-full h-full object-cover transition-all duration-300 ${
-                              photosMeta[idx]?.filter
-                                ? `film-filter-${photosMeta[idx].filter}`
-                                : ""
-                            }`}
-                          />
-                          {photosMeta[idx]?.hasGrain && (
-                            <div className="film-grain-overlay" />
-                          )}
-                          <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                triggerHaptic("light");
-                                setDarkroomIndex(idx);
-                              }}
-                              className={`w-6 h-6 rounded-full text-white flex items-center justify-center active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs ${
-                                photosMeta[idx]?.filter &&
-                                photosMeta[idx].filter !== "natural"
-                                  ? "bg-stone-900 border border-white/30"
-                                  : "bg-black/60 hover:bg-black/80"
-                              }`}
-                              title="Darkroom"
-                            >
-                              <Sliders className="w-3 h-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemovePhoto(idx)}
-                              className="w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors cursor-pointer"
-                              title="Remove"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-
-                          {photosMeta[idx]?.caption?.trim() && (
-                            <div className="absolute bottom-2 left-2 right-2 px-2 py-1 rounded-lg bg-black/65 backdrop-blur-xs text-white font-typewriter text-[10px] truncate z-10">
-                              {photosMeta[idx].caption}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      <button
-                        type="button"
-                        onClick={handleTriggerPhotoSelect}
-                        className="w-20 aspect-[3/4] rounded-2xl inner-pseudo-glass border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors shrink-0 cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span className="text-[10px] font-medium">Add</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Video Previews */}
-              {videos.length > 0 && (
-                <div className="mt-2 space-y-3">
-                  {videos.map((vid, idx) => (
-                    <div key={idx} className="relative group">
-                      <InlineVideoPlayer
-                        src={vid}
-                        className="w-full max-h-72"
-                      />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRemoveVideo(idx);
-                        }}
-                        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs z-30"
-                        title="Remove video"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Status Toasts */}
-              {isVideoProcessing && (
-                <div className="mt-2 p-2.5 rounded-xl apple-card text-xs text-[var(--text-secondary)] flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[var(--text-primary)] animate-ping" />
-                  <span>Processing video clip...</span>
-                </div>
-              )}
-              {videoError && (
-                <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans">
-                  {videoError}
-                </div>
-              )}
-              {audioError && (
-                <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans">
-                  {audioError}
-                </div>
-              )}
-
-              {/* Voice Memo Capsule */}
-              {recordedAudio && (
-                <div className="mt-2 p-2.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.035] shadow-2xs flex items-center justify-between gap-3">
-                  <div className="flex-1 overflow-hidden">
-                    <TactileAudioPlayer
-                      audioUrl={recordedAudio.url}
-                      durationSeconds={recordedAudio.durationSeconds}
-                      sourceId="create-note-audio-preview"
-                    />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("light");
-                      setRecordedAudio(null);
-                    }}
-                    className="p-2 text-[var(--text-tertiary)] hover:text-rose-500 transition-colors cursor-pointer shrink-0"
-                    title="Delete voice memo"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
+              {/* Media Section: Photos, Videos, Audio Player & Alerts */}
+              <CreateNoteMediaSection
+                photos={photos}
+                photosMeta={photosMeta}
+                onTriggerAddPhoto={handleTriggerPhotoSelect}
+                onRemovePhoto={handleRemovePhoto}
+                onOpenDarkroom={(idx) => setDarkroomIndex(idx)}
+                videos={videos}
+                onRemoveVideo={handleRemoveVideo}
+                isPhotoProcessing={isPhotoProcessing}
+                isVideoProcessing={isVideoProcessing}
+                mediaProgressMessage={mediaProgressMessage}
+                videoError={videoError}
+                audioError={recorder.audioError}
+                recordedAudio={recorder.recordedAudio}
+                onRemoveAudio={() => recorder.setRecordedAudio(null)}
+              />
             </main>
 
             {/* 3. Laci Format Teks "Aa" */}
-            <AnimatePresence>
-              {isFormattingOpen && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="formatting-toolbar px-4 py-2.5 border-t border-[var(--glass-border)]/50 bg-black/[0.02] dark:bg-white/[0.02] overflow-hidden shrink-0 z-10 space-y-2"
-                >
-                  {/* Baris 1: Font Family & Paragraph Alignment */}
-                  <div className="flex items-center justify-between gap-2">
-                    {/* Font Choice */}
-                    <div className="apple-segmented-track p-0.5">
-                      {(
-                        [
-                          { id: "editorial", label: "Serif" },
-                          { id: "sans", label: "Sans" },
-                          { id: "display", label: "Classic" },
-                        ] as const
-                      ).map((f) => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => {
-                            triggerHaptic("light");
-                            setFontChoice(f.id);
-                          }}
-                          className={`px-2.5 py-0.5 rounded-full text-[10.5px] transition-all cursor-pointer ${
-                            fontChoice === f.id
-                              ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] font-semibold shadow-xs"
-                              : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                          }`}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Paragraph Alignment */}
-                    <div className="apple-segmented-track p-0.5">
-                      {(
-                        [
-                          { id: "left", icon: AlignLeft, label: "Left" },
-                          { id: "center", icon: AlignCenter, label: "Center" },
-                          { id: "right", icon: AlignRight, label: "Right" },
-                          {
-                            id: "justify",
-                            icon: AlignJustify,
-                            label: "Justify",
-                          },
-                        ] as const
-                      ).map((opt) => {
-                        const Icon = opt.icon;
-                        const isActive = textAlign === opt.id;
-                        return (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => {
-                              triggerHaptic("light");
-                              setTextAlign(opt.id);
-                            }}
-                            className={`p-1 rounded-full transition-all cursor-pointer ${
-                              isActive
-                                ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] shadow-xs"
-                                : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                            }`}
-                            title={opt.label}
-                          >
-                            <Icon className="w-3 h-3 stroke-[2]" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Baris 2: Markdown Quick Actions */}
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
-                    <button
-                      type="button"
-                      onClick={() => applyMarkdownWrap("**", "**", "bold")}
-                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0"
-                      title="Bold (Cmd+B)"
-                    >
-                      <Bold className="w-3.5 h-3.5 stroke-[2.4]" />
-                      <span className="text-[11px]">Bold</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyMarkdownWrap("*", "*", "italic")}
-                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0"
-                      title="Italic (Cmd+I)"
-                    >
-                      <Italic className="w-3.5 h-3.5 stroke-[2.2]" />
-                      <span className="text-[11px]">Italic</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        applyMarkdownWrap("~~", "~~", "strikethrough")
-                      }
-                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer line-through opacity-80 shrink-0"
-                      title="Strikethrough (Cmd+Shift+X)"
-                    >
-                      <Strikethrough className="w-3.5 h-3.5 stroke-[2]" />
-                      <span className="text-[11px]">Strike</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyMarkdownWrap("`", "`", "code")}
-                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-mono shrink-0"
-                      title="Inline Code (Cmd+E)"
-                    >
-                      <Code className="w-3.5 h-3.5 stroke-[2]" />
-                      <span className="text-[11px]">Code</span>
-                    </button>
-
-                    <div className="w-px h-3.5 bg-[var(--glass-border)] mx-1 shrink-0" />
-
-                    <button
-                      type="button"
-                      onClick={() => applyMarkdownBlock("> ", "quote")}
-                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                      title="Quote block"
-                    >
-                      <Quote className="w-3.5 h-3.5 stroke-[2]" />
-                      <span className="text-[11px]">Quote</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyMarkdownBlock("- ", "item")}
-                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                      title="Bullet list"
-                    >
-                      <List className="w-3.5 h-3.5 stroke-[2]" />
-                      <span className="text-[11px]">Bullet</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyMarkdownBlock("1. ", "item")}
-                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                      title="Numbered list"
-                    >
-                      <ListOrdered className="w-3.5 h-3.5 stroke-[2]" />
-                      <span className="text-[11px]">Number</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => applyMarkdownBlock("---\n", "")}
-                      className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                      title="Horizontal divider"
-                    >
-                      <Minus className="w-3.5 h-3.5 stroke-[2.2]" />
-                      <span className="text-[11px]">Divider</span>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <CreateNoteMarkdownToolbar
+              isOpen={isFormattingOpen}
+              fontChoice={fontChoice}
+              setFontChoice={setFontChoice}
+              textAlign={textAlign}
+              setTextAlign={setTextAlign}
+              onApplyMarkdownWrap={applyMarkdownWrap}
+              onApplyMarkdownBlock={applyMarkdownBlock}
+            />
 
             {/* Live Interim Speech Whisper Bar */}
             <AnimatePresence>
-              {interimSpeechText && (
+              {speech.interimSpeechText && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
@@ -1642,10 +993,10 @@ export function CreateNoteSheet({
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-primary)] animate-pulse shrink-0" />
-                    <span className="truncate">“{interimSpeechText}...”</span>
+                    <span className="truncate">“{speech.interimSpeechText}...”</span>
                   </div>
                   <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] shrink-0">
-                    {dictationLang === "id-ID" ? "ID" : "EN"}
+                    {speech.dictationLang === "id-ID" ? "ID" : "EN"}
                   </span>
                 </motion.div>
               )}
@@ -1655,167 +1006,171 @@ export function CreateNoteSheet({
             <footer className="px-3.5 py-2 border-t border-[var(--glass-border)]/50 flex items-center justify-between gap-2 shrink-0 relative z-10 bg-[var(--sheet-bg)]/80 backdrop-blur-md">
               {/* Audio Menu Popover */}
               <AnimatePresence>
-                {showAudioMenu && !isRecording && !isDictatingOnly && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-30"
-                      onClick={() => setShowAudioMenu(false)}
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.16, ease: "easeOut" }}
-                      className="absolute bottom-[calc(100%+8px)] left-4 sm:left-16 z-40 w-64 rounded-2xl bg-[var(--sheet-bg)] border border-[var(--glass-border)] shadow-2xl p-1.5 flex flex-col gap-1 backdrop-blur-xl"
-                    >
-                      <div className="px-2.5 py-1.5 flex items-center justify-between border-b border-[var(--glass-border)]/50 mb-0.5">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">
-                          Voice Language
-                        </span>
-                        <div className="apple-segmented-track p-0.5 flex items-center">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (dictationLang !== "id-ID") {
-                                handleToggleDictationLang();
-                              }
-                            }}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                              dictationLang === "id-ID"
-                                ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs"
-                                : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                            }`}
-                          >
-                            ID
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (dictationLang !== "en-US") {
-                                handleToggleDictationLang();
-                              }
-                            }}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer ${
-                              dictationLang === "en-US"
-                                ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs"
-                                : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-                            }`}
-                          >
-                            EN
-                          </button>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowAudioMenu(false);
-                          handleStartDictationOnly();
-                        }}
-                        className="w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-98 transition-all cursor-pointer"
+                {showAudioMenu &&
+                  !recorder.isRecording &&
+                  !speech.isDictatingOnly && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-30"
+                        onClick={() => setShowAudioMenu(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                        transition={{ duration: 0.16, ease: "easeOut" }}
+                        className="absolute bottom-[calc(100%+8px)] left-4 sm:left-16 z-40 w-64 rounded-2xl bg-[var(--sheet-bg)] border border-[var(--glass-border)] shadow-2xl p-1.5 flex flex-col gap-1 backdrop-blur-xl"
                       >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
-                            <Type className="w-3.5 h-3.5 stroke-[2]" />
-                          </div>
-                          <div>
-                            <div className="font-medium text-xs">
-                              Dictate to Text
-                            </div>
-                            <div className="text-[10px] text-[var(--text-tertiary)]">
-                              Live speech to manuscript (
-                              {dictationLang === "id-ID"
-                                ? "Indonesia"
-                                : "English"}
-                              )
-                            </div>
+                        <div className="px-2.5 py-1.5 flex items-center justify-between border-b border-[var(--glass-border)]/50 mb-0.5">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">
+                            Voice Language
+                          </span>
+                          <div className="apple-segmented-track p-0.5 flex items-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (speech.dictationLang !== "id-ID") {
+                                  speech.toggleDictationLang();
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                speech.dictationLang === "id-ID"
+                                  ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs"
+                                  : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                              }`}
+                            >
+                              ID
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (speech.dictationLang !== "en-US") {
+                                  speech.toggleDictationLang();
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                                speech.dictationLang === "en-US"
+                                  ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs"
+                                  : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                              }`}
+                            >
+                              EN
+                            </button>
                           </div>
                         </div>
-                      </button>
 
-                      <div className="w-full px-3 py-2 rounded-xl flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 transition-all">
                         <button
                           type="button"
                           onClick={() => {
                             setShowAudioMenu(false);
-                            handleStartRecording();
+                            speech.startDictation();
                           }}
-                          className="flex items-center gap-2.5 text-left flex-1 cursor-pointer active:scale-98 transition-transform"
+                          className="w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-98 transition-all cursor-pointer"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
-                            <Mic className="w-3.5 h-3.5 stroke-[2]" />
-                          </div>
-                          <div>
-                            <div className="font-medium text-xs">
-                              Record Voice Memo
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
+                              <Type className="w-3.5 h-3.5 stroke-[2]" />
                             </div>
-                            <div className="text-[10px] text-[var(--text-tertiary)]">
-                              {autoTranscribeMemo
-                                ? "Audio + Auto-Transcribe"
-                                : "Audio strip only"}
+                            <div>
+                              <div className="font-medium text-xs">
+                                Dictate to Text
+                              </div>
+                              <div className="text-[10px] text-[var(--text-tertiary)]">
+                                Live speech to manuscript (
+                                {speech.dictationLang === "id-ID"
+                                  ? "Indonesia"
+                                  : "English"}
+                                )
+                              </div>
                             </div>
                           </div>
                         </button>
+
+                        <div className="w-full px-3 py-2 rounded-xl flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 transition-all">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAudioMenu(false);
+                              recorder.startRecording();
+                            }}
+                            className="flex items-center gap-2.5 text-left flex-1 cursor-pointer active:scale-98 transition-transform"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
+                              <Mic className="w-3.5 h-3.5 stroke-[2]" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-xs">
+                                Record Voice Memo
+                              </div>
+                              <div className="text-[10px] text-[var(--text-tertiary)]">
+                                {speech.autoTranscribeMemo
+                                  ? "Audio + Auto-Transcribe"
+                                  : "Audio strip only"}
+                              </div>
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              speech.toggleAutoTranscribe();
+                            }}
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 border ${
+                              speech.autoTranscribeMemo
+                                ? "bg-[var(--text-primary)] text-[var(--accent-ink)] border-transparent"
+                                : "bg-transparent text-[var(--text-tertiary)] border-[var(--glass-border)] hover:text-[var(--text-primary)]"
+                            }`}
+                            title="Toggle simultaneous text transcription while recording"
+                          >
+                            {speech.autoTranscribeMemo
+                              ? "Auto-Text ON"
+                              : "Text OFF"}
+                          </button>
+                        </div>
 
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleAutoTranscribe();
+                          onClick={() => {
+                            setShowAudioMenu(false);
+                            if (!canUseFeature("audio_import")) {
+                              triggerHaptic("heavy");
+                              setProTriggerFeature("audio_import");
+                              setIsProModalOpen(true);
+                              return;
+                            }
+                            triggerHaptic("light");
+                            audioFileInputRef.current?.click();
                           }}
-                          className={`px-2 py-0.5 rounded-full text-[9px] font-mono uppercase tracking-wider font-semibold transition-all cursor-pointer shrink-0 border ${
-                            autoTranscribeMemo
-                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] border-transparent"
-                              : "bg-transparent text-[var(--text-tertiary)] border-[var(--glass-border)] hover:text-[var(--text-primary)]"
-                          }`}
-                          title="Toggle simultaneous text transcription while recording"
+                          className="w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-98 transition-all cursor-pointer"
                         >
-                          {autoTranscribeMemo ? "Auto-Text ON" : "Text OFF"}
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
+                              <Upload className="w-3.5 h-3.5 stroke-[2]" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-xs">
+                                Import Audio File
+                              </div>
+                              <div className="text-[10px] text-[var(--text-tertiary)]">
+                                Max 3 min · With Trimmer
+                              </div>
+                            </div>
+                          </div>
+                          {!isProUser() && (
+                            <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                              PRO
+                            </span>
+                          )}
                         </button>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowAudioMenu(false);
-                          if (!canUseFeature("audio_import")) {
-                            triggerHaptic("heavy");
-                            setProTriggerFeature("audio_import");
-                            setIsProModalOpen(true);
-                            return;
-                          }
-                          triggerHaptic("light");
-                          audioFileInputRef.current?.click();
-                        }}
-                        className="w-full px-3 py-2 rounded-xl text-left flex items-center justify-between text-xs text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-98 transition-all cursor-pointer"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
-                            <Upload className="w-3.5 h-3.5 stroke-[2]" />
-                          </div>
-                          <div>
-                            <div className="font-medium text-xs">
-                              Import Audio File
-                            </div>
-                            <div className="text-[10px] text-[var(--text-tertiary)]">
-                              Max 3 min · With Trimmer
-                            </div>
-                          </div>
-                        </div>
-                        {!isProUser() && (
-                          <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                            PRO
-                          </span>
-                        )}
-                      </button>
-                    </motion.div>
-                  </>
-                )}
+                      </motion.div>
+                    </>
+                  )}
               </AnimatePresence>
 
-              {!isRecording && !isDictatingOnly ? (
+              {!recorder.isRecording && !speech.isDictatingOnly ? (
                 <div className="flex items-center justify-between w-full min-w-0 gap-1.5">
                   {/* Klaster Kiri: Input Media & Metadata */}
                   <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 min-w-0">
@@ -1947,42 +1302,61 @@ export function CreateNoteSheet({
                   <div className="flex items-center gap-2 text-rose-500 font-sans font-medium text-xs shrink-0">
                     <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                     <span className="font-mono">
-                      {Math.floor(recordingSeconds / 60)}:
-                      {(recordingSeconds % 60).toString().padStart(2, "0")}
+                      {Math.floor(
+                        (speech.isDictatingOnly
+                          ? 0
+                          : recorder.recordingSeconds) / 60,
+                      )}
+                      :
+                      {(
+                        (speech.isDictatingOnly
+                          ? 0
+                          : recorder.recordingSeconds) % 60
+                      )
+                        .toString()
+                        .padStart(2, "0")}
                     </span>
                     <span className="text-[10px] uppercase tracking-wider font-mono text-[var(--text-secondary)]">
-                      {isDictatingOnly ? "Dictating" : "Rec"}
+                      {speech.isDictatingOnly ? "Dictating" : "Rec"}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={handleToggleDictationLang}
+                      onClick={speech.toggleDictationLang}
                       className="px-2 py-0.5 rounded-lg border border-[var(--glass-border)] text-[10px] font-mono font-bold text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer"
                       title="Switch language"
                     >
-                      {dictationLang === "id-ID" ? "ID" : "EN"}
+                      {speech.dictationLang === "id-ID" ? "ID" : "EN"}
                     </button>
 
-                    {isRecording && isSpeechRecognitionSupported() && (
-                      <button
-                        type="button"
-                        onClick={handleToggleAutoTranscribe}
-                        className={`px-2 py-0.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-semibold transition-all cursor-pointer border ${
-                          autoTranscribeMemo
-                            ? "bg-[var(--text-primary)] text-[var(--accent-ink)] border-transparent"
-                            : "bg-transparent text-[var(--text-tertiary)] border-[var(--glass-border)]"
-                        }`}
-                        title="Toggle transcription"
-                      >
-                        {autoTranscribeMemo ? "Text ON" : "Text OFF"}
-                      </button>
-                    )}
+                    {recorder.isRecording &&
+                      isSpeechRecognitionSupported() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextActive = speech.toggleAutoTranscribe();
+                            if (nextActive) {
+                              speech.startLiveTranscription();
+                            } else {
+                              speech.stopLiveTranscription();
+                            }
+                          }}
+                          className={`px-2 py-0.5 rounded-lg text-[9px] font-mono uppercase tracking-wider font-semibold transition-all cursor-pointer border ${
+                            speech.autoTranscribeMemo
+                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] border-transparent"
+                              : "bg-transparent text-[var(--text-tertiary)] border-[var(--glass-border)]"
+                          }`}
+                          title="Toggle transcription"
+                        >
+                          {speech.autoTranscribeMemo ? "Text ON" : "Text OFF"}
+                        </button>
+                      )}
 
-                    {isRecording && (
+                    {recorder.isRecording && (
                       <div className="hidden sm:flex items-center gap-1 h-5">
-                        {audioLevels.slice(0, 10).map((lvl, idx) => (
+                        {recorder.audioLevels.slice(0, 10).map((lvl, idx) => (
                           <span
                             key={idx}
                             className="w-0.5 bg-rose-500 rounded-full transition-all duration-75"
@@ -1996,9 +1370,9 @@ export function CreateNoteSheet({
                   <button
                     type="button"
                     onClick={
-                      isDictatingOnly
-                        ? handleStopDictationOnly
-                        : handleStopRecording
+                      speech.isDictatingOnly
+                        ? speech.stopDictation
+                        : recorder.stopRecording
                     }
                     className="px-3 py-1 rounded-full bg-rose-500 text-white text-xs font-semibold flex items-center gap-1 active:scale-95 transition-transform cursor-pointer shadow-xs shrink-0"
                   >

@@ -32,7 +32,7 @@ export function extractWaveformPeaks(
 ): number[] {
   const channelData = buffer.getChannelData(0);
   const totalSamples = channelData.length;
-  if (totalSamples === 0) return new Array(numPeaks).fill(0.2);
+  if (totalSamples === 0) return Array.from({ length: numPeaks }, () => 0.2);
 
   const blockSize = Math.max(1, Math.floor(totalSamples / numPeaks));
   const rawPeaks: number[] = [];

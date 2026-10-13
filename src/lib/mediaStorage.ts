@@ -71,6 +71,19 @@ export function dataUrlToBlob(dataUrl: string): {
  * Uploads a binary Blob or File to Supabase Storage ('noticed-media' bucket)
  * and returns its permanent public URL. Returns null if offline or bucket unavailable.
  */
+let cachedUserId: { id: string; expiresAt: number } | null = null;
+
+async function getCachedUserId(): Promise<string> {
+  const now = Date.now();
+  if (cachedUserId && cachedUserId.expiresAt > now) {
+    return cachedUserId.id;
+  }
+  const user = await getCurrentUser();
+  const id = user?.id || "guest";
+  cachedUserId = { id, expiresAt: now + 30000 };
+  return id;
+}
+
 export async function uploadMediaToSupabase(
   blobOrFile: Blob | File,
   folder: MediaFolder,
@@ -82,8 +95,7 @@ export async function uploadMediaToSupabase(
   }
 
   try {
-    const user = await getCurrentUser();
-    const ownerFolder = user?.id || "guest";
+    const ownerFolder = await getCachedUserId();
     const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const filePath = `${folder}/${ownerFolder}/${uniqueName}`;
 
@@ -219,9 +231,9 @@ export async function ensureRemoteMediaUrls(
     return items;
   }
 
-  const results: string[] = [];
-  for (const item of items) {
-    if (item && item.startsWith("data:")) {
+  const uploadItem = async (item: string): Promise<string> => {
+    if (!item) return item;
+    if (item.startsWith("data:")) {
       const parsed = dataUrlToBlob(item);
       if (parsed) {
         const remoteUrl = await uploadMediaToSupabase(
@@ -230,11 +242,11 @@ export async function ensureRemoteMediaUrls(
           parsed.ext,
           parsed.contentType
         );
-        results.push(remoteUrl || item);
-      } else {
-        results.push(item);
+        return remoteUrl || item;
       }
-    } else if (item && item.startsWith("blob:")) {
+      return item;
+    }
+    if (item.startsWith("blob:")) {
       try {
         const res = await fetch(item);
         const blob = await res.blob();
@@ -254,15 +266,15 @@ export async function ensureRemoteMediaUrls(
           ext,
           contentType
         );
-        results.push(remoteUrl || item);
+        return remoteUrl || item;
       } catch {
-        results.push(item);
+        return item;
       }
-    } else {
-      results.push(item);
     }
-  }
-  return results;
+    return item;
+  };
+
+  return Promise.all(items.map((it) => uploadItem(it)));
 }
 
 /**

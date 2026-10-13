@@ -28,16 +28,17 @@ function Resize-ImageFile {
     Write-Host "Generated: $DestPath ($Width x $Height)"
 }
 
-$srcDark = "D:\Project\Sidenotes\public\logo-dark.png"
-$srcLight = "D:\Project\Sidenotes\public\logo-light.png"
+$rootDir = [System.IO.Path]::GetFullPath("$PSScriptRoot\..")
+$srcDark = "$rootDir\public\logo-dark-original.png"
+if (-not (Test-Path $srcDark)) { $srcDark = "$rootDir\public\logo-dark.png" }
 
 # 1. Web & PWA Icons
-Resize-ImageFile $srcDark "D:\Project\Sidenotes\public\apple-touch-icon.png" 180 180
-Resize-ImageFile $srcDark "D:\Project\Sidenotes\public\pwa-192x192.png" 192 192
-Resize-ImageFile $srcDark "D:\Project\Sidenotes\public\pwa-512x512.png" 512 512
-Resize-ImageFile $srcDark "D:\Project\Sidenotes\public\maskable-icon-512x512.png" 512 512
+Resize-ImageFile $srcDark "$rootDir\public\apple-touch-icon.png" 180 180
+Resize-ImageFile $srcDark "$rootDir\public\pwa-192x192.png" 192 192
+Resize-ImageFile $srcDark "$rootDir\public\pwa-512x512.png" 512 512
+Resize-ImageFile $srcDark "$rootDir\public\maskable-icon-512x512.png" 512 512
 
 # 2. iOS Native App Icon (1024x1024)
-Resize-ImageFile $srcDark "D:\Project\Sidenotes\ios\App\App\Assets.xcassets\AppIcon.appiconset\AppIcon-512@2x.png" 1024 1024
+Resize-ImageFile $srcDark "$rootDir\ios\App\App\Assets.xcassets\AppIcon.appiconset\AppIcon-512@2x.png" 1024 1024
 
 Write-Output "All icons generated successfully across web, PWA, and iOS!"

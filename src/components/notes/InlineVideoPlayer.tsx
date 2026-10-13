@@ -64,7 +64,9 @@ export function InlineVideoPlayer({
     return () => nearObserver.disconnect();
   }, []);
 
-  // IntersectionObserver: Smart Viewport Autoplay when visible
+  const autoplayTimerRef = useRef<number | null>(null);
+
+  // IntersectionObserver: Smart Viewport Autoplay when visible & scroll settles
   useEffect(() => {
     const el = containerRef.current;
     const video = videoRef.current;
@@ -73,22 +75,43 @@ export function InlineVideoPlayer({
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && entry.intersectionRatio >= 0.4) {
-            video.play().then(() => setIsPlaying(true)).catch(() => {
-              // Autoplay policy fallback
-              setIsPlaying(false);
-            });
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
+            if (autoplayTimerRef.current) {
+              window.clearTimeout(autoplayTimerRef.current);
+            }
+            autoplayTimerRef.current = window.setTimeout(() => {
+              if (videoRef.current && videoRef.current.paused) {
+                videoRef.current
+                  .play()
+                  .then(() => setIsPlaying(true))
+                  .catch(() => {
+                    setIsPlaying(false);
+                  });
+              }
+            }, 250);
           } else {
-            video.pause();
-            setIsPlaying(false);
+            if (autoplayTimerRef.current) {
+              window.clearTimeout(autoplayTimerRef.current);
+              autoplayTimerRef.current = null;
+            }
+            if (videoRef.current && !videoRef.current.paused) {
+              videoRef.current.pause();
+              setIsPlaying(false);
+            }
           }
         });
       },
-      { threshold: [0, 0.4, 0.8] }
+      { threshold: [0, 0.55, 0.85] }
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      if (autoplayTimerRef.current) {
+        window.clearTimeout(autoplayTimerRef.current);
+        autoplayTimerRef.current = null;
+      }
+      observer.disconnect();
+    };
   }, [src, isNearViewport]);
 
   // Track playback time for hairline progress bar

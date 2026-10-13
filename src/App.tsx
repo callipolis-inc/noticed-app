@@ -22,7 +22,7 @@ import {
 } from "@/types";
 import { NoteEntry } from "@/components/notes/NoteEntry";
 import { DateGroupDivider } from "@/components/notes/DateGroupDivider";
-import { BookshelfView } from "@/components/spaces/BookshelfModal";
+import { BookshelfView } from "@/components/spaces/BookshelfView";
 import { DynamicFlyout } from "@/components/ui/DynamicFlyout";
 
 const CreateNoteSheet = lazy(() =>
@@ -70,7 +70,10 @@ const ManuscriptExportModal = lazy(() =>
     default: m.ManuscriptExportModal,
   })),
 );
-import { triggerHaptic } from "@/lib/haptics";
+import {
+  triggerHaptic,
+  setHapticsEnabled as setGlobalHapticsEnabled,
+} from "@/lib/haptics";
 import { generateId, getDateGroupKey } from "@/lib/utils";
 import {
   loadFromAtelierDB,
@@ -186,6 +189,7 @@ export function App() {
 
   const [spaces, setSpaces] = useState<Space[]>(initialSanitized.spaces);
   const [notes, setNotes] = useState<FieldNote[]>(initialSanitized.notes);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const [activeSpaceId, setActiveSpaceId] = useState<string>(() => {
     return initialSanitized.spaces[0]?.id || DEFAULT_STARTER_SPACE.id;
@@ -266,6 +270,42 @@ export function App() {
   const [annotatorNote, setAnnotatorNote] = useState<FieldNote | null>(null);
   const [exportingSpace, setExportingSpace] = useState<Space | null>(null);
   const [flyoutMessage, setFlyoutMessage] = useState<string | null>(null);
+  const [flyoutAction, setFlyoutAction] = useState<{
+    label: string;
+    onClick: () => void;
+  } | null>(null);
+  const flyoutTimerRef = useRef<number | null>(null);
+
+  const showFlyout = useCallback(
+    (
+      message: string,
+      durationMs: number = 2500,
+      action?: { label: string; onClick: () => void } | null,
+    ) => {
+      if (flyoutTimerRef.current) {
+        window.clearTimeout(flyoutTimerRef.current);
+        flyoutTimerRef.current = null;
+      }
+      setFlyoutMessage(message);
+      setFlyoutAction(action || null);
+
+      flyoutTimerRef.current = window.setTimeout(() => {
+        setFlyoutMessage(null);
+        setFlyoutAction(null);
+        flyoutTimerRef.current = null;
+      }, durationMs);
+    },
+    [],
+  );
+
+  const dismissFlyout = useCallback(() => {
+    if (flyoutTimerRef.current) {
+      window.clearTimeout(flyoutTimerRef.current);
+      flyoutTimerRef.current = null;
+    }
+    setFlyoutMessage(null);
+    setFlyoutAction(null);
+  }, []);
 
   // Cloud Auth & Sync State
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -343,16 +383,14 @@ export function App() {
 
         if (result.timestamp) setLastSyncedAt(result.timestamp);
         if (!silent) {
-          setFlyoutMessage("Cloud synchronized");
-          setTimeout(() => setFlyoutMessage(null), 2000);
+          showFlyout("Cloud synchronized", 2000);
         }
       } else if (
         !silent &&
         result.error &&
         result.error !== "User is not signed in"
       ) {
-        setFlyoutMessage(`Sync: ${result.error}`);
-        setTimeout(() => setFlyoutMessage(null), 2500);
+        showFlyout(`Sync: ${result.error}`, 2500);
       }
     } catch (err: any) {
       console.error("[Noticed] Sync error:", err);
@@ -370,7 +408,7 @@ export function App() {
 
   // Debounced Silent Auto-Sync whenever notes, spaces, or profile change
   useEffect(() => {
-    if (!userEmail || isApplyingRemoteSyncRef.current) return;
+    if (!userEmail || !isHydrated || isApplyingRemoteSyncRef.current) return;
 
     if (autoSyncTimerRef.current) {
       window.clearTimeout(autoSyncTimerRef.current);
@@ -385,7 +423,7 @@ export function App() {
         window.clearTimeout(autoSyncTimerRef.current);
       }
     };
-  }, [spaces, notes, userName, avatarPhoto, userEmail]);
+  }, [spaces, notes, userName, avatarPhoto, userEmail, isHydrated]);
 
   // Trigger silent sync when device reconnects online or returns to foreground
   useEffect(() => {
@@ -410,16 +448,14 @@ export function App() {
 
   const handleAuthSuccess = (email: string) => {
     setUserEmail(email);
-    setFlyoutMessage(`Signed in as ${email}`);
-    setTimeout(() => setFlyoutMessage(null), 2500);
+    showFlyout(`Signed in as ${email}`, 2500);
   };
 
   const handleSignOut = async () => {
     try {
       await signOutUser();
       setUserEmail(null);
-      setFlyoutMessage("Signed out from cloud");
-      setTimeout(() => setFlyoutMessage(null), 2000);
+      showFlyout("Signed out from cloud", 2000);
     } catch (err: any) {
       console.error(err);
     }
@@ -458,6 +494,7 @@ export function App() {
           localStorage.removeItem("sidenotes_username");
         }
       }
+      setIsHydrated(true);
     })();
     return () => {
       isMounted = false;
@@ -468,27 +505,22 @@ export function App() {
   const handleUpdateUserName = (name: string) => {
     setUserName(name);
     localStorage.setItem("sidenotes_username", name);
-    setFlyoutMessage(`Author set to ${name}`);
-    setTimeout(() => setFlyoutMessage(null), 2000);
+    showFlyout(`Author set to ${name}`, 2000);
   };
 
   const handleUpdateDefaultShelfLayout = (layout: "spines" | "covers") => {
     setDefaultShelfLayout(layout);
     localStorage.setItem("sidenotes_default_shelf_layout", layout);
-    setFlyoutMessage(
+    showFlyout(
       `Default view: ${layout === "spines" ? "Spines" : "Covers"}`,
+      2000,
     );
-    setTimeout(() => setFlyoutMessage(null), 2000);
   };
 
   const handleToggleHaptics = (enabled: boolean) => {
     setHapticsEnabled(enabled);
-    localStorage.setItem(
-      "sidenotes_haptics_enabled",
-      enabled ? "true" : "false",
-    );
-    setFlyoutMessage(enabled ? "Tactile haptics enabled" : "Haptics disabled");
-    setTimeout(() => setFlyoutMessage(null), 2000);
+    setGlobalHapticsEnabled(enabled);
+    showFlyout(enabled ? "Tactile haptics enabled" : "Haptics disabled", 2000);
   };
 
   const handleExportArchive = async () => {
@@ -518,8 +550,7 @@ export function App() {
             title: "Noticed Archive Backup",
             files: [file],
           });
-          setFlyoutMessage("Archive exported");
-          setTimeout(() => setFlyoutMessage(null), 2500);
+          showFlyout("Archive exported", 2500);
           return;
         } catch (err: unknown) {
           if (err instanceof Error && err.name === "AbortError") {
@@ -539,8 +570,7 @@ export function App() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 200);
-    setFlyoutMessage("Archive exported (JSON)");
-    setTimeout(() => setFlyoutMessage(null), 2500);
+    showFlyout("Archive exported (JSON)", 2500);
   };
 
   const handleImportArchive = (file: File) => {
@@ -558,15 +588,12 @@ export function App() {
           setSpaces(sanitized.spaces);
           setNotes(sanitized.notes);
           if (data.user) handleUpdateUserName(data.user);
-          setFlyoutMessage(`Restored ${sanitized.notes.length} notices`);
-          setTimeout(() => setFlyoutMessage(null), 2500);
+          showFlyout(`Restored ${sanitized.notes.length} notices`, 2500);
         } else {
-          setFlyoutMessage("Invalid backup format");
-          setTimeout(() => setFlyoutMessage(null), 2500);
+          showFlyout("Invalid backup format", 2500);
         }
       } catch {
-        setFlyoutMessage("Could not parse JSON archive");
-        setTimeout(() => setFlyoutMessage(null), 2500);
+        showFlyout("Could not parse JSON archive", 2500);
       }
     };
     reader.readAsText(file);
@@ -580,8 +607,7 @@ export function App() {
     localStorage.removeItem("sidenotes_spaces");
     localStorage.removeItem("sidenotes_notes");
     clearAtelierDB();
-    setFlyoutMessage("All data reset to defaults");
-    setTimeout(() => setFlyoutMessage(null), 2500);
+    showFlyout("All data reset to defaults", 2500);
   };
 
   // Zen Reading Mode State
@@ -610,10 +636,10 @@ export function App() {
     if (typeof window !== "undefined") {
       localStorage.setItem("sidenotes_sort_order", next);
     }
-    setFlyoutMessage(
+    showFlyout(
       next === "newest" ? "Stream: Newest first" : "Stream: Chronological",
+      2000,
     );
-    setTimeout(() => setFlyoutMessage(null), 2000);
   };
 
   // Global Cmd+K / Ctrl+K keyboard shortcut
@@ -651,8 +677,7 @@ export function App() {
         e.preventDefault();
         triggerHaptic("light");
         setIsReadingMode(false);
-        setFlyoutMessage("Exited Zen Mode");
-        setTimeout(() => setFlyoutMessage(null), 2000);
+        showFlyout("Exited Zen Mode", 2000);
       }
     };
 
@@ -767,8 +792,7 @@ export function App() {
     if (typeof window !== "undefined") {
       localStorage.setItem("sidenotes_text_align", align);
     }
-    setFlyoutMessage(`Align: ${align}`);
-    setTimeout(() => setFlyoutMessage(null), 2000);
+    showFlyout(`Align: ${align}`, 2000);
   };
 
   const [imageFrameSize, setImageFrameSize] = useState<ImageFrameSize>(() => {
@@ -788,8 +812,7 @@ export function App() {
     if (typeof window !== "undefined") {
       localStorage.setItem("sidenotes_image_frame_size", size);
     }
-    setFlyoutMessage(`Frame: ${size}`);
-    setTimeout(() => setFlyoutMessage(null), 2000);
+    showFlyout(`Frame: ${size}`, 2000);
   };
 
   useEffect(() => {
@@ -823,14 +846,16 @@ export function App() {
   }, [theme]);
 
   useEffect(() => {
+    if (!isHydrated) return;
     safeLocalStorageSet("sidenotes_spaces", JSON.stringify(spaces));
     saveToAtelierDB("sidenotes_spaces", spaces);
-  }, [spaces]);
+  }, [spaces, isHydrated]);
 
   useEffect(() => {
+    if (!isHydrated) return;
     safeLocalStorageSet("sidenotes_notes", JSON.stringify(notes));
     saveToAtelierDB("sidenotes_notes", notes);
-  }, [notes]);
+  }, [notes, isHydrated]);
 
   const activeSpace =
     spaces.find((s) => s.id === activeSpaceId) ||
@@ -872,38 +897,32 @@ export function App() {
     setSpaces((prev) => [...prev, newSpace]);
     setActiveSpaceId(newSpace.id);
     setCurrentView("notebook");
-    setFlyoutMessage(`Opened notebook: ${name}`);
-    setTimeout(() => setFlyoutMessage(null), 2500);
+    showFlyout(`Opened notebook: ${name}`, 2500);
   };
 
   const handleUpdateSpace = (updated: Space) => {
     setSpaces((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-    setFlyoutMessage(`Updated: ${updated.name}`);
-    setTimeout(() => setFlyoutMessage(null), 2500);
+    showFlyout(`Updated: ${updated.name}`, 2500);
   };
 
   const handleDeleteSpace = (spaceId: string) => {
     const spaceNotes = notes.filter((n) => n.spaceId === spaceId);
-    setSpaces((prev) => {
-      const remaining = prev.filter((s) => s.id !== spaceId);
-      if (remaining.length === 0) {
-        setActiveSpaceId("");
-        setCurrentView("bookshelf");
-      } else if (activeSpaceId === spaceId) {
-        setActiveSpaceId(remaining[0].id);
-      }
-      return remaining;
-    });
+    const remaining = spaces.filter((s) => s.id !== spaceId);
+    if (remaining.length === 0) {
+      setActiveSpaceId("");
+      setCurrentView("bookshelf");
+    } else if (activeSpaceId === spaceId) {
+      setActiveSpaceId(remaining[0].id);
+    }
+    setSpaces(remaining);
     setNotes((prev) => prev.filter((n) => n.spaceId !== spaceId));
     queueCloudDeleteSpace(spaceId, spaceNotes);
-    setFlyoutMessage("Notebook archived");
-    setTimeout(() => setFlyoutMessage(null), 2000);
+    showFlyout("Notebook archived", 2000);
   };
 
   const handleSaveNote = (newNote: FieldNote) => {
     setNotes((prev) => [newNote, ...prev]);
-    setFlyoutMessage("Notice added");
-    setTimeout(() => setFlyoutMessage(null), 2500);
+    showFlyout("Notice added", 2500);
   };
 
   const handleUpdateNote = (updatedNote: FieldNote) => {
@@ -911,8 +930,7 @@ export function App() {
       prev.map((n) => (n.id === updatedNote.id ? updatedNote : n)),
     );
     setEditingNote(null);
-    setFlyoutMessage("Notice updated");
-    setTimeout(() => setFlyoutMessage(null), 2200);
+    showFlyout("Notice updated", 2200);
   };
 
   const handleSaveMarginalia = (
@@ -934,8 +952,7 @@ export function App() {
           : n,
       ),
     );
-    setFlyoutMessage("Sidenote updated");
-    setTimeout(() => setFlyoutMessage(null), 2200);
+    showFlyout("Sidenote updated", 2200);
   };
 
   const handleUpdateNoteHighlights = useCallback(
@@ -969,16 +986,18 @@ export function App() {
       prev.map((n) => {
         if (n.id === noteId) {
           const isArchivedNow = !n.archived;
-          setFlyoutMessage(
-            isArchivedNow ? "Notice moved to Archive Vault" : "Notice restored to notebook",
+          showFlyout(
+            isArchivedNow
+              ? "Notice moved to Archive Vault"
+              : "Notice restored to notebook",
+            3000,
           );
-          setTimeout(() => setFlyoutMessage(null), 3000);
           return { ...n, archived: isArchivedNow };
         }
         return n;
       }),
     );
-  }, []);
+  }, [showFlyout]);
 
   const handleEditNoteCallback = useCallback((note: FieldNote) => {
     setEditingNote(note);
@@ -993,10 +1012,6 @@ export function App() {
   }, []);
 
   // Soft-Delete 5-Second Undo Buffer State
-  const [flyoutAction, setFlyoutAction] = useState<{
-    label: string;
-    onClick: () => void;
-  } | null>(null);
   const pendingDeleteRef = useRef<{
     note: FieldNote;
     index: number;
@@ -1011,71 +1026,69 @@ export function App() {
     }
   }, []);
 
-  // Flush any pending soft-deleted note if the tab is closed before the 5s window expires
+  // Flush any pending soft-deleted note if the app is backgrounded, hidden, or closed
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (pendingDeleteRef.current) {
-        queueCloudDeleteNote(pendingDeleteRef.current.note);
-        pendingDeleteRef.current = null;
+    const handleFlush = () => {
+      commitPendingDelete();
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        commitPendingDelete();
       }
     };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+
+    window.addEventListener("beforeunload", handleFlush);
+    window.addEventListener("pagehide", handleFlush);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", handleFlush);
+      window.removeEventListener("pagehide", handleFlush);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [commitPendingDelete]);
 
   const handleDeleteNote = useCallback(
     (noteId: string) => {
       triggerHaptic("medium");
       commitPendingDelete();
 
-      setNotes((prev) => {
-        const idx = prev.findIndex((n) => n.id === noteId);
-        if (idx === -1) return prev;
-        const targetNote = prev[idx];
+      const idx = notes.findIndex((n) => n.id === noteId);
+      if (idx === -1) return;
+      const targetNote = notes[idx];
 
-        const timerId = window.setTimeout(() => {
-          queueCloudDeleteNote(targetNote);
-          pendingDeleteRef.current = null;
-          setFlyoutAction(null);
-          setFlyoutMessage((msg) => (msg === "Notice removed" ? null : msg));
-        }, 5000);
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
 
-        pendingDeleteRef.current = {
-          note: targetNote,
-          index: idx,
-          timerId,
-        };
+      const timerId = window.setTimeout(() => {
+        queueCloudDeleteNote(targetNote);
+        pendingDeleteRef.current = null;
+      }, 5000);
 
-        setFlyoutMessage("Notice removed");
-        setFlyoutAction({
-          label: "Undo",
-          onClick: () => {
-            if (pendingDeleteRef.current?.note.id === targetNote.id) {
-              window.clearTimeout(pendingDeleteRef.current.timerId);
-              const restored = pendingDeleteRef.current.note;
-              const restoreIdx = pendingDeleteRef.current.index;
-              pendingDeleteRef.current = null;
-              setNotes((current) => {
-                if (current.some((n) => n.id === restored.id)) return current;
-                const next = [...current];
-                next.splice(Math.min(restoreIdx, next.length), 0, restored);
-                return next;
-              });
-              setFlyoutAction(null);
-              setFlyoutMessage("Notice restored");
-              window.setTimeout(() => {
-                setFlyoutMessage((msg) =>
-                  msg === "Notice restored" ? null : msg,
-                );
-              }, 2200);
-            }
-          },
-        });
+      pendingDeleteRef.current = {
+        note: targetNote,
+        index: idx,
+        timerId,
+      };
 
-        return prev.filter((n) => n.id !== noteId);
+      showFlyout("Notice removed", 5000, {
+        label: "Undo",
+        onClick: () => {
+          if (pendingDeleteRef.current?.note.id === targetNote.id) {
+            window.clearTimeout(pendingDeleteRef.current.timerId);
+            const restored = pendingDeleteRef.current.note;
+            const restoreIdx = pendingDeleteRef.current.index;
+            pendingDeleteRef.current = null;
+            setNotes((current) => {
+              if (current.some((n) => n.id === restored.id)) return current;
+              const next = [...current];
+              next.splice(Math.min(restoreIdx, next.length), 0, restored);
+              return next;
+            });
+            showFlyout("Notice restored", 2200);
+          }
+        },
       });
     },
-    [commitPendingDelete],
+    [notes, commitPendingDelete, showFlyout],
   );
 
   const handleSelectFont = (font: FontChoice) => {
@@ -1088,8 +1101,7 @@ export function App() {
           : font === "sans"
             ? "Urbanist"
             : "Cormorant";
-      setFlyoutMessage(`Font: ${fontName}`);
-      setTimeout(() => setFlyoutMessage(null), 2500);
+      showFlyout(`Font: ${fontName}`, 2500);
     }
   };
 
@@ -1154,10 +1166,7 @@ export function App() {
         type="success"
         actionLabel={flyoutAction?.label}
         onAction={flyoutAction?.onClick}
-        onClose={() => {
-          setFlyoutMessage(null);
-          setFlyoutAction(null);
-        }}
+        onClose={dismissFlyout}
       />
 
       {/* Zen Reading Mode Progress Bar */}
@@ -1464,8 +1473,7 @@ export function App() {
                             triggerHaptic("medium");
                             setIsTopFlyoutOpen(false);
                             setIsReadingMode(true);
-                            setFlyoutMessage("Zen Mode · Press Esc to exit");
-                            setTimeout(() => setFlyoutMessage(null), 2500);
+                            showFlyout("Zen Mode · Press Esc to exit", 2500);
                           }}
                           className="w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs"
                           title="Zen Mode"
@@ -1538,8 +1546,7 @@ export function App() {
                   onClick={() => {
                     triggerHaptic("light");
                     setIsReadingMode(false);
-                    setFlyoutMessage("Exited Zen Mode");
-                    setTimeout(() => setFlyoutMessage(null), 2000);
+                    showFlyout("Exited Zen Mode", 2000);
                   }}
                   className="
                     pointer-events-auto flex items-center gap-1.5 px-4 py-2 rounded-full
@@ -1686,13 +1693,16 @@ export function App() {
             onResetAllData={handleResetAllData}
             currentTheme={theme}
             onSelectTheme={setTheme}
+            onOpenThemeSelector={() => {
+              setIsSettingsOpen(false);
+              setIsThemeSelectorOpen(true);
+            }}
             fontSize={fontSize}
             onSelectFontSize={handleSelectFontSize}
             spaces={spaces}
             notes={notes}
             onStorageOptimized={(msg) => {
-              setFlyoutMessage(msg);
-              setTimeout(() => setFlyoutMessage(null), 3000);
+              showFlyout(msg, 3000);
             }}
           />
         )}

@@ -136,8 +136,15 @@ export class TactileAudioRecorder {
   }
 
   public cancel() {
-    if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
-      this.mediaRecorder.stop();
+    if (this.mediaRecorder) {
+      this.mediaRecorder.ondataavailable = null;
+      this.mediaRecorder.onstop = null;
+      this.mediaRecorder.onerror = null;
+      if (this.mediaRecorder.state !== "inactive") {
+        try {
+          this.mediaRecorder.stop();
+        } catch {}
+      }
     }
     this.cleanup();
   }
