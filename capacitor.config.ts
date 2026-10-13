@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.callipolis.noticed',
+  appId: 'app.noticed.mobile',
   appName: 'Noticed',
   webDir: 'dist',
   backgroundColor: '#121214',
