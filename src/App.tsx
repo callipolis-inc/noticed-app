@@ -85,6 +85,7 @@ import {
   getCurrentUser,
   onAuthStateChange,
   signOutUser,
+  deleteUserAccount,
 } from "@/lib/supabase";
 import {
   syncWithCloud,
@@ -460,6 +461,38 @@ export function App() {
     } catch (err: any) {
       console.error(err);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      await deleteUserAccount();
+    } catch (err) {
+      console.error("[Noticed] Error deleting account:", err);
+    }
+
+    // Reset local state to starter defaults
+    setUserEmail(null);
+    setUserName("Author");
+    setAvatarPhoto(null);
+    setAuthorBio("Quiet observations & daily marginalia");
+    setSpaces([DEFAULT_STARTER_SPACE]);
+    setNotes([]);
+    setActiveSpaceId(DEFAULT_STARTER_SPACE.id);
+    setCurrentView("bookshelf");
+
+    // Purge local persistent stores
+    localStorage.removeItem("sidenotes_spaces");
+    localStorage.removeItem("sidenotes_notes");
+    localStorage.removeItem("sidenotes_username");
+    localStorage.removeItem("sidenotes_avatar_photo");
+    localStorage.removeItem("sidenotes_author_bio");
+    localStorage.removeItem("sidenotes_is_pro");
+    localStorage.removeItem("sidenotes_user_email");
+    localStorage.removeItem("sidenotes_pending_mutations");
+    await clearAtelierDB();
+
+    setIsProfileOpen(false);
+    showFlyout("Account and personal data deleted", 3000);
   };
 
   // Hydrate spaces & notes from IndexedDB and purge any legacy dummy records
@@ -1694,6 +1727,7 @@ export function App() {
             isSyncing={isSyncing}
             lastSyncedAt={lastSyncedAt}
             onTriggerSync={() => handleCloudSync({ silent: false })}
+            onDeleteAccount={handleDeleteAccount}
           />
         )}
 

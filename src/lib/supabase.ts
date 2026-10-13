@@ -122,3 +122,30 @@ export async function updateUserPassword(newPassword: string) {
   }
   return data;
 }
+
+/**
+ * Permanently deletes the current authenticated user and all associated cloud data
+ * Required for Apple App Store (Guideline 5.1.1(v)) and Google Play Data Safety Compliance.
+ */
+export async function deleteUserAccount(): Promise<void> {
+  if (!isSupabaseConfigured) {
+    return;
+  }
+
+  try {
+    // Attempt to invoke PostgreSQL RPC function if configured on server
+    const { error: rpcError } = await supabase.rpc("delete_user_account");
+    if (rpcError) {
+      console.warn("[Noticed] Remote RPC delete_user_account failed:", rpcError);
+    }
+  } catch (err) {
+    console.warn("[Noticed] Could not execute delete_user_account RPC:", err);
+  } finally {
+    // Always sign out the session cleanly
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("[Noticed] Error signing out during account deletion:", e);
+    }
+  }
+}

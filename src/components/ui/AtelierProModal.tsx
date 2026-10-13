@@ -164,8 +164,11 @@ export function AtelierProModal({
               className="w-full py-3 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform cursor-pointer shadow-[0_4px_14px_rgba(0,0,0,0.14)]"
             >
               <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>{isPro ? "Atelier Pro Is Active" : "Activate Atelier Pro (Lifetime)"}</span>
+              <span>{isPro ? "Atelier Pro Pass Active" : "Activate Complimentary Early Access"}</span>
             </button>
+            <div className="text-[10px] text-center text-[var(--text-tertiary)] font-sans">
+              Complimentary patron privilege during mobile launch preview
+            </div>
 
             <button
               type="button"
@@ -173,7 +176,7 @@ export function AtelierProModal({
                 triggerHaptic("light");
                 onClose();
               }}
-              className="w-full py-1.5 text-center text-[11px] font-sans font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="w-full py-1 text-center text-[11px] font-sans font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               Continue with Standard Folio
             </button>

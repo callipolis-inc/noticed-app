@@ -26,6 +26,8 @@ import {
   ChevronRight,
   Search,
   BookOpen,
+  AlertTriangle,
+  UserX,
 } from "lucide-react";
 import { AuthModal } from "./AuthModal";
 import { processPhotoFile } from "@/lib/mediaStorage";
@@ -56,6 +58,7 @@ interface ProfileSheetProps {
   isSyncing?: boolean;
   lastSyncedAt?: string | null;
   onTriggerSync?: () => Promise<void> | void;
+  onDeleteAccount?: () => Promise<void> | void;
 }
 
 export function ProfileSheet({
@@ -81,6 +84,7 @@ export function ProfileSheet({
   isSyncing = false,
   lastSyncedAt,
   onTriggerSync,
+  onDeleteAccount,
 }: ProfileSheetProps) {
   useLockBodyScroll(isOpen);
 
@@ -92,6 +96,10 @@ export function ProfileSheet({
 
   // Cloud Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Account Deletion State (Apple 5.1.1(v) & Google Play Compliance)
+  const [isDeleteAccountConfirmOpen, setIsDeleteAccountConfirmOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Password Change Sub-Modal State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -815,6 +823,39 @@ export function ProfileSheet({
                   </div>
                 </div>
               </div>
+
+              {/* 6. DANGER ZONE / ACCOUNT & DATA ERASURE (App Store 5.1.1(v) & Google Play Compliance) */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[11px] font-medium tracking-wide text-rose-500/80 px-2">
+                  Account & Data Privacy
+                </span>
+
+                <div className="rounded-2xl apple-card border border-rose-500/20 overflow-hidden shadow-[0_8px_24px_-6px_rgba(244,63,94,0.08)]">
+                  <div className="p-3.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-rose-500 flex items-center gap-1.5">
+                        <UserX className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
+                        <span>Delete Account & Data</span>
+                      </div>
+                      <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5 leading-snug">
+                        Permanently purge cloud profile, all journals, media attachments, and local caches
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("heavy");
+                        setIsDeleteAccountConfirmOpen(true);
+                      }}
+                      className="px-3.5 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 text-rose-500 border border-rose-500/25 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs"
+                    >
+                      <Trash2 className="w-3 h-3 stroke-[2.2]" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
 
@@ -1155,6 +1196,87 @@ export function ProfileSheet({
                       className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                     >
                       Delete
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Sub-Modal: In-App Delete Account Confirmation Dialog (Apple 5.1.1(v) & Google Play Compliance) */}
+          <AnimatePresence>
+            {isDeleteAccountConfirmOpen && (
+              <div className="fixed inset-0 z-[85] flex items-center justify-center p-4 pointer-events-auto">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => {
+                    if (!isDeletingAccount) {
+                      triggerHaptic("light");
+                      setIsDeleteAccountConfirmOpen(false);
+                    }
+                  }}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-[6px]"
+                />
+                <motion.div
+                  initial={{ scale: 0.94, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.94, opacity: 0, y: 10 }}
+                  transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                  className="relative w-full max-w-xs sm:max-w-sm rounded-3xl dynamic-island-shell p-5 border border-rose-500/30 shadow-2xl z-10 space-y-4 text-center pointer-events-auto"
+                >
+                  <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/25 shadow-xs">
+                    <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
+                  </div>
+
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-[var(--text-primary)]">
+                      Permanently Delete Account?
+                    </h3>
+                    <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
+                      This action is <strong className="text-rose-500 font-semibold">irreversible</strong>. In compliance with Apple & Google Play privacy standards, your cloud account, synchronised notebooks, media archives, and local device records will be permanently erased.
+                    </p>
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isDeletingAccount}
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setIsDeleteAccountConfirmOpen(false);
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl border border-[var(--glass-border)] text-xs font-medium text-[var(--text-primary)] inner-pseudo-glass active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDeletingAccount}
+                      onClick={async () => {
+                        triggerHaptic("heavy");
+                        setIsDeletingAccount(true);
+                        try {
+                          await onDeleteAccount?.();
+                          setIsDeleteAccountConfirmOpen(false);
+                        } finally {
+                          setIsDeletingAccount(false);
+                        }
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {isDeletingAccount ? (
+                        <>
+                          <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>Deleting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
+                          <span>Delete Everything</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </motion.div>
