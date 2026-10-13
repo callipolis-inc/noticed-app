@@ -427,7 +427,7 @@ export const NoteEntry = memo(function NoteEntry({
     if (paragraphEndFootnotes.length === 0) return null;
 
     return (
-      <span className="inline-flex items-baseline gap-0.5 ml-0.5 select-none">
+      <span className="inline-flex items-baseline gap-0.5 ml-0.5 select-none align-super">
         {paragraphEndFootnotes.map(({ item, num }) => (
           <button
             key={item.id || num}
@@ -437,7 +437,7 @@ export const NoteEntry = memo(function NoteEntry({
               triggerHaptic("light");
               setIsFootnotesExpanded((prev) => !prev);
             }}
-            className="inline font-serif font-bold text-[11.5px] leading-none text-[var(--text-primary)] opacity-75 hover:opacity-100 align-super cursor-pointer transition-opacity px-0.5"
+            className="inline-flex items-center justify-center min-w-[20px] min-h-[20px] p-0.5 font-serif font-bold text-[12px] leading-none text-[var(--text-primary)] opacity-80 hover:opacity-100 active:scale-125 cursor-pointer transition-all rounded-full hover:bg-[var(--text-primary)]/10"
             title={`Footnote ${num}: ${item.content}`}
           >
             {toSuperscriptNumber(num)}
@@ -497,10 +497,11 @@ export const NoteEntry = memo(function NoteEntry({
               >
                 {note.pinned && (
                   <span
-                    className="inline-flex items-center text-[var(--text-primary)] opacity-70 mr-1.5"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--text-primary)]/10 text-[var(--text-primary)] font-sans font-semibold text-[9.5px] uppercase tracking-wider mr-2 align-middle border border-[var(--text-primary)]/15 shadow-2xs"
                     title="Pinned notice"
                   >
-                    <Pin className="w-2.5 h-2.5 fill-current rotate-45 inline" />
+                    <Pin className="w-2.5 h-2.5 fill-current rotate-45 shrink-0" />
+                    <span>Pinned</span>
                   </span>
                 )}
                 {formattedTime}
@@ -546,10 +547,11 @@ export const NoteEntry = memo(function NoteEntry({
               <span className="opacity-45">
                 {note.pinned && (
                   <span
-                    className="inline-flex items-center text-[var(--text-primary)] opacity-70 mr-1.5"
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[var(--text-primary)]/10 text-[var(--text-primary)] font-sans font-semibold text-[9.5px] uppercase tracking-wider mr-2 align-middle border border-[var(--text-primary)]/15 shadow-2xs"
                     title="Pinned notice"
                   >
-                    <Pin className="w-2.5 h-2.5 fill-current rotate-45 inline" />
+                    <Pin className="w-2.5 h-2.5 fill-current rotate-45 shrink-0" />
+                    <span>Pinned</span>
                   </span>
                 )}
                 {formattedTime}

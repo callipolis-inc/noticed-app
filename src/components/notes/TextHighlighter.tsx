@@ -217,7 +217,7 @@ export function TextHighlighter({
             triggerHaptic("light");
             onToggleFootnotes?.();
           }}
-          className="inline font-serif font-bold text-[11px] leading-none text-[var(--text-primary)] opacity-75 hover:opacity-100 align-super ml-0.5 mr-0.5 cursor-pointer select-none transition-opacity"
+          className="inline-flex items-center justify-center min-w-[18px] min-h-[18px] p-0.5 font-serif font-bold text-[11.5px] leading-none text-[var(--text-primary)] opacity-80 hover:opacity-100 active:scale-125 align-super ml-0.5 mr-0.5 cursor-pointer select-none transition-all rounded-full hover:bg-[var(--text-primary)]/10"
           title={`Footnote ${anchor.num}: ${anchor.content}`}
         >
           {toSuperscriptNumber(anchor.num)}

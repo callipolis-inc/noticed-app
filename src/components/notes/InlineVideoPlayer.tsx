@@ -217,7 +217,7 @@ export function InlineVideoPlayer({
       {/* Floating Micro-Capsule Controls (Bottom-Right) */}
       <div
         className={`
-          absolute bottom-2.5 right-2.5 z-20 flex items-center gap-1.5
+          absolute bottom-3.5 right-3.5 z-20 flex items-center gap-1.5
           transition-opacity duration-200
           ${isHovered || !isPlaying ? "opacity-100" : "opacity-80 hover:opacity-100"}
         `}
@@ -228,9 +228,9 @@ export function InlineVideoPlayer({
           onClick={toggleMute}
           title={isMuted ? "Unmute" : "Mute"}
           className="
-            px-2.5 py-1 rounded-full dynamic-island-shell
-            flex items-center gap-1 text-[11px] font-sans font-medium text-[var(--text-primary)]
-            shadow-[0_2px_8px_rgba(0,0,0,0.18)] border border-[var(--glass-border)]
+            px-3 py-1.5 min-h-[30px] rounded-full dynamic-island-shell
+            flex items-center gap-1.5 text-[11px] font-sans font-medium text-[var(--text-primary)]
+            shadow-[0_2px_10px_rgba(0,0,0,0.22)] border border-[var(--glass-border)]
             hover:scale-105 active:scale-95 transition-transform cursor-pointer
           "
         >

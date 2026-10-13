@@ -572,8 +572,8 @@ export function BookshelfView({
           </div>
         ) : shelfLayout === "spines" ? (
           /* SPINES MODE (Contained) */
-          <div className="w-full max-w-md px-4 mx-auto flex flex-col items-center justify-center my-auto">
-            <div className="relative w-full flex items-end justify-center overflow-x-auto no-scrollbar pt-10 pb-0 px-2 z-20">
+          <div className="w-full max-w-lg px-3 sm:px-4 mx-auto flex flex-col items-center justify-center my-auto">
+            <div className="relative w-full flex items-end justify-center overflow-x-auto no-scrollbar pt-10 pb-0 px-2 z-20 scroll-smooth">
               <div className="flex items-end justify-center min-w-full shrink-0">
                 {spaces.map((space) => {
                   const isSelected = space.id === activeSelected?.id;

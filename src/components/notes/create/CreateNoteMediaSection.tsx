@@ -88,7 +88,10 @@ export function CreateNoteMediaSection({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onRemovePhoto(0)}
+                  onClick={() => {
+                    triggerHaptic("light");
+                    onRemovePhoto(0);
+                  }}
                   className="w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm backdrop-blur-xs"
                   title="Remove"
                 >
@@ -144,8 +147,11 @@ export function CreateNoteMediaSection({
                       </button>
                       <button
                         type="button"
-                        onClick={() => onRemovePhoto(idx)}
-                        className="w-6 h-6 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          onRemovePhoto(idx);
+                        }}
+                        className="w-7 h-7 rounded-full bg-black/65 text-white flex items-center justify-center hover:bg-black/85 active:scale-95 transition-all cursor-pointer shadow-sm"
                         title="Remove"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -209,8 +215,11 @@ export function CreateNoteMediaSection({
                     </button>
                     <button
                       type="button"
-                      onClick={() => onRemovePhoto(idx)}
-                      className="w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 transition-colors cursor-pointer"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        onRemovePhoto(idx);
+                      }}
+                      className="w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/80 active:scale-95 transition-all cursor-pointer shadow-sm"
                       title="Remove"
                     >
                       <X className="w-3.5 h-3.5" />
