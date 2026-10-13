@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Privacy Policy · Noticed</title>
+  <meta name="description" content="Noticed Privacy Policy: Offline-first data sovereignty, zero ad tracking, and local device storage.">
+  <link rel="icon" type="image/png" href="/pwa-192x192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F5F0;
+      --card-bg: #FFFFFF;
+      --text-primary: #1C1A17;
+      --text-secondary: #57524A;
+      --text-tertiary: #8C8478;
+      --border: rgba(28, 26, 23, 0.08);
+      --border-strong: rgba(28, 26, 23, 0.16);
+      --accent: #2A2825;
+      --accent-badge: #ECE7DE;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141312;
+        --card-bg: #1C1A18;
+        --text-primary: #EDE8E1;
+        --text-secondary: #ABA396;
+        --text-tertiary: #756E63;
+        --border: rgba(237, 232, 225, 0.08);
+        --border-strong: rgba(237, 232, 225, 0.16);
+        --accent: #FAF8F5;
+        --accent-badge: #262421;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: 'Urbanist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      padding: clamp(24px, 5vw, 64px) 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 740px;
+    }
+
+    header {
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-strong);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-badge);
+      transition: opacity 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+      opacity: 0.85;
+    }
+
+    h1 {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: clamp(2.2rem, 5vw, 3rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+
+    .meta {
+      font-size: 0.88rem;
+      color: var(--text-tertiary);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 28px 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 999px;
+      color: var(--text-secondary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .badge svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 2.2;
+    }
+
+    article {
+      margin-top: 16px;
+    }
+
+    section {
+      margin-bottom: 36px;
+    }
+
+    h2 {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-top: 32px;
+      margin-bottom: 14px;
+      color: var(--text-primary);
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    p {
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+      margin-bottom: 14px;
+    }
+
+    ul, ol {
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.02);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--text-tertiary);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: center;
+    }
+
+    footer a {
+      color: var(--text-secondary);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #000;
+        padding: 0;
+      }
+      .nav-links, .badge-bar {
+        display: none;
+      }
+      .card {
+        border: 1px solid #ccc;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <div class="brand-row">
+        <a href="/" class="brand">
+          <img src="/pwa-192x192.png" alt="Noticed Icon">
+          <span>Noticed</span>
+        </a>
+        <nav class="nav-links">
+          <a href="/terms.html">Terms of Service</a>
+          <a href="/">Open App</a>
+        </nav>
+      </div>
+      <h1>Privacy Policy</h1>
+      <div class="meta">
+        <span><strong>Effective Date:</strong> October 13, 2026</span>
+        <span><strong>Publisher:</strong> Callipolis Inc.</span>
+        <span><strong>Application:</strong> Noticed (Mobile & Web)</span>
+      </div>
+      <div class="badge-bar">
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Offline-First & Local Storage
+        </span>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+          Zero Advertising Trackers
+        </span>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          100% Data Export Portability
+        </span>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          GDPR & CCPA Compliant
+        </span>
+      </div>
+    </header>
+
+    <article>
+      <section>
+        <h2>1. Our Privacy Philosophy</h2>
+        <p>At <strong>Noticed</strong>, we hold the conviction that journals, field reflections, manuscripts, and private thoughts are sovereign territory. We architected Noticed around an <strong>offline-first, client-sovereign model</strong>:</p>
+        <ul>
+          <li>Your manuscripts and recordings reside on your device.</li>
+          <li>We <strong>do not sell, rent, monetize, or broker</strong> your personal data.</li>
+          <li>We <strong>do not employ advertising SDKs</strong>, tracking pixels, or cross-app surveillance networks.</li>
+          <li>We do <strong>not</strong> use your private notes to train generative AI foundation models.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>2. Information We Collect and Process</h2>
+        
+        <h3>A. Information Stored Locally on Your Device</h3>
+        <p>By default, all your creative output is stored directly within your device's browser sandboxed <code>IndexedDB</code> database and local storage:</p>
+        <ul>
+          <li><strong>Manuscripts & Notes:</strong> Note bodies, titles, companion marginalia (sidenotes & footnotes), inline highlights, and custom paragraph styles.</li>
+          <li><strong>Notebooks & Spaces:</strong> Space names, theme color palettes, cover foil textures, spine patterns, and typography preferences.</li>
+          <li><strong>Media Attachments:</strong> Photo files, analog darkroom development parameters, video clips, and voice memos.</li>
+          <li><strong>Preferences:</strong> Active theme (Alabaster, Obsidian, Sage, etc.), typography scale, and haptic feedback toggles.</li>
+        </ul>
+
+        <h3>B. Account & Cloud Synchronization Data (Optional)</h3>
+        <p>If you voluntarily choose to enable <strong>Cloud Synchronization</strong> to back up and sync notes between devices:</p>
+        <ul>
+          <li><strong>Authentication Data:</strong> Your email address and securely hashed authentication credentials managed through Supabase.</li>
+          <li><strong>Synchronized Content:</strong> Encrypted copies of your spaces, notes, and media attachments uploaded to our secure cloud database and storage buckets.</li>
+          <li><strong>Profile Details:</strong> Your chosen author name/pseudonym and avatar image.</li>
+        </ul>
+        <p><em>You may use Noticed indefinitely without ever creating a cloud account.</em></p>
+
+        <h3>C. Device Permissions</h3>
+        <p>Noticed requests hardware permissions strictly when initiated by you for explicit creative features:</p>
+        <ul>
+          <li><strong>Microphone:</strong> Requested only when you record a Voice Memo or activate Voice Dictation. Audio recordings are stored locally. Live dictation utilizes your device's native speech framework. Audio is never scanned for marketing.</li>
+          <li><strong>Camera & Photo Library:</strong> Requested only when you capture or attach a photograph or video clip to a note. We never access unselected items in your library.</li>
+          <li><strong>Haptic Engine:</strong> Used to generate subtle mechanical feedback for tactile note interactions (can be deactivated anytime in Settings).</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. How We Use Your Information</h2>
+        <p>We use your information exclusively to:</p>
+        <ul>
+          <li>Render, format, and safeguard your notes, marginalia, and darkroom media.</li>
+          <li>Synchronize your manuscripts across authorized personal devices when Cloud Sync is active.</li>
+          <li>Allow you to generate complete, portable JSON backups and exported Markdown/PDF documents.</li>
+          <li>Verify your Atelier Pro license status if you subscribe or purchase lifetime access.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. Data Storage, Security & Retention</h2>
+        <div class="card">
+          <div class="card-title">Security Architecture</div>
+          <p><strong>Local Storage:</strong> Your data is isolated in your device's browser sandbox (<code>IndexedDB</code>).</p>
+          <p><strong>Cloud Security:</strong> When Cloud Sync is active, data in transit is encrypted using <strong>TLS 1.3</strong>, and data at rest is protected with <strong>AES-256</strong> encryption via Supabase infrastructure.</p>
+          <p><strong>Retention:</strong> Local content remains until you delete it or tap "Reset All Data". Cloud content remains until you delete the note or close your account.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>5. Your Rights & Data Sovereignty (GDPR & CCPA Compliant)</h2>
+        <p>Regardless of jurisdiction, every Noticed user has complete authority over their data:</p>
+        <ul>
+          <li><strong>Right to Portability & Export:</strong> Export your complete database at any time in open JSON format via <strong>Settings &gt; Export Archive</strong>.</li>
+          <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> Instantly wipe all local data using the built-in "Reset All Data" safety feature in Settings, or request deletion of all cloud sync data.</li>
+          <li><strong>Right to Rectification:</strong> Edit, overwrite, or delete any note, media attachment, or author profile directly within the app.</li>
+          <li><strong>Right to Revoke Permissions:</strong> Revoke microphone, camera, or haptics at any time via device settings.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. Third-Party Service Providers</h2>
+        <p>We restrict third-party service providers to essential infrastructure:</p>
+        <ul>
+          <li><strong>Supabase Inc.</strong>: Cloud database, authentication, and encrypted file storage (when sync is enabled).</li>
+          <li><strong>Native Operating System Speech Framework:</strong> Web Speech API for on-device voice dictation.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>7. Children's Privacy</h2>
+        <p>Noticed is not directed to children under 13, and we do not knowingly collect personal information from children under 13. Any such data will be deleted immediately upon discovery.</p>
+      </section>
+
+      <section>
+        <h2>8. Contact & Data Protection Inquiries</h2>
+        <p>If you have questions, feedback, or data privacy requests, please contact our team:</p>
+        <div class="card">
+          <p><strong>Publisher:</strong> Callipolis Inc.</p>
+          <p><strong>Email:</strong> <a href="mailto:privacy@noticed.app">privacy@noticed.app</a> / <a href="mailto:support@callipolis.co">support@callipolis.co</a></p>
+          <p><strong>Website:</strong> <a href="https://noticed.app" target="_blank" rel="noopener">noticed.app</a></p>
+        </div>
+      </section>
+    </article>
+
+    <footer>
+      <p>&copy; 2026 Callipolis Inc. All rights reserved.</p>
+      <p><a href="/terms.html">Terms of Service</a> &middot; <a href="/privacy.html">Privacy Policy</a> &middot; <a href="/">Return to App</a></p>
+    </footer>
+  </main>
+</body>
+</html>

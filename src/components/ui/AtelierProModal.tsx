@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Video, Music, Image as ImageIcon, Cloud, X, Check } from "lucide-react";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { setProUser, useProStatus } from "@/lib/proManager";
+import { LegalModal, LegalTab } from "./LegalModal";
 
 interface AtelierProModalProps {
   isOpen: boolean;
@@ -15,6 +17,8 @@ export function AtelierProModal({
   triggerFeature,
 }: AtelierProModalProps) {
   const isPro = useProStatus();
+  const [isLegalOpen, setIsLegalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState<LegalTab>("terms");
 
   if (!isOpen) return null;
 
@@ -169,7 +173,41 @@ export function AtelierProModal({
             >
               Continue with Standard Folio
             </button>
+
+            {/* Legal Footnote for Store Compliance */}
+            <div className="pt-1 text-center text-[10px] text-[var(--text-tertiary)] flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setLegalTab("terms");
+                  setIsLegalOpen(true);
+                }}
+                className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
+              >
+                Terms of Service
+              </button>
+              <span>·</span>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setLegalTab("privacy");
+                  setIsLegalOpen(true);
+                }}
+                className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+            </div>
           </div>
+
+          {/* In-App Legal Modal */}
+          <LegalModal
+            isOpen={isLegalOpen}
+            onClose={() => setIsLegalOpen(false)}
+            initialTab={legalTab}
+          />
         </motion.div>
       </div>
     </AnimatePresence>

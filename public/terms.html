@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Terms of Service · Noticed</title>
+  <meta name="description" content="Noticed Terms of Service: 100% user content ownership, offline-first data, and Atelier Pro licensing.">
+  <link rel="icon" type="image/png" href="/pwa-192x192.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Urbanist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F7F5F0;
+      --card-bg: #FFFFFF;
+      --text-primary: #1C1A17;
+      --text-secondary: #57524A;
+      --text-tertiary: #8C8478;
+      --border: rgba(28, 26, 23, 0.08);
+      --border-strong: rgba(28, 26, 23, 0.16);
+      --accent: #2A2825;
+      --accent-badge: #ECE7DE;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #141312;
+        --card-bg: #1C1A18;
+        --text-primary: #EDE8E1;
+        --text-secondary: #ABA396;
+        --text-tertiary: #756E63;
+        --border: rgba(237, 232, 225, 0.08);
+        --border-strong: rgba(237, 232, 225, 0.16);
+        --accent: #FAF8F5;
+        --accent-badge: #262421;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: 'Urbanist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      padding: clamp(24px, 5vw, 64px) 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 740px;
+    }
+
+    header {
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-strong);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    .brand img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 16px;
+      font-size: 0.85rem;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-badge);
+      transition: opacity 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+      opacity: 0.85;
+    }
+
+    h1 {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: clamp(2.2rem, 5vw, 3rem);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+
+    .meta {
+      font-size: 0.88rem;
+      color: var(--text-tertiary);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .badge-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 28px 0;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 999px;
+      color: var(--text-secondary);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+
+    .badge svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 2.2;
+    }
+
+    article {
+      margin-top: 16px;
+    }
+
+    section {
+      margin-bottom: 36px;
+    }
+
+    h2 {
+      font-family: 'Newsreader', Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-top: 32px;
+      margin-bottom: 14px;
+      color: var(--text-primary);
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    p {
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+      margin-bottom: 14px;
+    }
+
+    ul, ol {
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+      padding-left: 20px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 8px;
+    }
+
+    strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.02);
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      color: var(--text-tertiary);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: center;
+    }
+
+    footer a {
+      color: var(--text-secondary);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #000;
+        padding: 0;
+      }
+      .nav-links, .badge-bar {
+        display: none;
+      }
+      .card {
+        border: 1px solid #ccc;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <div class="brand-row">
+        <a href="/" class="brand">
+          <img src="/pwa-192x192.png" alt="Noticed Icon">
+          <span>Noticed</span>
+        </a>
+        <nav class="nav-links">
+          <a href="/privacy.html">Privacy Policy</a>
+          <a href="/">Open App</a>
+        </nav>
+      </div>
+      <h1>Terms of Service</h1>
+      <div class="meta">
+        <span><strong>Effective Date:</strong> October 13, 2026</span>
+        <span><strong>Publisher:</strong> Callipolis Inc.</span>
+        <span><strong>Application:</strong> Noticed (Mobile, Web & Desktop)</span>
+      </div>
+      <div class="badge-bar">
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          100% User Content Copyright
+        </span>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+          Zero AI Training on Private Notes
+        </span>
+        <span class="badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Atelier Pro Transparent Licensing
+        </span>
+      </div>
+    </header>
+
+    <article>
+      <section>
+        <h2>1. Agreement to Terms</h2>
+        <p>These Terms of Service ("Terms") constitute a legally binding agreement between you ("User", "you", or "your") and <strong>Callipolis Inc.</strong> ("Company", "we", "us", or "our"), governing your access to and use of the <strong>Noticed</strong> application, website (<a href="https://noticed.app">noticed.app</a>), and associated services (collectively, the "Service").</p>
+        <p>By downloading, installing, accessing, or using Noticed, you acknowledge that you have read, understood, and agreed to be bound by these Terms and our <a href="/privacy.html">Privacy Policy</a>.</p>
+      </section>
+
+      <section>
+        <h2>2. Content Sovereignty & Intellectual Property</h2>
+        
+        <h3>A. 100% User Content Ownership</h3>
+        <p>We firmly uphold authorial independence. <strong>You retain sole, exclusive ownership and all copyright, title, and moral rights in and to any content you create, store, or import into Noticed</strong>, including your journals, manuscripts, marginalia, voice memos, photographs, darkroom filter selections, and notebooks.</p>
+
+        <h3>B. Limited Technical License</h3>
+        <p>You grant Callipolis Inc. only the strictly limited, non-exclusive license required to operate the application on your behalf:</p>
+        <ul>
+          <li>Storing, indexing, and rendering your content locally on your device.</li>
+          <li>If you activate Cloud Sync, transmitting and storing encrypted backups across our secure cloud infrastructure to keep your authorized devices synchronized.</li>
+        </ul>
+        <p>We <strong>never</strong> sell your content, license your manuscripts to third parties, or use your private writing to train generative AI or machine learning foundation models.</p>
+      </section>
+
+      <section>
+        <h2>3. Offline-First Architecture & Data Safeguards</h2>
+        <p>Noticed is engineered as an offline-first tool. By default, your data is written directly to your device's browser sandbox (<code>IndexedDB</code>):</p>
+        <ul>
+          <li><strong>User Responsibility:</strong> Clearing browser data or resetting the browser without a cloud account or exported backup will erase local data.</li>
+          <li><strong>Data Exports:</strong> You may generate full JSON database archives at any time via <strong>Settings &gt; Export Archive</strong>, or export individual folios as Markdown. We encourage keeping periodic backups.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. Subscriptions & Atelier Pro Tier</h2>
+        <div class="card">
+          <div class="card-title">Atelier Pro Licensing</div>
+          <p><strong>Free Tier:</strong> Includes core note-taking, standard typography, offline storage, and basic media attachments.</p>
+          <p><strong>Atelier Pro:</strong> Optional premium tier providing unlimited darkroom attachments, voice memo trimmer & import, extended video documentation, bespoke luxury themes, and advanced editorial typography.</p>
+          <p><strong>Store Purchases:</strong> In-app purchases made through Apple App Store or Google Play Store are governed by Apple and Google billing terms. Lifetime unlocks grant perpetual access to Atelier Pro features as defined at purchase.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>5. Acceptable Use Policy</h2>
+        <p>You agree not to misuse the Service or assist anyone in doing so, including:</p>
+        <ul>
+          <li>Using the Service for unlawful, abusive, or infringing purposes.</li>
+          <li>Transmitting malicious software or attacking our cloud synchronization infrastructure.</li>
+          <li>Attempting unauthorized access to other user accounts or servers.</li>
+          <li>Reverse-engineering proprietary code outside the scope of applicable law.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. Intellectual Property of Callipolis Inc.</h2>
+        <p>The Noticed software, visual aesthetics, tactile darkroom simulation algorithms, logos, and UI designs are the proprietary property of Callipolis Inc. and protected by international intellectual property laws.</p>
+      </section>
+
+      <section>
+        <h2>7. Disclaimer of Warranties & Limitation of Liability</h2>
+        <p>THE SERVICE IS PROVIDED ON AN <strong>"AS IS"</strong> AND <strong>"AS AVAILABLE"</strong> BASIS WITHOUT WARRANTIES OF ANY KIND. CALLIPOLIS INC. SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOSS OF DATA DUE TO LOCAL DEVICE STORAGE EVICTIONS OR HARDWARE FAILURE.</p>
+      </section>
+
+      <section>
+        <h2>8. Contact & Legal Notices</h2>
+        <p>For questions or notices regarding these Terms, contact our legal team:</p>
+        <div class="card">
+          <p><strong>Publisher:</strong> Callipolis Inc.</p>
+          <p><strong>Email:</strong> <a href="mailto:legal@noticed.app">legal@noticed.app</a> / <a href="mailto:support@callipolis.co">support@callipolis.co</a></p>
+          <p><strong>Website:</strong> <a href="https://noticed.app" target="_blank" rel="noopener">noticed.app</a></p>
+        </div>
+      </section>
+    </article>
+
+    <footer>
+      <p>&copy; 2026 Callipolis Inc. All rights reserved.</p>
+      <p><a href="/terms.html">Terms of Service</a> &middot; <a href="/privacy.html">Privacy Policy</a> &middot; <a href="/">Return to App</a></p>
+    </footer>
+  </main>
+</body>
+</html>

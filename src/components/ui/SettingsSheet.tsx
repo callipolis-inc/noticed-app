@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useProStatus, setProUser } from "@/lib/proManager";
 import { AtelierProModal } from "./AtelierProModal";
+import { LegalModal, LegalTab } from "./LegalModal";
 import {
   calculateStorageBreakdown,
   optimizeAndPurgeStorage,
@@ -71,6 +72,8 @@ export function SettingsSheet({
   const [confirmInput, setConfirmInput] = useState("");
   const isPro = useProStatus();
   const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [isLegalOpen, setIsLegalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState<LegalTab>("privacy");
 
   // Storage & Space Management State
   const [storageData, setStorageData] = useState<StorageBreakdown | null>(null);
@@ -685,6 +688,31 @@ export function SettingsSheet({
                   <p className="text-[10px] font-mono text-center text-[var(--text-tertiary)]">
                     Noticed · Version 1.0.0
                   </p>
+                  <div className="flex items-center justify-center gap-2.5 text-[10px] text-[var(--text-tertiary)] pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setLegalTab("privacy");
+                        setIsLegalOpen(true);
+                      }}
+                      className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
+                    >
+                      Privacy Policy
+                    </button>
+                    <span>·</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setLegalTab("terms");
+                        setIsLegalOpen(true);
+                      }}
+                      className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
+                    >
+                      Terms of Service
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -768,6 +796,13 @@ export function SettingsSheet({
           <AtelierProModal
             isOpen={isProModalOpen}
             onClose={() => setIsProModalOpen(false)}
+          />
+
+          {/* Legal Modal (Privacy Policy & Terms of Service) */}
+          <LegalModal
+            isOpen={isLegalOpen}
+            onClose={() => setIsLegalOpen(false)}
+            initialTab={legalTab}
           />
         </div>
       )}
