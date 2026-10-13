@@ -59,45 +59,49 @@ export function getCoverPalette(
     defaultFoil = lum > 0.6 ? "#111215" : "#f1f5f9";
   } else {
     switch (style) {
-      case "espresso":
-        baseColor = "#1d1512";
-        gradient = "linear-gradient(90deg, #32211b 0%, #1d1512 35%, #150d0a 100%)";
-        defaultFoil = "#e6ca85";
-        break;
       case "klein":
-        baseColor = "#0d1424";
-        gradient = "linear-gradient(90deg, #18233a 0%, #0d1424 35%, #080c16 100%)";
-        defaultFoil = "#e8d5a3";
+        baseColor = "#1d4ed8";
+        gradient = "linear-gradient(90deg, #2563eb 0%, #1d4ed8 35%, #1e40af 100%)";
+        defaultFoil = "#f1f5f9";
+        break;
+      case "kraft":
+        baseColor = "#9a3f24";
+        gradient = "linear-gradient(90deg, #b45309 0%, #9a3f24 35%, #78350f 100%)";
+        defaultFoil = "#fae8b2";
         break;
       case "marble":
-        baseColor = "#0e1c14";
-        gradient = "linear-gradient(90deg, #172c21 0%, #0e1c14 35%, #08120c 100%)";
+        baseColor = "#1b3a2a";
+        gradient = "linear-gradient(90deg, #244e39 0%, #1b3a2a 35%, #13281d 100%)";
         defaultFoil = "#d1dfbe";
         break;
       case "electric":
-        baseColor = "#1d1018";
-        gradient = "linear-gradient(90deg, #2d1825 0%, #1d1018 35%, #12090e 100%)";
-        defaultFoil = "#e5b4bd";
-        break;
-      case "kraft":
-        baseColor = "#221612";
-        gradient = "linear-gradient(90deg, #32211b 0%, #221612 35%, #150d0a 100%)";
-        defaultFoil = "#fae8b2";
-        break;
-      case "periwinkle":
-        baseColor = "#1a1d22";
-        gradient = "linear-gradient(90deg, #262b32 0%, #1a1d22 35%, #101215 100%)";
-        defaultFoil = "#ffffff";
-        break;
-      case "alabaster":
-        baseColor = "#f2ede4";
-        gradient = "linear-gradient(90deg, #f7f3ec 0%, #f2ede4 35%, #ded7cc 100%)";
-        defaultFoil = "#111215";
+        baseColor = "#4338ca";
+        gradient = "linear-gradient(90deg, #4f46e5 0%, #4338ca 35%, #3730a3 100%)";
+        defaultFoil = "#f1f5f9";
         break;
       case "obsidian":
+        baseColor = "#141416";
+        gradient = "linear-gradient(90deg, #222328 0%, #141416 35%, #0a0a0c 100%)";
+        defaultFoil = "#f1f5f9";
+        break;
+      case "alabaster":
+        baseColor = "#f3eee4";
+        gradient = "linear-gradient(90deg, #faf7f2 0%, #f3eee4 35%, #e5ddcf 100%)";
+        defaultFoil = "#1d4ed8";
+        break;
+      case "espresso":
+        baseColor = "#3b2318";
+        gradient = "linear-gradient(90deg, #543224 0%, #3b2318 35%, #27160e 100%)";
+        defaultFoil = "#e6ca85";
+        break;
+      case "periwinkle":
+        baseColor = "#475569";
+        gradient = "linear-gradient(90deg, #64748b 0%, #475569 35%, #334155 100%)";
+        defaultFoil = "#ffffff";
+        break;
       default:
-        baseColor = "#111215";
-        gradient = "linear-gradient(90deg, #1c1d22 0%, #111215 35%, #090a0c 100%)";
+        baseColor = "#1d4ed8";
+        gradient = "linear-gradient(90deg, #2563eb 0%, #1d4ed8 35%, #1e40af 100%)";
         defaultFoil = "#f1f5f9";
         break;
     }

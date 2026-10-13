@@ -64,52 +64,40 @@ export const MODERN_PALETTES: {
   desc: string;
 }[] = [
   {
-    id: "espresso",
-    name: "Vintage Espresso",
-    color: "#1d1512",
-    desc: "Aged leather with warm gold foil",
+    id: "klein",
+    name: "Cobalt Royal",
+    color: "#1d4ed8",
+    desc: "Rich archival cobalt blue",
+  },
+  {
+    id: "kraft",
+    name: "Terracotta Rust",
+    color: "#9a3f24",
+    desc: "Warm Italian sienna amber",
+  },
+  {
+    id: "marble",
+    name: "Forest Pine",
+    color: "#1b3a2a",
+    desc: "Botanical deep evergreen leather",
+  },
+  {
+    id: "electric",
+    name: "Electric Indigo",
+    color: "#4338ca",
+    desc: "Electric indigo velvet",
   },
   {
     id: "obsidian",
     name: "Obsidian Velvet",
-    color: "#111215",
+    color: "#141416",
     desc: "Deep monochrome night",
   },
   {
-    id: "klein",
-    name: "Midnight Navy",
-    color: "#0d1424",
-    desc: "Dark nocturnal blue with gold leaf",
-  },
-  {
-    id: "marble",
-    name: "Forest Moss",
-    color: "#0e1c14",
-    desc: "Botanical deep evergreen cloth",
-  },
-  {
-    id: "electric",
-    name: "Royal Burgundy",
-    color: "#1d1018",
-    desc: "Deep crimson wine with rose foil",
-  },
-  {
-    id: "kraft",
-    name: "Vintage Sienna",
-    color: "#221612",
-    desc: "Warm earth tones with ivory foil",
-  },
-  {
-    id: "periwinkle",
-    name: "Slate Charcoal",
-    color: "#1a1d22",
-    desc: "Architectural graphite with chalk foil",
-  },
-  {
     id: "alabaster",
-    name: "Cream Vellum",
-    color: "#f2ede4",
-    desc: "Warm archival paper with ink stamp",
+    name: "Cream Linen",
+    color: "#f3eee4",
+    desc: "Cream paper with royal cobalt foil",
   },
 ];
 
@@ -276,7 +264,7 @@ export function BookshelfView({
   // Edit State
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
-  const [editCover, setEditCover] = useState<CoverStyle>("espresso");
+  const [editCover, setEditCover] = useState<CoverStyle>("klein");
   const [editFont, setEditFont] = useState<FontChoice>("editorial");
   const [editCustomColor, setEditCustomColor] = useState<string | undefined>(
     undefined,
@@ -288,7 +276,7 @@ export function BookshelfView({
   // Create State
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newCover, setNewCover] = useState<CoverStyle>("espresso");
+  const [newCover, setNewCover] = useState<CoverStyle>("klein");
   const [newFont, setNewFont] = useState<FontChoice>("editorial");
   const [newCustomColor, setNewCustomColor] = useState<string | undefined>(
     undefined,
@@ -1134,7 +1122,7 @@ export function BookshelfView({
                       {editCustomColor
                         ? "Custom"
                         : MODERN_PALETTES.find((p) => p.id === editCover)
-                            ?.name || "Vintage Espresso"}
+                            ?.name || "Cobalt Royal"}
                     </span>
                     {editCustomColor && (
                       <button
@@ -1451,7 +1439,7 @@ export function BookshelfView({
                       {newCustomColor
                         ? "Custom"
                         : MODERN_PALETTES.find((p) => p.id === newCover)
-                            ?.name || "Vintage Espresso"}
+                            ?.name || "Cobalt Royal"}
                     </span>
                     {newCustomColor && (
                       <button

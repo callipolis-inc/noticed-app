@@ -13,7 +13,6 @@ import {
   Sparkles,
   Type,
   HardDrive,
-  ChevronRight,
 } from "lucide-react";
 import { useProStatus, setProUser } from "@/lib/proManager";
 import { AtelierProModal } from "./AtelierProModal";
@@ -206,33 +205,33 @@ export function SettingsSheet({
 
                 <div className="rounded-2xl apple-card divide-y divide-[var(--glass-border)]/50 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
                   {/* Theme Palette Row */}
-                  <div
-                    onClick={() => {
-                      if (onOpenThemeSelector) {
-                        triggerHaptic("light");
-                        onOpenThemeSelector();
-                      }
-                    }}
-                    className={`p-3.5 flex items-center justify-between gap-3 ${
-                      onOpenThemeSelector
-                        ? "cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] active:bg-black/[0.04] dark:active:bg-white/[0.04] transition-colors"
-                        : ""
-                    }`}
-                  >
-                    <div className="min-w-0">
-                      <div className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
-                          <Palette className="w-3.5 h-3.5 opacity-80" />
-                        </div>
-                        <span>Theme</span>
+                  <div className="p-3.5 flex items-center justify-between gap-2">
+                    <div
+                      onClick={() => {
+                        if (onOpenThemeSelector) {
+                          triggerHaptic("light");
+                          onOpenThemeSelector();
+                        }
+                      }}
+                      className={`min-w-0 flex items-center gap-2 ${
+                        onOpenThemeSelector ? "cursor-pointer active:opacity-75 transition-opacity" : ""
+                      }`}
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] shrink-0">
+                        <Palette className="w-3.5 h-3.5 opacity-80" />
                       </div>
-                      <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
-                        {currentThemeLabel} {onOpenThemeSelector ? "· Tap to customize" : ""}
+                      <div className="flex items-baseline gap-1.5 min-w-0">
+                        <span className="text-xs font-semibold text-[var(--text-primary)] whitespace-nowrap">
+                          Theme
+                        </span>
+                        <span className="text-[10px] text-[var(--text-tertiary)] truncate">
+                          {currentThemeLabel}
+                        </span>
                       </div>
                     </div>
 
                     {/* Apple Jewel Discs with Soft Detailing */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       {themeOptions.map((th) => {
                         const isSelected =
                           (currentTheme || "alabaster") === th.id;
@@ -245,7 +244,7 @@ export function SettingsSheet({
                               triggerHaptic("medium");
                               onSelectTheme?.(th.id);
                             }}
-                            className="relative w-6.5 h-6.5 rounded-full transition-all duration-200 active:scale-90 flex items-center justify-center cursor-pointer group"
+                            className="relative w-6 h-6 rounded-full transition-all duration-200 active:scale-90 flex items-center justify-center cursor-pointer group"
                             style={{
                               backgroundColor: th.bg,
                               boxShadow: isSelected
@@ -264,7 +263,7 @@ export function SettingsSheet({
                             {/* Crisp Minimal Check Icon on Selected */}
                             {isSelected && (
                               <Check
-                                className={`w-3.5 h-3.5 stroke-[2.8] relative z-10 transition-transform scale-100 ${
+                                className={`w-3 h-3 stroke-[2.8] relative z-10 transition-transform scale-100 ${
                                   th.isDark ? "text-white" : "text-neutral-800"
                                 }`}
                               />
@@ -272,9 +271,6 @@ export function SettingsSheet({
                           </button>
                         );
                       })}
-                      {onOpenThemeSelector && (
-                        <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)] opacity-60 ml-0.5" />
-                      )}
                     </div>
                   </div>
 
