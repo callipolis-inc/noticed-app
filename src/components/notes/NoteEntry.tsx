@@ -9,6 +9,7 @@ import { TactileAudioPlayer } from "./TactileAudioPlayer";
 import {
   MoreHorizontal,
   Pin,
+  MapPin,
   Trash2,
   Share2,
   Quote,
@@ -503,6 +504,13 @@ export const NoteEntry = memo(function NoteEntry({
                   </span>
                 )}
                 {formattedTime}
+                {note.locationName && (
+                  <span className="inline-flex items-center gap-1 opacity-90 font-sans font-medium text-[10.5px] normal-case tracking-normal ml-1.5 align-middle">
+                    <span className="opacity-40">·</span>
+                    <MapPin className="w-2.5 h-2.5 stroke-[2] shrink-0 inline" />
+                    <span>{note.locationName}</span>
+                  </span>
+                )}
                 {isSharedSpace && (
                   <span className="opacity-90 font-medium tracking-wide">
                     {" "}
@@ -545,6 +553,13 @@ export const NoteEntry = memo(function NoteEntry({
                   </span>
                 )}
                 {formattedTime}
+                {note.locationName && (
+                  <span className="inline-flex items-center gap-1 opacity-90 font-sans font-medium text-[10.5px] normal-case tracking-normal ml-1.5 align-middle">
+                    <span className="opacity-40">·</span>
+                    <MapPin className="w-2.5 h-2.5 stroke-[2] shrink-0 inline" />
+                    <span>{note.locationName}</span>
+                  </span>
+                )}
                 {isSharedSpace && (
                   <span className="opacity-90 font-medium tracking-wide">
                     {" "}

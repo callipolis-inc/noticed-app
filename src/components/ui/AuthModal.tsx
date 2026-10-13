@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { sendEmailOtp, verifyEmailOtp } from "@/lib/supabase";
@@ -179,17 +180,18 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
   };
 
   if (!isOpen) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 select-none">
+      <div className="fixed inset-0 z-[90] flex items-start justify-center p-3 sm:p-4 pointer-events-none">
         {/* Backdrop Glass Scrim */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/40 backdrop-blur-md"
+          className="fixed inset-0 bg-black/40 backdrop-blur-md pointer-events-auto"
         />
 
         {/* Top Floating Liquid Glass Shell */}
@@ -198,7 +200,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.98 }}
           transition={{ type: "spring", damping: 28, stiffness: 320 }}
-          className="relative w-full max-w-[440px] dynamic-island-shell rounded-3xl p-6 sm:p-7 overflow-hidden z-10"
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-[440px] dynamic-island-shell rounded-3xl p-6 sm:p-7 overflow-hidden z-10 pointer-events-auto select-text"
           style={{
             marginTop:
               "max(calc(env(safe-area-inset-top, 0px) + 14px), 24px)",
@@ -247,7 +250,10 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@domain.com"
-                    className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none font-sans"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    autoComplete="email"
+                    className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none font-sans select-text"
                   />
                 </div>
 
@@ -337,11 +343,12 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
+                    autoComplete={index === 0 ? "one-time-code" : "off"}
                     maxLength={1}
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    className="w-11 h-14 sm:w-12 sm:h-14 text-center font-mono text-xl font-semibold rounded-2xl apple-sub-box text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/30 transition-all shadow-inner"
+                    className="w-11 h-14 sm:w-12 sm:h-14 text-center font-mono text-xl font-semibold rounded-2xl apple-sub-box text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/30 transition-all shadow-inner select-text"
                   />
                 ))}
               </div>
@@ -403,6 +410,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           )}
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

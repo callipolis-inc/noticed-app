@@ -804,8 +804,9 @@ export function CreateNoteSheet({
                     value={locationName}
                     onChange={(e) => setLocationName(e.target.value)}
                     placeholder="e.g. Kyoto, Kansai, Tuaran..."
+                    autoCapitalize="words"
                     autoFocus
-                    className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none font-sans"
+                    className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none font-sans select-text"
                   />
                   <button
                     type="button"
@@ -823,10 +824,12 @@ export function CreateNoteSheet({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Optional title..."
+                autoCapitalize="sentences"
+                autoCorrect="on"
                 style={{
                   fontSize: "calc(var(--note-font-size, 16px) * 1.16)",
                 }}
-                className={`w-full bg-transparent border-0 p-0 font-serif font-bold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none tracking-tight ${
+                className={`w-full bg-transparent border-0 p-0 font-serif font-bold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none tracking-tight select-text ${
                   textAlign === "center"
                     ? "text-center"
                     : textAlign === "right"
@@ -843,6 +846,8 @@ export function CreateNoteSheet({
                 onKeyDown={handleEditorKeyDown}
                 placeholder="What caught your eye today?"
                 rows={6}
+                autoCapitalize="sentences"
+                autoCorrect="on"
                 style={{ fontSize: "var(--note-font-size, 16px)" }}
                 className={`w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none select-text ${
                   textAlign === "center"
