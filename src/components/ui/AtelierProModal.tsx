@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Video, Music, Image as ImageIcon, Cloud, X, Check } from "lucide-react";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
@@ -34,9 +35,9 @@ export function AtelierProModal({
     unlimited_photos: "Standard folio holds up to 3 photos per notice. Upgrade to Atelier Pro for unlimited gallery curation.",
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[75] flex items-start justify-center p-3 sm:p-4 pointer-events-none">
         {/* Dimming Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -210,6 +211,7 @@ export function AtelierProModal({
           />
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

@@ -39,7 +39,6 @@ import {
   X,
   Type,
 } from "lucide-react";
-import { EditorialMarkdown } from "@/lib/markdownRenderer";
 
 function toDateInputString(d: Date): string {
   const year = d.getFullYear();
@@ -124,8 +123,7 @@ export function CreateNoteSheet({
   const [isTrimmerOpen, setIsTrimmerOpen] = useState(false);
   const [fileToTrim, setFileToTrim] = useState<File | null>(null);
 
-  // Inline Hybrid Editing & Formatting Drawer state
-  const [isEditingContent, setIsEditingContent] = useState(true);
+  // Formatting Drawer state
   const [isFormattingOpen, setIsFormattingOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -166,7 +164,6 @@ export function CreateNoteSheet({
     }
 
     setIsFormattingOpen(false);
-    setIsEditingContent(true);
 
     if (editingNote) {
       setContent(editingNote.content || "");
@@ -536,7 +533,6 @@ export function CreateNoteSheet({
     setCitationText("");
     setIsMarginaliaOpen(false);
     setIsFormattingOpen(false);
-    setIsEditingContent(true);
     setPhotos([]);
     setVideos([]);
     recorder.setRecordedAudio(null);
@@ -550,7 +546,6 @@ export function CreateNoteSheet({
     placeholder: string = "text",
   ) => {
     triggerHaptic("light");
-    setIsEditingContent(true);
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -589,7 +584,6 @@ export function CreateNoteSheet({
 
   const applyMarkdownBlock = (prefix: string, placeholder: string = "text") => {
     triggerHaptic("light");
-    setIsEditingContent(true);
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -841,60 +835,25 @@ export function CreateNoteSheet({
                 }`}
               />
 
-              {/* Hybrid Inline Markdown Editing */}
-              {isEditingContent ? (
-                <textarea
-                  ref={textareaRef}
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  onKeyDown={handleEditorKeyDown}
-                  onBlur={(e) => {
-                    const related = e.relatedTarget as HTMLElement | null;
-                    if (
-                      related?.closest(".formatting-toolbar") ||
-                      related?.closest(".formatting-btn")
-                    ) {
-                      return;
-                    }
-                    if (content.trim()) {
-                      setIsEditingContent(false);
-                    }
-                  }}
-                  placeholder="What caught your eye today?"
-                  rows={6}
-                  style={{ fontSize: "var(--note-font-size, 16px)" }}
-                  className={`w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none ${
-                    textAlign === "center"
-                      ? "text-center"
-                      : textAlign === "right"
-                        ? "text-right"
-                        : textAlign === "justify"
-                          ? "text-justify"
-                          : "text-left"
-                  }`}
-                />
-              ) : (
-                <div
-                  onClick={() => {
-                    triggerHaptic("light");
-                    setIsEditingContent(true);
-                    setTimeout(() => textareaRef.current?.focus(), 50);
-                  }}
-                  style={{ fontSize: "var(--note-font-size, 16px)" }}
-                  className={`w-full min-h-[140px] leading-relaxed font-content text-[var(--text-primary)] cursor-text select-text ${
-                    textAlign === "center"
-                      ? "text-center"
-                      : textAlign === "right"
-                        ? "text-right"
-                        : textAlign === "justify"
-                          ? "text-justify"
-                          : "text-left"
-                  }`}
-                  title="Click to edit"
-                >
-                  <EditorialMarkdown content={content} />
-                </div>
-              )}
+              {/* Primary Content Editor */}
+              <textarea
+                ref={textareaRef}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                onKeyDown={handleEditorKeyDown}
+                placeholder="What caught your eye today?"
+                rows={6}
+                style={{ fontSize: "var(--note-font-size, 16px)" }}
+                className={`w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none select-text ${
+                  textAlign === "center"
+                    ? "text-center"
+                    : textAlign === "right"
+                      ? "text-right"
+                      : textAlign === "justify"
+                        ? "text-justify"
+                        : "text-left"
+                }`}
+              />
 
               {/* Companion Sidenote Field */}
               {(isMarginaliaOpen || marginaliaText) && (

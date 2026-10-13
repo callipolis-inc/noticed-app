@@ -201,6 +201,7 @@ export function App() {
   const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeMenuNoteId, setActiveMenuNoteId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("sidenotes_username");
@@ -1169,6 +1170,15 @@ export function App() {
         onClose={dismissFlyout}
       />
 
+      {/* Global tap-anywhere dismissal backdrop for active note context menu */}
+      {activeMenuNoteId && (
+        <div
+          className="fixed inset-0 z-35 bg-transparent"
+          onClick={() => setActiveMenuNoteId(null)}
+          onTouchStart={() => setActiveMenuNoteId(null)}
+        />
+      )}
+
       {/* Zen Reading Mode Progress Bar */}
       {isReadingMode && currentView === "notebook" && (
         <div className="fixed top-0 left-0 right-0 h-[2px] bg-[var(--text-primary)]/10 z-50 pointer-events-none">
@@ -1322,6 +1332,10 @@ export function App() {
                               isFirstInGroup={noteIdx === 0}
                               defaultTextAlign={defaultTextAlign}
                               imageFrameSize={imageFrameSize}
+                              isMenuOpen={activeMenuNoteId === note.id}
+                              onToggleMenu={(isOpen) =>
+                                setActiveMenuNoteId(isOpen ? note.id : null)
+                              }
                               onPinToggle={handlePinToggle}
                               onArchiveToggle={handleArchiveNoteToggle}
                               onDeleteNote={handleDeleteNote}
@@ -1379,6 +1393,7 @@ export function App() {
                           type="button"
                           onClick={() => {
                             triggerHaptic("light");
+                            setActiveMenuNoteId(null);
                             setCurrentView("bookshelf");
                           }}
                           className="w-11 h-11 rounded-full dynamic-island-shell flex items-center justify-center text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-transform shadow-[0_12px_28px_-6px_rgba(0,0,0,0.22)] cursor-pointer border border-[var(--glass-border)]"
@@ -1392,6 +1407,7 @@ export function App() {
                           type="button"
                           onClick={() => {
                             triggerHaptic("medium");
+                            setActiveMenuNoteId(null);
                             setIsCreateOpen(true);
                           }}
                           className="

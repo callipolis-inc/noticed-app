@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from "react";
+import { useState, useMemo, useRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldNote, TextHighlight, TextAlign, ImageFrameSize } from "@/types";
 import { formatTimeOnly } from "@/lib/utils";
@@ -30,6 +30,8 @@ interface NoteEntryProps {
   isFirstInGroup?: boolean;
   defaultTextAlign?: TextAlign;
   imageFrameSize?: ImageFrameSize;
+  isMenuOpen?: boolean;
+  onToggleMenu?: (open: boolean) => void;
   onPinToggle?: (id: string) => void;
   onArchiveToggle?: (id: string) => void;
   onDeleteNote?: (id: string) => void;
@@ -47,6 +49,8 @@ export const NoteEntry = memo(function NoteEntry({
   isReadingMode = false,
   defaultTextAlign = "left",
   imageFrameSize = "editorial",
+  isMenuOpen = false,
+  onToggleMenu,
   onPinToggle,
   onArchiveToggle,
   onDeleteNote,
@@ -56,7 +60,9 @@ export const NoteEntry = memo(function NoteEntry({
   onUpdateHighlights,
   onUpdateTextAlign,
 }: NoteEntryProps) {
-  const [showMenu, setShowMenu] = useState(false);
+  const showMenu = Boolean(isMenuOpen);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const [menuPlacement, setMenuPlacement] = useState<"up" | "down">("down");
   const [isFootnotesExpanded, setIsFootnotesExpanded] = useState(false);
 
   const marginaliaList = useMemo(() => {
@@ -165,11 +171,16 @@ export const NoteEntry = memo(function NoteEntry({
 
         {/* More options (...) trigger button */}
         <button
+          ref={menuButtonRef}
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             triggerHaptic("light");
-            setShowMenu((prev) => !prev);
+            if (!showMenu && menuButtonRef.current) {
+              const rect = menuButtonRef.current.getBoundingClientRect();
+              setMenuPlacement(rect.top < 340 ? "down" : "up");
+            }
+            onToggleMenu?.(!showMenu);
           }}
           className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[var(--text-primary)] inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle ${
             showMenu
@@ -181,32 +192,46 @@ export const NoteEntry = memo(function NoteEntry({
           <MoreHorizontal className="w-3.5 h-3.5 stroke-[1.85]" />
         </button>
 
-        {/* Apple High-Density Liquid Drop-Up Context Menu */}
+        {/* Apple High-Density Liquid Context Menu */}
         <AnimatePresence>
           {showMenu && (
             <>
-              {/* Full-screen backdrop to close on outside click */}
+              {/* Full-screen backdrop to close on outside click or touch */}
               <div
-                className="fixed inset-0 z-40"
+                className="fixed inset-0 z-40 bg-transparent"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setShowMenu(false);
+                  onToggleMenu?.(false);
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation();
+                  onToggleMenu?.(false);
                 }}
               />
 
               <motion.div
-                initial={{ opacity: 0, scale: 0.94, y: 6 }}
+                initial={{
+                  opacity: 0,
+                  scale: 0.94,
+                  y: menuPlacement === "down" ? -6 : 6,
+                }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.94, y: 6 }}
+                exit={{
+                  opacity: 0,
+                  scale: 0.94,
+                  y: menuPlacement === "down" ? -6 : 6,
+                }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
                 onClick={(e) => e.stopPropagation()}
-                className="
-                  absolute right-0 bottom-full mb-2 z-50 min-w-48 py-1.5 rounded-2xl
+                className={`
+                  absolute right-0 z-50 min-w-48 py-1.5 rounded-2xl
                   bg-white/95 dark:bg-[#1a1a1e]/95 backdrop-blur-[36px] saturate-[190%]
                   border border-[var(--glass-border)]
                   shadow-[0_20px_45px_-8px_rgba(0,0,0,0.28),0_4px_12px_rgba(0,0,0,0.08)]
                   text-xs font-sans overflow-hidden text-left normal-case tracking-normal
-                "
+                  max-h-[min(380px,calc(100dvh-120px))] overflow-y-auto no-scrollbar
+                  ${menuPlacement === "down" ? "top-full mt-2" : "bottom-full mb-2"}
+                `}
               >
                 {/* Paragraph Alignment Segmented Control */}
                 {onUpdateTextAlign && (
@@ -264,7 +289,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("light");
-                      setShowMenu(false);
+                      onToggleMenu?.(false);
                       onEditNote(note);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -281,7 +306,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("light");
-                      setShowMenu(false);
+                      onToggleMenu?.(false);
                       onOpenQuickAnnotator(note);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -300,7 +325,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("light");
-                      setShowMenu(false);
+                      onToggleMenu?.(false);
                       onOpenPhotostrip(note);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -317,7 +342,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("light");
-                      setShowMenu(false);
+                      onToggleMenu?.(false);
                       if (navigator.clipboard) {
                         navigator.clipboard.writeText(
                           `${note.title ? `${note.title}\n\n` : ""}${note.content}\n\n— noticed`,
@@ -338,7 +363,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("medium");
-                      setShowMenu(false);
+                      onToggleMenu?.(false);
                       onPinToggle(note.id);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -357,7 +382,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("medium");
-                      setShowMenu(false);
+                      onToggleMenu?.(false);
                       onArchiveToggle(note.id);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -378,7 +403,7 @@ export const NoteEntry = memo(function NoteEntry({
                       onClick={(e) => {
                         e.stopPropagation();
                         triggerHaptic("heavy");
-                        setShowMenu(false);
+                        onToggleMenu?.(false);
                         onDeleteNote(note.id);
                       }}
                       className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-rose-500/10 active:bg-rose-500/15 text-rose-500 transition-colors cursor-pointer font-medium"
@@ -425,8 +450,8 @@ export const NoteEntry = memo(function NoteEntry({
     <article
       id={`note-${note.id}`}
       className={`
-        group relative transition-all duration-700 cv-auto
-        ${showMenu ? "z-50" : "z-10"}
+        group relative transition-all duration-700
+        ${showMenu ? "z-50 !content-visibility-visible" : "z-10 cv-auto"}
         ${isReadingMode ? "mb-10 sm:mb-14" : "mb-9 sm:mb-12"}
         ${
           isHighlighted
@@ -438,7 +463,103 @@ export const NoteEntry = memo(function NoteEntry({
       <div className="lg:grid lg:grid-cols-[1fr_220px] xl:grid-cols-[1fr_250px] lg:gap-8 lg:items-start">
         {/* Left Column: Primary Note Stream */}
         <div className="min-w-0 space-y-3">
-          {/* 1. Photos */}
+          {/* 1. Note Header & Text Content Flow */}
+          {note.content && (
+            <div
+              style={{
+                fontSize: isReadingMode
+                  ? "calc(var(--note-font-size, 15.5px) + 1px)"
+                  : "var(--note-font-size, 15.5px)",
+              }}
+              data-font={note.fontChoice || "editorial"}
+              className={`font-content leading-[1.78] text-[var(--text-primary)] whitespace-pre-wrap selection:bg-[var(--text-primary)] selection:text-[var(--bg-base)] after:content-[''] after:table after:clear-both ${textAlignClass}`}
+            >
+              {note.title && (
+                <h3
+                  style={{
+                    fontSize: "calc(var(--note-font-size, 15.5px) * 1.15)",
+                  }}
+                  className={`font-bold text-[var(--text-primary)] tracking-tight leading-snug pb-1 ${
+                    note.fontChoice === "sans"
+                      ? "font-sans"
+                      : note.fontChoice === "display"
+                        ? "font-serif italic"
+                        : "font-serif"
+                  }`}
+                >
+                  {note.title}
+                </h3>
+              )}
+              <span
+                style={{ fontSize: "calc(11px * var(--font-scale, 1))" }}
+                className="font-sans font-semibold tracking-wider opacity-45 uppercase select-none mr-2 inline-block"
+              >
+                {note.pinned && (
+                  <span
+                    className="inline-flex items-center text-[var(--text-primary)] opacity-70 mr-1.5"
+                    title="Pinned notice"
+                  >
+                    <Pin className="w-2.5 h-2.5 fill-current rotate-45 inline" />
+                  </span>
+                )}
+                {formattedTime}
+                {isSharedSpace && (
+                  <span className="opacity-90 font-medium tracking-wide">
+                    {" "}
+                    · {authorLabel}
+                  </span>
+                )}{" "}
+                —
+              </span>
+              <TextHighlighter
+                content={note.content}
+                highlights={note.highlights}
+                marginaliaItems={marginaliaList}
+                isReadingMode={isReadingMode}
+                className="inline"
+                onSaveHighlight={handleSaveHighlight}
+                onUpdateHighlight={handleUpdateHighlight}
+                onDeleteHighlight={handleDeleteHighlight}
+                onToggleFootnotes={() =>
+                  setIsFootnotesExpanded((prev) => !prev)
+                }
+              />
+              {renderParagraphEndSuperscripts()}
+              {renderInlineEndControls(false)}
+            </div>
+          )}
+
+          {/* Standalone timestamp if there is no text content */}
+          {!note.content && (
+            <div
+              style={{ fontSize: "calc(11px * var(--font-scale, 1))" }}
+              className="font-sans font-semibold tracking-wider text-[var(--text-primary)] uppercase select-none flex items-center justify-between w-full gap-2"
+            >
+              <span className="opacity-45">
+                {note.pinned && (
+                  <span
+                    className="inline-flex items-center text-[var(--text-primary)] opacity-70 mr-1.5"
+                    title="Pinned notice"
+                  >
+                    <Pin className="w-2.5 h-2.5 fill-current rotate-45 inline" />
+                  </span>
+                )}
+                {formattedTime}
+                {isSharedSpace && (
+                  <span className="opacity-90 font-medium tracking-wide">
+                    {" "}
+                    · {authorLabel}
+                  </span>
+                )}
+              </span>
+              <span className="inline-flex items-center gap-1 ml-auto">
+                {renderParagraphEndSuperscripts()}
+                {renderInlineEndControls(true)}
+              </span>
+            </div>
+          )}
+
+          {/* 2. Photos attached under the note */}
           {hasPhotos && (
             <div className="w-full">
               {note.photos!.length === 1 ? (
@@ -634,103 +755,7 @@ export const NoteEntry = memo(function NoteEntry({
             </div>
           )}
 
-          {/* 2. Caption-Anchor Flow */}
-          {note.content && (
-            <div
-              style={{
-                fontSize: isReadingMode
-                  ? "calc(var(--note-font-size, 15.5px) + 1px)"
-                  : "var(--note-font-size, 15.5px)",
-              }}
-              data-font={note.fontChoice || "editorial"}
-              className={`font-content leading-[1.78] text-[var(--text-primary)] whitespace-pre-wrap selection:bg-[var(--text-primary)] selection:text-[var(--bg-base)] after:content-[''] after:table after:clear-both ${textAlignClass}`}
-            >
-              {note.title && (
-                <h3
-                  style={{
-                    fontSize: "calc(var(--note-font-size, 15.5px) * 1.15)",
-                  }}
-                  className={`font-bold text-[var(--text-primary)] tracking-tight leading-snug pb-1 ${
-                    note.fontChoice === "sans"
-                      ? "font-sans"
-                      : note.fontChoice === "display"
-                        ? "font-serif italic"
-                        : "font-serif"
-                  }`}
-                >
-                  {note.title}
-                </h3>
-              )}
-              <span
-                style={{ fontSize: "calc(11px * var(--font-scale, 1))" }}
-                className="font-sans font-semibold tracking-wider opacity-45 uppercase select-none mr-2 inline-block"
-              >
-                {note.pinned && (
-                  <span
-                    className="inline-flex items-center text-[var(--text-primary)] opacity-70 mr-1.5"
-                    title="Pinned notice"
-                  >
-                    <Pin className="w-2.5 h-2.5 fill-current rotate-45 inline" />
-                  </span>
-                )}
-                {formattedTime}
-                {isSharedSpace && (
-                  <span className="opacity-90 font-medium tracking-wide">
-                    {" "}
-                    · {authorLabel}
-                  </span>
-                )}{" "}
-                —
-              </span>
-              <TextHighlighter
-                content={note.content}
-                highlights={note.highlights}
-                marginaliaItems={marginaliaList}
-                isReadingMode={isReadingMode}
-                className="inline"
-                onSaveHighlight={handleSaveHighlight}
-                onUpdateHighlight={handleUpdateHighlight}
-                onDeleteHighlight={handleDeleteHighlight}
-                onToggleFootnotes={() =>
-                  setIsFootnotesExpanded((prev) => !prev)
-                }
-              />
-              {renderParagraphEndSuperscripts()}
-              {renderInlineEndControls(false)}
-            </div>
-          )}
-
-          {/* Standalone timestamp if there is no text content */}
-          {!note.content && (
-            <div
-              style={{ fontSize: "calc(11px * var(--font-scale, 1))" }}
-              className="font-sans font-semibold tracking-wider text-[var(--text-primary)] uppercase select-none flex items-center justify-between w-full gap-2"
-            >
-              <span className="opacity-45">
-                {note.pinned && (
-                  <span
-                    className="inline-flex items-center text-[var(--text-primary)] opacity-70 mr-1.5"
-                    title="Pinned notice"
-                  >
-                    <Pin className="w-2.5 h-2.5 fill-current rotate-45 inline" />
-                  </span>
-                )}
-                {formattedTime}
-                {isSharedSpace && (
-                  <span className="opacity-90 font-medium tracking-wide">
-                    {" "}
-                    · {authorLabel}
-                  </span>
-                )}
-              </span>
-              <span className="inline-flex items-center gap-1 ml-auto">
-                {renderParagraphEndSuperscripts()}
-                {renderInlineEndControls(true)}
-              </span>
-            </div>
-          )}
-
-          {/* 3. Audio Memo: Archival Letterpress Strip */}
+          {/* 4. Audio Memo: Archival Letterpress Strip */}
           {note.voiceMemo?.audioUrl && (
             <div className="mt-1">
               <TactileAudioPlayer

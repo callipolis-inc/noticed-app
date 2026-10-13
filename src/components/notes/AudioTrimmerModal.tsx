@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scissors,
@@ -311,15 +312,16 @@ export function AudioTrimmerModal({
   };
 
   if (!isOpen) return null;
+  if (typeof document === "undefined") return null;
 
   const startPercent = totalDuration > 0 ? (startTime / totalDuration) * 100 : 0;
   const endPercent = totalDuration > 0 ? (endTime / totalDuration) * 100 : 100;
   const playheadPercent =
     totalDuration > 0 ? (previewTime / totalDuration) * 100 : startPercent;
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 pointer-events-none select-none">
+      <div className="fixed inset-0 z-[80] flex items-start justify-center p-3 sm:p-4 pointer-events-none">
         {/* Dimming Ambient Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -629,6 +631,7 @@ export function AudioTrimmerModal({
           )}
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

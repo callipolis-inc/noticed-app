@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FilmFilter, PhotoMeta } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
@@ -116,17 +117,20 @@ export function DarkroomModal({
     setHasGrain(false);
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 select-none overflow-y-auto">
+      <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-5 overflow-y-auto pointer-events-auto">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-black/60 backdrop-blur-md"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-md pointer-events-auto"
         />
 
         {/* Modal Window */}
@@ -135,7 +139,8 @@ export function DarkroomModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 16 }}
           transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-lg rounded-3xl apple-card shadow-2xl border border-[var(--glass-border)] overflow-hidden flex flex-col z-10 my-auto"
+          onClick={(e) => e.stopPropagation()}
+          className="relative w-full max-w-lg rounded-3xl apple-card shadow-2xl border border-[var(--glass-border)] overflow-hidden flex flex-col z-10 my-auto pointer-events-auto"
           style={{
             maxHeight: "min(92dvh, 740px)",
           }}
@@ -271,7 +276,7 @@ export function DarkroomModal({
                 maxLength={55}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="e.g. Kyoto morning fog, Autumn 1974..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] text-xs font-typewriter focus:outline-none focus:ring-1 focus:ring-[var(--text-primary)]/50 text-[var(--text-primary)] transition-all placeholder:text-[var(--text-tertiary)]"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-elevated)] text-xs font-typewriter focus:outline-none focus:ring-1 focus:ring-[var(--text-primary)]/50 text-[var(--text-primary)] transition-all placeholder:text-[var(--text-tertiary)] select-text pointer-events-auto cursor-text"
               />
             </div>
 
@@ -377,6 +382,7 @@ export function DarkroomModal({
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
