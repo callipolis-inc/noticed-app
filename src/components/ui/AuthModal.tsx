@@ -1,8 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { Capacitor } from "@capacitor/core";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
-import { sendEmailOtp, verifyEmailOtp } from "@/lib/supabase";
+import {
+  signInWithPassword,
+  signUpWithPassword,
+  signInWithGoogle,
+  sendPasswordResetEmail,
+} from "@/lib/supabase";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
@@ -14,6 +20,8 @@ import {
   AlertCircle,
   Cloud,
   ArrowLeft,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface AuthModalProps {
@@ -25,159 +33,143 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
   useLockBodyScroll(isOpen);
 
-  const [step, setStep] = useState<"email" | "otp" | "success">("email");
+  // Apple App Store Guideline 4.8 Protection:
+  // Hide third-party OAuth (Google) on native iOS when Sign in with Apple is not configured
+  const isNativeIOS =
+    typeof window !== "undefined" &&
+    Capacitor.isNativePlatform() &&
+    Capacitor.getPlatform() === "ios";
+
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "success">(
+    "signin"
+  );
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [resendCooldown, setResendCooldown] = useState(0);
-
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   // Reset modal state on open
   useEffect(() => {
     if (isOpen) {
-      setStep("email");
-      setOtp(["", "", "", "", "", ""]);
+      setMode("signin");
+      setPassword("");
       setErrorMessage(null);
+      setInfoMessage(null);
       setIsLoading(false);
     }
   }, [isOpen]);
 
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCooldown((prev) => Math.max(0, prev - 1));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
-
-  // Handle Send OTP
-  const handleSendOtp = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  // Handle Email + Password Sign In or Instant Sign Up
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
+
     if (!cleanEmail || !cleanEmail.includes("@")) {
       triggerHaptic("heavy");
       setErrorMessage("Please enter a valid email address.");
       return;
     }
 
+    if (password.length < 6) {
+      triggerHaptic("heavy");
+      setErrorMessage("Password must be at least 6 characters.");
+      return;
+    }
+
     setErrorMessage(null);
+    setInfoMessage(null);
     setIsLoading(true);
     triggerHaptic("medium");
 
     try {
-      await sendEmailOtp(cleanEmail);
-      triggerSuccessHaptic();
-      setStep("otp");
-      setResendCooldown(60);
-      // Auto-focus first OTP digit after transition
-      setTimeout(() => {
-        otpInputRefs.current[0]?.focus();
-      }, 250);
+      if (mode === "signup") {
+        const data = await signUpWithPassword(cleanEmail, password);
+
+        // Rule 1: Instant Sign-Up (Auto-Login in 1s when Confirm Email is OFF and session is returned)
+        if (data?.session) {
+          triggerSuccessHaptic();
+          setMode("success");
+          setTimeout(() => {
+            onAuthSuccess(cleanEmail);
+            onClose();
+          }, 800);
+        } else {
+          // Fallback if Confirm Email is still enabled on server
+          triggerSuccessHaptic();
+          setInfoMessage(
+            "Account created! Please check your email inbox to confirm your account before signing in."
+          );
+          setMode("signin");
+        }
+      } else {
+        const data = await signInWithPassword(cleanEmail, password);
+        if (data?.session || data?.user) {
+          triggerSuccessHaptic();
+          setMode("success");
+          setTimeout(() => {
+            onAuthSuccess(cleanEmail);
+            onClose();
+          }, 800);
+        }
+      }
     } catch (err: any) {
       triggerHaptic("heavy");
       setErrorMessage(
-        err?.message || "Failed to send code. Please try again."
+        err?.message || "Authentication failed. Please check your credentials."
       );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle OTP digit change
-  const handleOtpChange = (index: number, value: string) => {
-    // Only accept numeric input
-    const clean = value.replace(/\D/g, "");
-    if (!clean) {
-      const nextOtp = [...otp];
-      nextOtp[index] = "";
-      setOtp(nextOtp);
-      return;
-    }
-
-    // Single digit input
-    const char = clean[clean.length - 1];
-    const nextOtp = [...otp];
-    nextOtp[index] = char;
-    setOtp(nextOtp);
-    triggerHaptic("light");
-
-    // Auto-advance to next input
-    if (index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-submit if all 6 digits are filled
-    const fullCode = nextOtp.join("");
-    if (fullCode.length === 6) {
-      submitOtpCode(fullCode);
-    }
-  };
-
-  // Handle OTP backspace
-  const handleOtpKeyDown = (
-    index: number,
-    e: React.KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  // Handle OTP paste
-  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+  // Handle Forgot Password (via Supabase Custom Gmail SMTP)
+  const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const pastedData = e.clipboardData
-      .getData("text")
-      .replace(/\D/g, "")
-      .slice(0, 6);
+    const cleanEmail = email.trim().toLowerCase();
 
-    if (pastedData.length > 0) {
-      const nextOtp = [...otp];
-      for (let i = 0; i < 6; i++) {
-        nextOtp[i] = pastedData[i] || "";
-      }
-      setOtp(nextOtp);
-      triggerHaptic("medium");
-
-      const focusIndex = Math.min(pastedData.length, 5);
-      otpInputRefs.current[focusIndex]?.focus();
-
-      if (pastedData.length === 6) {
-        submitOtpCode(pastedData);
-      }
-    }
-  };
-
-  // Submit OTP Verification
-  const submitOtpCode = async (tokenToVerify?: string) => {
-    const code = tokenToVerify || otp.join("");
-    if (code.length !== 6) {
+    if (!cleanEmail || !cleanEmail.includes("@")) {
       triggerHaptic("heavy");
-      setErrorMessage("Please enter all 6 digits.");
+      setErrorMessage("Please enter your account email address.");
       return;
     }
 
     setErrorMessage(null);
+    setInfoMessage(null);
     setIsLoading(true);
     triggerHaptic("medium");
 
     try {
-      await verifyEmailOtp(email.trim().toLowerCase(), code);
+      await sendPasswordResetEmail(cleanEmail);
       triggerSuccessHaptic();
-      setStep("success");
-      setTimeout(() => {
-        onAuthSuccess(email.trim().toLowerCase());
-        onClose();
-      }, 1200);
+      setInfoMessage(
+        `Password reset instructions have been sent to ${cleanEmail}. Please check your inbox.`
+      );
     } catch (err: any) {
       triggerHaptic("heavy");
       setErrorMessage(
-        err?.message || "Invalid or expired code. Please try again."
+        err?.message || "Failed to send password reset email. Please try again."
       );
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Google OAuth (Web & Android only)
+  const handleGoogleSignIn = async () => {
+    setErrorMessage(null);
+    setInfoMessage(null);
+    setIsLoading(true);
+    triggerHaptic("medium");
+
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      triggerHaptic("heavy");
+      setErrorMessage(
+        err?.message || "Could not start Google Sign-In. Please try again."
+      );
       setIsLoading(false);
     }
   };
@@ -215,6 +207,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
 
           {/* Close Pill */}
           <button
+            type="button"
             onClick={() => {
               triggerHaptic("light");
               onClose();
@@ -225,25 +218,246 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             <X className="w-4 h-4" />
           </button>
 
-          {/* STEP 1: EMAIL ADDRESS INPUT */}
-          {step === "email" && (
+          {/* SIGN IN & INSTANT SIGN UP VIEW */}
+          {(mode === "signin" || mode === "signup") && (
             <div>
               {/* Header */}
-              <div className="text-center mb-6 pt-2">
+              <div className="text-center mb-5 pt-1">
                 <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 shadow-sm">
                   <Cloud className="w-6 h-6 text-[var(--text-primary)]" />
                 </div>
                 <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
-                  Noticed Cloud
+                  {mode === "signup" ? "Create Cloud Account" : "Noticed Cloud"}
                 </h2>
-                <p className="text-xs text-[var(--text-secondary)] mt-1.5 max-w-[280px] mx-auto leading-relaxed">
-                  Sign in to keep your notebooks, marginalia, and field notes
-                  synchronized across devices.
+                <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-[280px] mx-auto leading-relaxed">
+                  {mode === "signup"
+                    ? "Instant sign-up to back up and synchronize your notebooks across devices."
+                    : "Sign in to keep your notebooks, marginalia, and field notes synchronized."}
                 </p>
               </div>
 
+              {/* Mode Switch Tabs */}
+              <div className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]/40 mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setMode("signin");
+                    setErrorMessage(null);
+                  }}
+                  className={`py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    mode === "signin"
+                      ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-xs"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setMode("signup");
+                    setErrorMessage(null);
+                  }}
+                  className={`py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    mode === "signup"
+                      ? "bg-[var(--text-primary)] text-[var(--bg-primary)] shadow-xs"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  Create Account
+                </button>
+              </div>
+
               {/* Form */}
-              <form onSubmit={handleSendOtp} className="space-y-4">
+              <form onSubmit={handleAuthSubmit} className="space-y-3">
+                <div className="apple-sub-box p-3.5 flex items-center gap-3">
+                  <Mail className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
+                  <input
+                    type="email"
+                    autoFocus
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@domain.com"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    autoComplete="email"
+                    className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none font-sans select-text"
+                  />
+                </div>
+
+                <div className="apple-sub-box p-3.5 flex items-center gap-3">
+                  <KeyRound className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={
+                      mode === "signup"
+                        ? "Create password (min. 6 chars)"
+                        : "Enter your password"
+                    }
+                    autoComplete={
+                      mode === "signup" ? "new-password" : "current-password"
+                    }
+                    className="w-full bg-transparent text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none font-sans select-text"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] p-0.5 shrink-0"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Forgot Password Link (Sign In mode) */}
+                {mode === "signin" && (
+                  <div className="flex justify-end px-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setErrorMessage(null);
+                        setInfoMessage(null);
+                        setMode("forgot");
+                      }}
+                      className="text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+
+                {errorMessage && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {infoMessage && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs">
+                    <Check className="w-4 h-4 shrink-0" />
+                    <span>{infoMessage}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading || !email.trim() || !password}
+                  className="w-full py-3.5 px-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-medium text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40 cursor-pointer"
+                >
+                  {isLoading ? (
+                    <RotateCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <span>
+                        {mode === "signup"
+                          ? "Create Account & Sign In"
+                          : "Sign In"}
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Rule 3: Apple Guideline 4.8 Protection — Only show Google OAuth on non-iOS platforms */}
+              {!isNativeIOS && (
+                <div className="mt-4 space-y-3">
+                  <div className="relative flex items-center justify-center">
+                    <div className="border-t border-[var(--glass-border)]/50 w-full" />
+                    <span className="px-3 text-[10px] font-mono uppercase tracking-widest text-[var(--text-tertiary)] bg-transparent shrink-0">
+                      or
+                    </span>
+                    <div className="border-t border-[var(--glass-border)]/50 w-full" />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={isLoading}
+                    className="w-full py-3 px-4 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] text-[var(--text-primary)] font-medium text-xs flex items-center justify-center gap-2.5 hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40 cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M21.35 11.1h-9.17v2.73h6.51c-.33 1.81-1.5 3.34-3.2 4.37v3.62h5.18c3.03-2.79 4.78-6.9 4.78-11.79 0-.8-.08-1.57-.23-2.31l.13.38z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M12.18 22c4.32 0 7.95-1.43 10.6-3.88l-5.18-3.62c-1.43.96-3.26 1.53-5.42 1.53-4.17 0-7.7-2.81-8.96-6.59H-.1v3.74C2.54 18.42 7.01 22 12.18 22z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M3.22 13.44c-.32-.96-.5-1.99-.5-3.05s.18-2.09.5-3.05V3.6H-.1C-1.18 5.75-1.8 8.19-1.8 10.39s.62 4.64 1.7 6.79l3.32-3.74z"
+                      />
+                      <path
+                        fill="currentColor"
+                        d="M12.18 4.75c2.35 0 4.46.81 6.12 2.4l4.59-4.59C20.12.98 16.5 0 12.18 0 7.01 0 2.54 3.58-.1 8.82l3.32 3.74c1.26-3.78 4.79-6.59 8.96-6.59z"
+                      />
+                    </svg>
+                    <span>Continue with Google</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Sub-Action: Continue Offline */}
+              <div className="mt-5 text-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    onClose();
+                  }}
+                  className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
+                >
+                  Continue offline without cloud sync
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* FORGOT PASSWORD VIEW (Rule 2: Transactional Email Only for Password Reset) */}
+          {mode === "forgot" && (
+            <div>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic("light");
+                  setMode("signin");
+                  setErrorMessage(null);
+                  setInfoMessage(null);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] mb-4 transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Sign In</span>
+              </button>
+
+              <div className="text-center mb-5">
+                <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 shadow-sm">
+                  <KeyRound className="w-6 h-6 text-[var(--text-primary)]" />
+                </div>
+                <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
+                  Reset Password
+                </h2>
+                <p className="text-xs text-[var(--text-secondary)] mt-1.5 max-w-[280px] mx-auto leading-relaxed">
+                  Enter your email address and we will send you a link to reset
+                  your password.
+                </p>
+              </div>
+
+              <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
                 <div className="apple-sub-box p-3.5 flex items-center gap-3">
                   <Mail className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
                   <input
@@ -267,138 +481,33 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                   </div>
                 )}
 
+                {infoMessage && (
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs">
+                    <Check className="w-4 h-4 shrink-0" />
+                    <span>{infoMessage}</span>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={isLoading || !email.trim()}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-medium text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40"
+                  className="w-full py-3.5 px-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-medium text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40 cursor-pointer"
                 >
                   {isLoading ? (
                     <RotateCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <span>Send 6-Digit Code</span>
+                      <span>Send Reset Link</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
               </form>
-
-              {/* Sub-Action: Continue Offline */}
-              <div className="mt-5 text-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic("light");
-                    onClose();
-                  }}
-                  className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-                >
-                  Continue offline without cloud sync
-                </button>
-              </div>
             </div>
           )}
 
-          {/* STEP 2: 6-DIGIT OTP VERIFICATION */}
-          {step === "otp" && (
-            <div>
-              {/* Back button */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic("light");
-                  setStep("email");
-                  setErrorMessage(null);
-                }}
-                className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] mb-4 transition-colors"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Change email</span>
-              </button>
-
-              {/* Header */}
-              <div className="text-center mb-6">
-                <div className="w-12 h-12 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 shadow-sm">
-                  <KeyRound className="w-6 h-6 text-[var(--text-primary)]" />
-                </div>
-                <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
-                  Enter Passcode
-                </h2>
-                <p className="text-xs text-[var(--text-secondary)] mt-1.5 max-w-[280px] mx-auto leading-relaxed">
-                  We sent a 6-digit verification code to{" "}
-                  <strong className="text-[var(--text-primary)] font-medium">
-                    {email}
-                  </strong>
-                </p>
-              </div>
-
-              {/* 6-Digit In-App Input Boxes */}
-              <div
-                className="flex items-center justify-center gap-2 sm:gap-2.5 mb-5"
-                onPaste={handleOtpPaste}
-              >
-                {otp.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => {
-                      otpInputRefs.current[index] = el;
-                    }}
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    autoComplete={index === 0 ? "one-time-code" : "off"}
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    className="w-11 h-14 sm:w-12 sm:h-14 text-center font-mono text-xl font-semibold rounded-2xl apple-sub-box text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/30 transition-all shadow-inner select-text"
-                  />
-                ))}
-              </div>
-
-              {errorMessage && (
-                <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{errorMessage}</span>
-                </div>
-              )}
-
-              {/* Verify Button */}
-              <button
-                type="button"
-                onClick={() => submitOtpCode()}
-                disabled={isLoading || otp.join("").length !== 6}
-                className="w-full py-3.5 px-4 rounded-2xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-medium text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40"
-              >
-                {isLoading ? (
-                  <RotateCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <span>Verify & Sign In</span>
-                )}
-              </button>
-
-              {/* Resend Code Option */}
-              <div className="mt-5 text-center">
-                {resendCooldown > 0 ? (
-                  <span className="text-xs text-[var(--text-tertiary)]">
-                    Resend code in {resendCooldown}s
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleSendOtp()}
-                    disabled={isLoading}
-                    className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-medium underline underline-offset-4 transition-colors"
-                  >
-                    Resend code
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* STEP 3: SUCCESS STATE */}
-          {step === "success" && (
+          {/* SUCCESS STATE */}
+          {mode === "success" && (
             <div className="text-center py-6">
               <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30">
                 <Check className="w-7 h-7" />

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account & Data Deletion Portal — Noticed</title>
+  <style>
+    :root {
+      --bg: #FBF9F5;
+      --card: #FFFFFF;
+      --text: #1C1917;
+      --muted: #57534E;
+      --border: #E7E2D8;
+      --accent: #D95D39;
+      --danger: #E11D48;
+      --danger-bg: rgba(225, 29, 72, 0.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121214;
+        --card: #1A1A1E;
+        --text: #F5F5F4;
+        --muted: #A8A29E;
+        --border: #2C2C32;
+      }
+    }
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.65;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 36px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+    }
+    .brand {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 13px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 30px;
+      margin: 0 0 8px 0;
+    }
+    .meta {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    h2 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 19px;
+      margin-top: 28px;
+      margin-bottom: 10px;
+    }
+    p, li {
+      font-size: 15px;
+      color: var(--muted);
+    }
+    .box {
+      padding: 20px 24px;
+      border-radius: 14px;
+      background: var(--danger-bg);
+      border: 1px solid rgba(225, 29, 72, 0.25);
+      margin: 24px 0;
+    }
+    .box h3 {
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      color: var(--danger);
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 12px 24px;
+      background-color: var(--danger);
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 14px;
+      border-radius: 9999px;
+      text-decoration: none;
+    }
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand">Noticed &bull; Data Safety Portal</div>
+    <h1>Account &amp; Data Deletion</h1>
+    <div class="meta">Compliance: Apple App Store Guideline 5.1.1(v) &amp; Google Play User Data Policy</div>
+
+    <p>
+      Users of <strong>Noticed: Private Field Notes</strong> (`app.noticed.mobile`) can permanently delete their cloud account and all associated personal data at any time.
+    </p>
+
+    <h2>Method 1: Instant In-App Deletion (Recommended)</h2>
+    <ol>
+      <li>Open the <strong>Noticed</strong> mobile or web application.</li>
+      <li>Tap the <strong>Author Profile</strong> button in the top navigation bar.</li>
+      <li>Scroll down to the <strong>Account &amp; Data Privacy</strong> section.</li>
+      <li>Tap <strong>Delete Account &amp; Data</strong> and confirm by typing <code>DELETE</code>.</li>
+    </ol>
+    <p>
+      This executes our automated database purge (<code>delete_user_account</code>), which immediately and irreversibly deletes your user account, email record, all synchronized notebooks, field notes, and local device caches.
+    </p>
+
+    <div class="box">
+      <h3>Method 2: Web Request (If You Uninstalled the App)</h3>
+      <p style="margin: 0 0 8px 0;">
+        If you no longer have access to the app, you may request permanent account deletion via email from the address associated with your account:
+      </p>
+      <a class="btn" href="mailto:privacy@noticed.app?subject=Account%20Deletion%20Request%20-%20Noticed&body=Please%20permanently%20delete%20my%20Noticed%20account%20and%20all%20associated%20data%20for%20this%20email%20address.">
+        Send Deletion Request Email &rarr;
+      </a>
+    </div>
+
+    <h2>What Data Is Deleted?</h2>
+    <ul>
+      <li><strong>Authentication Identity:</strong> Your email address, password hash, and active session tokens in <code>auth.users</code>.</li>
+      <li><strong>Cloud Content:</strong> All spaces/notebooks (<code>public.spaces</code>), field notes and attachments (<code>public.field_notes</code>), and author profile metadata (<code>public.profiles</code>).</li>
+      <li><strong>Retention Period:</strong> <strong>0 days</strong> for in-app deletion (immediate cryptographic erasure); within <strong>48 hours</strong> for manual email requests.</li>
+    </ul>
+
+    <div class="footer">
+      <span>&copy; 2026 Callipolis Inc.</span>
+      <span>
+        <a href="/privacy.html">Privacy Policy</a> &bull;
+        <a href="/">Back to Noticed</a>
+      </span>
+    </div>
+  </div>
+</body>
+</html>

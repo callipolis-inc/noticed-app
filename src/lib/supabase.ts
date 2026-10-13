@@ -28,6 +28,96 @@ export const isSupabaseConfigured = Boolean(
 );
 
 /**
+ * Instant Sign-Up with Email & Password (supports auto-login when Confirm Email is OFF)
+ */
+export async function signUpWithPassword(email: string, password: string) {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured. Please check your .env file.");
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email: email.trim().toLowerCase(),
+    password,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Sign-In with Email & Password
+ */
+export async function signInWithPassword(email: string, password: string) {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured. Please check your .env file.");
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Sign-In with Google OAuth (Web & Android)
+ */
+export async function signInWithGoogle() {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured. Please check your .env file.");
+  }
+
+  const redirectTo =
+    typeof window !== "undefined" ? window.location.origin : undefined;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo,
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Sends a password reset email via Supabase Auth Custom SMTP (Gmail SMTP)
+ */
+export async function sendPasswordResetEmail(email: string) {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured. Please check your .env file.");
+  }
+
+  const redirectTo =
+    typeof window !== "undefined" ? window.location.origin : undefined;
+
+  const { data, error } = await supabase.auth.resetPasswordForEmail(
+    email.trim().toLowerCase(),
+    {
+      redirectTo,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
  * Sends a 6-digit OTP code to the provided email address
  */
 export async function sendEmailOtp(email: string) {

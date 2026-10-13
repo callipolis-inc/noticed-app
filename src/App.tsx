@@ -359,9 +359,16 @@ export function App() {
       }
     });
 
-    const { data: authListener } = onAuthStateChange((_event, session) => {
+    const { data: authListener } = onAuthStateChange((event, session) => {
       if (session?.user?.email) {
         setUserEmail(session.user.email);
+        if (event === "PASSWORD_RECOVERY") {
+          setIsProfileOpen(true);
+          showFlyout(
+            "Password recovery active — tap Change Password in Profile",
+            4500
+          );
+        }
       } else {
         setUserEmail(null);
       }
