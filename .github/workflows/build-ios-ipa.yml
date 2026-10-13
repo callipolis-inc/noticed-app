@@ -24,6 +24,11 @@ jobs:
   build-ipa:
     name: Build & Package Noticed.ipa
     runs-on: macos-14
+
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://ienbkpjldpzaewzewxfz.supabase.co' }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllbmJrcGpsZHB6YWV3emV3eGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMDY2MTgsImV4cCI6MjEwNjY4MjYxOH0.gDj4PReSQrI50LfM8tAZbbzAOsxVrvi8sIuLT7GqP_Q' }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
