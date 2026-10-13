@@ -44,7 +44,10 @@ export function LegalModal({
 
   const handleOpenWeb = () => {
     triggerHaptic("medium");
-    const url = activeTab === "privacy" ? "/privacy.html" : "/terms.html";
+    const isOnline = typeof navigator !== "undefined" && navigator.onLine;
+    const url = isOnline
+      ? (activeTab === "privacy" ? "https://noticed.app/privacy" : "https://noticed.app/terms")
+      : (activeTab === "privacy" ? "/privacy.html" : "/terms.html");
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
