@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote, TextAlign, FontChoice, PhotoMeta } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { generateId } from "@/lib/utils";
 import {
   processPhotoFile,
@@ -76,6 +78,8 @@ export function CreateNoteSheet({
   onSaveNote,
   onUpdateNote,
 }: CreateNoteSheetProps) {
+  useLockBodyScroll(isOpen);
+
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
   const [textAlign, setTextAlign] = useState<TextAlign>(defaultTextAlign);
@@ -672,7 +676,9 @@ export function CreateNoteSheet({
     videos.length > 0 ||
     recorder.recordedAudio !== null;
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 pointer-events-none">
@@ -1385,6 +1391,7 @@ export function CreateNoteSheet({
           )}
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

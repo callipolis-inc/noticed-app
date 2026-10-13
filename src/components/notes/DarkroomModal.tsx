@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FilmFilter, PhotoMeta } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
   Sliders,
@@ -71,6 +72,8 @@ export function DarkroomModal({
   initialMeta,
   onSave,
 }: DarkroomModalProps) {
+  useLockBodyScroll(isOpen);
+
   const [filter, setFilter] = useState<FilmFilter>(
     initialMeta?.filter || "natural",
   );

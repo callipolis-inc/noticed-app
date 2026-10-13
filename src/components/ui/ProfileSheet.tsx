@@ -1,7 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
   Camera,
@@ -80,6 +82,8 @@ export function ProfileSheet({
   lastSyncedAt,
   onTriggerSync,
 }: ProfileSheetProps) {
+  useLockBodyScroll(isOpen);
+
   // Local state for inline author name and bio editing
   const [editingName, setEditingName] = useState(userName);
   const [editingBio, setEditingBio] = useState(authorBio);
@@ -101,6 +105,7 @@ export function ProfileSheet({
   // Archive Vault Sub-Modal State
   const [isArchiveVaultOpen, setIsArchiveVaultOpen] = useState(false);
   const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
+  const [noteToDelete, setNoteToDelete] = useState<FieldNote | null>(null);
 
   // File Inputs
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -341,7 +346,9 @@ export function ProfileSheet({
     }
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 pointer-events-none">
@@ -1077,14 +1084,8 @@ export function ProfileSheet({
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      if (
-                                        window.confirm(
-                                          "Permanently delete this archived note?",
-                                        )
-                                      ) {
-                                        triggerHaptic("heavy");
-                                        onDeleteNote(note.id);
-                                      }
+                                      triggerHaptic("medium");
+                                      setNoteToDelete(note);
                                     }}
                                     className="p-1 rounded-full text-[var(--text-tertiary)] hover:text-rose-500 active:scale-90 transition-colors"
                                     title="Delete permanently"
@@ -1104,8 +1105,66 @@ export function ProfileSheet({
             )}
           </AnimatePresence>
 
+          {/* In-App Permanent Delete Confirmation Dialog */}
+          <AnimatePresence>
+            {noteToDelete && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setNoteToDelete(null)}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto"
+                />
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                  className="relative w-full max-w-xs dynamic-island-shell rounded-3xl p-5 z-10 pointer-events-auto border border-[var(--glass-border)] shadow-2xl text-center"
+                >
+                  <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                    <Trash2 className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-serif font-bold text-sm text-[var(--text-primary)]">
+                    Permanently Delete Note?
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1 mb-4 leading-relaxed">
+                    This note will be permanently purged from your device and cannot be recovered.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setNoteToDelete(null);
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl border border-[var(--glass-border)] text-xs font-medium text-[var(--text-primary)] inner-pseudo-glass cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (noteToDelete) {
+                          triggerHaptic("heavy");
+                          onDeleteNote?.(noteToDelete.id);
+                          setNoteToDelete(null);
+                        }
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

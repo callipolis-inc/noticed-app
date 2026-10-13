@@ -1,6 +1,8 @@
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemePalette, FontChoice, TextAlign, ImageFrameSize } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
   AlignLeft,
@@ -129,6 +131,8 @@ export function ThemeSelectorSheet({
   onSelectImageFrameSize,
   notebookName,
 }: ThemeSelectorSheetProps) {
+  useLockBodyScroll(isOpen);
+
   const handleSelectTheme = (id: ThemePalette) => {
     triggerHaptic("medium");
     onSelectTheme(id);
@@ -160,7 +164,9 @@ export function ThemeSelectorSheet({
   const activeThemeObj =
     THEME_OPTIONS.find((t) => t.id === currentTheme) || THEME_OPTIONS[0];
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:p-4 pointer-events-none">
@@ -469,6 +475,7 @@ export function ThemeSelectorSheet({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

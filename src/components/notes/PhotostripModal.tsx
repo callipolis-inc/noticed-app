@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldNote, Space, ThemePalette } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { formatNoteDate } from "@/lib/utils";
 import { toSuperscriptNumber } from "./TextHighlighter";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
   Download,
@@ -145,6 +147,8 @@ export function PhotostripModal({
   space,
   defaultTheme = "alabaster",
 }: PhotostripModalProps) {
+  useLockBodyScroll(isOpen);
+
   const [paperTheme, setPaperTheme] = useState<ThemePalette>(defaultTheme);
   const [aspectRatio, setAspectRatio] = useState<CardAspectRatio>("4:5");
   const [layoutMode, setLayoutMode] = useState<CardLayoutMode>("excerpt");
@@ -661,7 +665,9 @@ export function PhotostripModal({
   const previewPhotos =
     layoutMode === "photostrip" ? photos : hasPhotos ? [photos[0]] : [];
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -1052,6 +1058,7 @@ export function PhotostripModal({
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

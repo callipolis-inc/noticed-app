@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { sendEmailOtp, verifyEmailOtp } from "@/lib/supabase";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
   Mail,
@@ -22,6 +23,8 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
+  useLockBodyScroll(isOpen);
+
   const [step, setStep] = useState<"email" | "otp" | "success">("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);

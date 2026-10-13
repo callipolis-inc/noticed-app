@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote, FilterCategory } from "@/types";
 import { formatTimeOnly, formatNoteRelativeDate } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   Search,
   X,
@@ -50,6 +52,8 @@ export function SpotlightSearchModal({
   activeSpaceId,
   onSelectNote,
 }: SpotlightSearchModalProps) {
+  useLockBodyScroll(isOpen);
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<FilterCategory>("all");
   const [timeframe, setTimeframe] = useState<
@@ -224,7 +228,9 @@ export function SpotlightSearchModal({
     );
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 pointer-events-none">
@@ -533,6 +539,7 @@ export function SpotlightSearchModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

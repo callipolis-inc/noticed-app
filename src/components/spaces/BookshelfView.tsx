@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Space, CoverStyle, FontChoice } from "@/types";
 import {
@@ -10,6 +11,7 @@ import {
 } from "./BookshelfSpine";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { getTimeGreeting } from "@/lib/greetings";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   ArrowRight,
   ArrowLeft,
@@ -25,6 +27,7 @@ import {
   LayoutGrid,
   Check,
   Share2,
+  Archive,
 } from "lucide-react";
 
 export interface BookshelfViewProps {
@@ -257,6 +260,9 @@ export function BookshelfView({
   const [shelfLayout, setShelfLayout] = useState<"spines" | "covers">(
     defaultShelfLayout,
   );
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+
+  useLockBodyScroll(isCreating || isEditing || isArchiveConfirmOpen);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -379,18 +385,8 @@ export function BookshelfView({
 
   const handleDeleteActive = () => {
     if (!activeSelected) return;
-    if (
-      window.confirm(
-        `Archive and remove "${activeSelected.name}" from bookshelf?`,
-      )
-    ) {
-      triggerHaptic("heavy");
-      if (onDeleteSpace) {
-        onDeleteSpace(activeSelected.id);
-      }
-      setIsEditing(false);
-      setSelectedId(spaces.find((s) => s.id !== activeSelected.id)?.id || "");
-    }
+    triggerHaptic("medium");
+    setIsArchiveConfirmOpen(true);
   };
 
   const handleCreateSubmit = (e: React.FormEvent) => {
@@ -1631,6 +1627,71 @@ export function BookshelfView({
           </div>
         </div>
       )}
+
+      {/* 5. IN-APP ARCHIVE VOLUME CONFIRMATION MODAL */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {isArchiveConfirmOpen && activeSelected && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-none">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsArchiveConfirmOpen(false)}
+                  className="fixed inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto"
+                />
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                  className="relative w-full max-w-xs dynamic-island-shell rounded-3xl p-5 z-10 pointer-events-auto border border-[var(--glass-border)] shadow-2xl text-center"
+                >
+                  <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                    <Archive className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-serif font-bold text-sm text-[var(--text-primary)]">
+                    Archive Notebook?
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1.5 mb-4 leading-relaxed">
+                    Archive &ldquo;{activeSelected.name}&rdquo; and remove it from your active bookshelf? All notes will remain preserved in your archive vault.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setIsArchiveConfirmOpen(false);
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl border border-[var(--glass-border)] text-xs font-medium text-[var(--text-primary)] inner-pseudo-glass cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("heavy");
+                        if (onDeleteSpace) {
+                          onDeleteSpace(activeSelected.id);
+                        }
+                        setIsArchiveConfirmOpen(false);
+                        setIsEditing(false);
+                        setSelectedId(
+                          spaces.find((s) => s.id !== activeSelected.id)?.id || "",
+                        );
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                    >
+                      Archive Volume
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
     </div>
   );
 }

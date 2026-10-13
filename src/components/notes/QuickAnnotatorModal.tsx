@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FieldNote, MarginaliaItem } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { generateId, formatTimeOnly } from "@/lib/utils";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
   Check,
@@ -40,6 +41,8 @@ export function QuickAnnotatorModal({
   note,
   onSaveMarginalia,
 }: QuickAnnotatorModalProps) {
+  useLockBodyScroll(isOpen);
+
   // Retain note during exit animation when parent sets `note` to null
   const [cachedNote, setCachedNote] = useState<FieldNote | null>(note);
   useEffect(() => {

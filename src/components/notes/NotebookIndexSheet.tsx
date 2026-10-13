@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldNote, Space } from "@/types";
 import { formatTimeOnly, formatNoteDate } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { toSuperscriptNumber } from "./TextHighlighter";
 import { X, Pin, BookOpen, Quote, ArrowUpRight, ListTree } from "lucide-react";
 
@@ -23,6 +25,8 @@ export function NotebookIndexSheet({
   groupedNotes,
   onSelectNote,
 }: NotebookIndexSheetProps) {
+  useLockBodyScroll(isOpen);
+
   const [activeTab, setActiveTab] = useState<IndexTab>("all");
 
   const allNotes = useMemo(() => {
@@ -89,7 +93,9 @@ export function NotebookIndexSheet({
     onClose();
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 pointer-events-none">
@@ -392,6 +398,7 @@ export function NotebookIndexSheet({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

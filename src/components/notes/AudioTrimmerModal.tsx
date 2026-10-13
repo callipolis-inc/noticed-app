@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   Scissors,
   Play,
@@ -42,6 +43,8 @@ export function AudioTrimmerModal({
   file,
   onTrimComplete,
 }: AudioTrimmerModalProps) {
+  useLockBodyScroll(isOpen);
+
   const [isDecoding, setIsDecoding] = useState(true);
   const [decodeError, setDecodeError] = useState<string | null>(null);
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);

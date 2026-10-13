@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { formatNoteDate, formatTimeOnly } from "@/lib/utils";
 import { toSuperscriptNumber } from "../notes/TextHighlighter";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
   Printer,
@@ -32,6 +34,8 @@ export function ManuscriptExportModal({
   userName = "Author",
   authorBio,
 }: ManuscriptExportModalProps) {
+  useLockBodyScroll(isOpen);
+
   const [paperFormat, setPaperFormat] = useState<PaperFormat>("a4");
   const [includeCover, setIncludeCover] = useState(true);
   const [includeIndex, setIncludeIndex] = useState(true);
@@ -147,7 +151,9 @@ export function ManuscriptExportModal({
     }
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center items-center select-none manuscript-print-active-host">
         {/* Backdrop */}
@@ -595,6 +601,7 @@ export function ManuscriptExportModal({
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

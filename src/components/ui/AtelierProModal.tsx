@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Video, Music, Image as ImageIcon, Cloud, X, Check } from "lucide-react";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { setProUser, useProStatus } from "@/lib/proManager";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { LegalModal, LegalTab } from "./LegalModal";
 
 interface AtelierProModalProps {
@@ -17,6 +18,8 @@ export function AtelierProModal({
   onClose,
   triggerFeature,
 }: AtelierProModalProps) {
+  useLockBodyScroll(isOpen);
+
   const isPro = useProStatus();
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>("terms");

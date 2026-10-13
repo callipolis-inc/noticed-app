@@ -102,14 +102,14 @@ export function CreateNoteMarkdownToolbar({
                       triggerHaptic("light");
                       setTextAlign(opt.id);
                     }}
-                    className={`p-1 rounded-full transition-all cursor-pointer ${
+                    className={`p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center rounded-full transition-all cursor-pointer ${
                       isActive
                         ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] shadow-xs"
                         : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     }`}
                     title={opt.label}
                   >
-                    <Icon className="w-3 h-3 stroke-[2]" />
+                    <Icon className="w-3.5 h-3.5 stroke-[2]" />
                   </button>
                 );
               })}
@@ -117,11 +117,11 @@ export function CreateNoteMarkdownToolbar({
           </div>
 
           {/* Baris 2: Markdown Quick Actions */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             <button
               type="button"
               onClick={() => onApplyMarkdownWrap("**", "**", "bold")}
-              className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0"
+              className="px-2.5 py-1.5 min-h-[30px] rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0"
               title="Bold (Cmd+B)"
             >
               <Bold className="w-3.5 h-3.5 stroke-[2.4]" />
@@ -131,7 +131,7 @@ export function CreateNoteMarkdownToolbar({
             <button
               type="button"
               onClick={() => onApplyMarkdownWrap("*", "*", "italic")}
-              className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0"
+              className="px-2.5 py-1.5 min-h-[30px] rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0"
               title="Italic (Cmd+I)"
             >
               <Italic className="w-3.5 h-3.5 stroke-[2.2]" />

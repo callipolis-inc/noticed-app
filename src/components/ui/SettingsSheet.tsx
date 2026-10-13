@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { ThemePalette, Space, FieldNote } from "@/types";
+import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
   X,
   Trash2,
@@ -66,6 +68,8 @@ export function SettingsSheet({
   notes = [],
   onStorageOptimized,
 }: SettingsSheetProps) {
+  useLockBodyScroll(isOpen);
+
   // Danger Zone Confirmation Modal
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [confirmInput, setConfirmInput] = useState("");
@@ -138,7 +142,9 @@ export function SettingsSheet({
     "Custom";
   const scalePercent = Math.round((fontSize / 15.5) * 100);
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 pointer-events-none">
@@ -802,6 +808,7 @@ export function SettingsSheet({
           />
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
