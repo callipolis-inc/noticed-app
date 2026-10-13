@@ -4,31 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacy Policy — Noticed: Private Field Notes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #FBF9F5;
-      --card: #FFFFFF;
-      --text: #1C1917;
-      --muted: #57534E;
-      --border: #E7E2D8;
-      --accent: #D95D39;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #121214;
-        --card: #1A1A1E;
-        --text: #F5F5F4;
-        --muted: #A8A29E;
-        --border: #2C2C32;
-      }
+      --bg: #050708;
+      --card: #0B0E11;
+      --text: #FFFFFF;
+      --muted: rgba(255, 255, 255, 0.68);
+      --subtle: rgba(255, 255, 255, 0.42);
+      --border: rgba(255, 255, 255, 0.12);
     }
     body {
       margin: 0;
-      padding: 40px 20px;
+      padding: 56px 20px;
       background-color: var(--bg);
+      background-image: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(255, 255, 255, 0.07) 0%, transparent 70%);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      line-height: 1.65;
+      line-height: 1.7;
+      font-weight: 300;
     }
     .container {
       max-width: 720px;
@@ -36,56 +32,67 @@
       background-color: var(--card);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 48px 36px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+      padding: 52px 44px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75);
     }
     .brand {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 13px;
+      font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
       letter-spacing: 3px;
       text-transform: uppercase;
-      color: var(--accent);
-      font-weight: 700;
-      margin-bottom: 8px;
+      color: var(--subtle);
+      margin-bottom: 12px;
     }
     h1 {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 32px;
-      margin: 0 0 8px 0;
+      font-family: "Cormorant Garamond", Garamond, Georgia, serif;
+      font-size: 46px;
+      font-weight: 300;
+      margin: 0 0 12px 0;
+      letter-spacing: -0.5px;
     }
     .meta {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 32px;
+      font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--subtle);
+      margin-bottom: 36px;
       padding-bottom: 24px;
       border-bottom: 1px solid var(--border);
     }
     h2 {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 20px;
-      margin-top: 32px;
+      font-family: "Cormorant Garamond", Garamond, Georgia, serif;
+      font-size: 26px;
+      font-weight: 400;
+      color: #FFFFFF;
+      margin-top: 36px;
       margin-bottom: 12px;
     }
     p, li {
       font-size: 15px;
       color: var(--muted);
     }
+    strong {
+      color: #FFFFFF;
+      font-weight: 500;
+    }
     ul {
       padding-left: 20px;
     }
     a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-    a:hover {
+      color: #FFFFFF;
       text-decoration: underline;
+      text-underline-offset: 4px;
     }
     .footer {
-      margin-top: 40px;
+      margin-top: 48px;
       padding-top: 24px;
       border-top: 1px solid var(--border);
-      font-size: 13px;
-      color: var(--muted);
+      font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--subtle);
       display: flex;
       justify-content: space-between;
       flex-wrap: wrap;
@@ -95,7 +102,7 @@
 </head>
 <body>
   <div class="container">
-    <div class="brand">Noticed &bull; Callipolis Inc.</div>
+    <div class="brand">Official Policy &bull; Callipolis Inc.</div>
     <h1>Privacy Policy</h1>
     <div class="meta">Effective Date: October 13, 2026 &bull; Sovereign Offline-First Architecture</div>
 
@@ -103,9 +110,9 @@
       <strong>Noticed: Private Field Notes</strong> (&ldquo;Noticed&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) is built on a core principle: your personal thoughts, journals, and marginalia belong exclusively to you.
     </p>
 
-    <h2>1. Local-First & Offline by Default</h2>
+    <h2>1. Local-First &amp; Offline by Default</h2>
     <p>
-      By default, all notebooks, field notes, photos, and voice memos created in Noticed are stored locally on your device using encrypted browser/native storage (IndexedDB &amp; local storage). You can use Noticed indefinitely without ever creating an account or transmitting data to our servers.
+      By default, all notebooks, field notes, photos, and voice memos created in Noticed are stored locally on your physical device using encrypted browser/native storage (IndexedDB &amp; local storage). You can use Noticed indefinitely without ever creating an account or transmitting data to our servers.
     </p>
 
     <h2>2. Optional Cloud Synchronization</h2>
@@ -143,7 +150,7 @@
     </p>
 
     <div class="footer">
-      <span>&copy; 2026 Callipolis Inc. All rights reserved.</span>
+      <span>&copy; 2026 Callipolis Inc.</span>
       <span>
         <a href="/">Home</a> &bull;
         <a href="/account-deletion.html">Account Deletion</a>
