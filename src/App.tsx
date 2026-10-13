@@ -95,6 +95,10 @@ import {
   isLegacyDummyNoteId,
 } from "@/lib/syncEngine";
 import {
+  DEMO_SHOWCASE_SPACES,
+  DEMO_SHOWCASE_NOTES,
+} from "@/lib/showcaseData";
+import {
   ArrowLeft,
   Palette,
   PenLine,
@@ -168,6 +172,14 @@ export function App() {
 
   const initialSanitized = useMemo(() => {
     try {
+      const urlParams =
+        typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search)
+          : null;
+      if (urlParams?.get("demo") === "1") {
+        return { spaces: DEMO_SHOWCASE_SPACES, notes: DEMO_SHOWCASE_NOTES };
+      }
+
       const savedSpacesStr =
         typeof window !== "undefined"
           ? localStorage.getItem("sidenotes_spaces")
@@ -197,10 +209,23 @@ export function App() {
   });
 
   const [currentView, setCurrentView] = useState<"bookshelf" | "notebook">(
-    "bookshelf",
+    () => {
+      if (typeof window !== "undefined") {
+        const v = new URLSearchParams(window.location.search).get("view");
+        if (v === "bookshelf" || v === "notebook") return v;
+      }
+      return "bookshelf";
+    },
   );
   const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return (
+        new URLSearchParams(window.location.search).get("sheet") === "profile"
+      );
+    }
+    return false;
+  });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeMenuNoteId, setActiveMenuNoteId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>(() => {
@@ -266,7 +291,14 @@ export function App() {
   const [highlightedNoteId, setHighlightedNoteId] = useState<string | null>(
     null,
   );
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return (
+        new URLSearchParams(window.location.search).get("sheet") === "create"
+      );
+    }
+    return false;
+  });
   const [editingNote, setEditingNote] = useState<FieldNote | null>(null);
   const [photostripNote, setPhotostripNote] = useState<FieldNote | null>(null);
   const [annotatorNote, setAnnotatorNote] = useState<FieldNote | null>(null);
@@ -499,6 +531,14 @@ export function App() {
   useEffect(() => {
     let isMounted = true;
     (async () => {
+      if (
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get("demo") === "1"
+      ) {
+        setIsHydrated(true);
+        return;
+      }
+
       const [idbSpaces, idbNotes] = await Promise.all([
         loadFromAtelierDB<Space[]>("sidenotes_spaces"),
         loadFromAtelierDB<FieldNote[]>("sidenotes_notes"),

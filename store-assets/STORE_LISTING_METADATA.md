@@ -109,7 +109,25 @@ notes,journal,diary,notebook,offline,writer,markdown,darkroom,polaroid,aesthetic
    - **File:** `store-assets/GooglePlay-FeatureGraphic-1024x500.png`
    - **Dimensions:** 1024 × 500 px (PNG, no alpha)
 3. **Phone Screenshots:**
-   - Minimum 4 screenshots (aspect ratio 16:9 or 9:16, e.g. 1080 × 1920 px or 1080 × 2400 px).
+   - **Folder:** `store-assets/screenshots/android-phone/`
+   - **Dimensions:** 1080 × 2400 px (Aspect ratio 9:20 / 9:16 portrait)
+   - **Files:**
+     - `01-bookshelf-library.png`: Tampilan rak buku & edisi buku klasik
+     - `02-notebook-chronicle.png`: Kronologi catatan editorial & foto polaroid
+     - `03-create-field-note.png`: Komposer catatan lapangan markdown & tipografi
+     - `04-author-profile-vault.png`: Vault profil penulis, statistik & privasi offline
+
+---
+
+### 📸 Tangkapan Layar Lengkap yang Sudah Digenerate
+
+Semua file tangkapan layar telah ditangkap secara otomatis dengan browser headless beresolusi native tinggi dengan data demo editorial:
+
+| Folder | Perangkat / Resolusi | Kegunaan di Toko |
+|---|---|---|
+| `store-assets/screenshots/ios-6.7-inch/` | **1290 × 2796 px** | Wajib untuk iPhone 16 Pro Max / 15 Pro Max di App Store Connect |
+| `store-assets/screenshots/ios-6.5-inch/` | **1242 × 2688 px** | Wajib untuk iPhone 14 Plus / 11 Pro Max / XS Max di App Store Connect |
+| `store-assets/screenshots/android-phone/` | **1080 × 2400 px** | Wajib untuk Google Play Store Phone Screenshots (min. 4 gambar) |
 
 ---
 
@@ -150,4 +168,4 @@ Saat mengisi formulir **Data Safety** di Google Play Console:
 - [x] Halaman Privacy Policy & Terms of Service live di `https://noticed.app/privacy` dan `/terms`.
 - [x] Master App Icon 1024x1024 (Format 24bpp RGB tanpa alpha) siap di `store-assets/`.
 - [x] Feature Graphic Google Play 1024x500 siap di `store-assets/`.
-- [ ] Ambil 4–5 screenshot menggunakan iOS Simulator / Android Emulator untuk upload konsol.
+- [x] Paket lengkap tangkapan layar 1290x2796 (iOS 6.7"), 1242x2688 (iOS 6.5"), dan 1080x2400 (Android) siap di `store-assets/screenshots/`.
