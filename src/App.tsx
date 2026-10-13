@@ -483,6 +483,9 @@ export function App() {
   const handleAuthSuccess = (email: string) => {
     setUserEmail(email);
     showFlyout(`Signed in as ${email}`, 2500);
+    setTimeout(() => {
+      handleCloudSync({ silent: false });
+    }, 400);
   };
 
   const handleSignOut = async () => {
