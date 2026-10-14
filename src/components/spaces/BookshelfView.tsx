@@ -1122,6 +1122,7 @@ export function BookshelfView({
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
+                title="Close"
                 className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs"
               >
                 <X className="w-3.5 h-3.5 stroke-[2.2]" />

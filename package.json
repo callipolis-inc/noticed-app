@@ -11,7 +11,8 @@
     "cap:sync:android": "npx cap sync android",
     "cap:build": "npm run build && npx cap sync",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "node scripts/run-e2e-tests.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
@@ -35,6 +36,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "oxlint": "^1.87.0",
+    "playwright": "^1.64.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3"
   }
