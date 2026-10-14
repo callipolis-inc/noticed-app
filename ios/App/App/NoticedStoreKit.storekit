@@ -1,0 +1,110 @@
+{
+  "identifier" : "E2B38F70-NOTICED-STOREKIT",
+  "nonProducts" : [ ],
+  "products" : [
+    {
+      "displayPrice" : "499000",
+      "familyShareable" : false,
+      "internalID" : "NOTICED-LIFETIME-001",
+      "localizations" : [
+        {
+          "description" : "Akses tak terbatas selamanya ke seluruh fitur Atelier Pro.",
+          "displayName" : "All-Time Patron",
+          "locale" : "id"
+        },
+        {
+          "description" : "Unlimited lifetime access to all Atelier Pro features.",
+          "displayName" : "All-Time Patron",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "noticed_pro_lifetime",
+      "referenceName" : "All-Time Patron (Lifetime)",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "com.syntheticae.noticed",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "id_ID",
+    "_storefront" : "IDN",
+    "_storeKitErrors" : [ ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "NOTICED-SUBGROUP-001",
+      "localizations" : [
+        {
+          "description" : "Langganan Atelier Pro",
+          "displayName" : "Atelier Pro Subscriptions",
+          "locale" : "id"
+        },
+        {
+          "description" : "Atelier Pro Subscriptions",
+          "displayName" : "Atelier Pro Subscriptions",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Atelier Pro Subscriptions",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [ ],
+          "codeOffers" : [ ],
+          "displayPrice" : "39000",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "NOTICED-MONTHLY-001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Akses penuh bulanan ke Atelier Pro.",
+              "displayName" : "Monthly Scribe",
+              "locale" : "id"
+            },
+            {
+              "description" : "Full monthly access to Atelier Pro.",
+              "displayName" : "Monthly Scribe",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "noticed_pro_monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Monthly Scribe",
+          "subscriptionGroupID" : "NOTICED-SUBGROUP-001",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [ ],
+          "codeOffers" : [ ],
+          "displayPrice" : "299000",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "NOTICED-ANNUAL-001",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Akses penuh tahunan ke Atelier Pro (hemat 36%).",
+              "displayName" : "Annual Folio",
+              "locale" : "id"
+            },
+            {
+              "description" : "Full annual access to Atelier Pro (save 36%).",
+              "displayName" : "Annual Folio",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "noticed_pro_annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Annual Folio",
+          "subscriptionGroupID" : "NOTICED-SUBGROUP-001",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
