@@ -47,6 +47,10 @@ export interface MarginaliaItem {
 export type HighlightStyle = 'graphite' | 'sepia' | 'cobalt';
 export type TextAlign = 'left' | 'center' | 'right' | 'justify';
 export type ImageFrameSize = 'compact' | 'editorial' | 'full';
+export type ImagePosition = 'top' | 'bottom';
+export type PhotoAspectRatio = 'original' | '4/3' | '1/1' | '16/9';
+export type FrameMode = 'polaroid' | 'borderless' | 'archival';
+export type LineSpacing = 'compact' | 'editorial' | 'spacious';
 
 export interface TextHighlight {
   id: string;
@@ -65,7 +69,8 @@ export interface PhotoMeta {
   filter?: FilmFilter;
   caption?: string;
   hasGrain?: boolean;
-  frameMode?: 'polaroid' | 'borderless';
+  frameMode?: FrameMode;
+  aspectRatio?: PhotoAspectRatio;
 }
 
 export interface FieldNote {
@@ -75,6 +80,8 @@ export interface FieldNote {
   content: string;
   textAlign?: TextAlign;
   fontChoice?: FontChoice;
+  imagePosition?: ImagePosition;
+  lineSpacing?: LineSpacing;
   locationName?: string;
   photos?: string[];
   photosMeta?: PhotoMeta[];

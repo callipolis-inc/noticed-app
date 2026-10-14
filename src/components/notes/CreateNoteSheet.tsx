@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Space, FieldNote, TextAlign, FontChoice, PhotoMeta } from "@/types";
+import { Space, FieldNote, TextAlign, FontChoice, PhotoMeta, ImagePosition } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { generateId } from "@/lib/utils";
+import { EditorialMarkdown } from "@/lib/markdownRenderer";
 import {
   processPhotoFile,
   processVideoFile,
@@ -63,6 +64,7 @@ interface CreateNoteSheetProps {
   defaultSpaceId: string;
   defaultTextAlign?: TextAlign;
   defaultFontChoice?: FontChoice;
+  defaultImagePosition?: ImagePosition;
   editingNote?: FieldNote | null;
   onSaveNote: (note: FieldNote) => void;
   onUpdateNote?: (note: FieldNote) => void;
@@ -75,6 +77,7 @@ export function CreateNoteSheet({
   defaultSpaceId,
   defaultTextAlign = "left",
   defaultFontChoice = "editorial",
+  defaultImagePosition = "bottom",
   editingNote = null,
   onSaveNote,
   onUpdateNote,
@@ -89,6 +92,15 @@ export function CreateNoteSheet({
     const s = spaces.find((sp) => sp.id === defaultSpaceId);
     return s?.fontChoice || defaultFontChoice || "editorial";
   });
+  const [imagePosition, setImagePosition] = useState<ImagePosition>(
+    () => editingNote?.imagePosition || defaultImagePosition || "bottom",
+  );
+  const [isPreview, setIsPreview] = useState(false);
+  const [selection, setSelection] = useState<{
+    start: number;
+    end: number;
+    text: string;
+  }>({ start: 0, end: 0, text: "" });
   const [selectedSpaceId, setSelectedSpaceId] = useState(defaultSpaceId);
   const [locationName, setLocationName] = useState("");
   const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -205,6 +217,11 @@ export function CreateNoteSheet({
       const validDate = !isNaN(d.getTime()) ? d : new Date();
       setNoteDate(toDateInputString(validDate));
       setNoteTime(toTimeInputString(validDate));
+      setImagePosition(
+        editingNote.imagePosition || defaultImagePosition || "bottom",
+      );
+      setIsPreview(false);
+      setSelection({ start: 0, end: 0, text: "" });
     } else {
       setContent("");
       setTitle("");
@@ -226,6 +243,9 @@ export function CreateNoteSheet({
       const now = new Date();
       setNoteDate(toDateInputString(now));
       setNoteTime(toTimeInputString(now));
+      setImagePosition(defaultImagePosition || "bottom");
+      setIsPreview(false);
+      setSelection({ start: 0, end: 0, text: "" });
     }
 
     setTimeout(() => {
@@ -237,6 +257,7 @@ export function CreateNoteSheet({
     defaultSpaceId,
     defaultTextAlign,
     defaultFontChoice,
+    defaultImagePosition,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleTriggerPhotoSelect = () => {
@@ -492,6 +513,7 @@ export function CreateNoteSheet({
               audioUrl: recorder.recordedAudio.url || undefined,
             }
           : undefined,
+        imagePosition,
         createdAt: finalCreatedAt,
       };
 
@@ -529,6 +551,7 @@ export function CreateNoteSheet({
             audioUrl: recorder.recordedAudio.url || undefined,
           }
         : undefined,
+      imagePosition,
       createdAt: finalCreatedAt,
     };
 
@@ -540,12 +563,100 @@ export function CreateNoteSheet({
     setCitationText("");
     setIsMarginaliaOpen(false);
     setIsFormattingOpen(false);
+    setIsPreview(false);
+    setSelection({ start: 0, end: 0, text: "" });
+    setImagePosition(defaultImagePosition || "bottom");
     setPhotos([]);
     setVideos([]);
     recorder.setRecordedAudio(null);
     setLocationName("");
     onClose();
   };
+
+  const updateSelection = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) {
+      setSelection({ start: 0, end: 0, text: "" });
+      return;
+    }
+    const start = el.selectionStart ?? 0;
+    const end = el.selectionEnd ?? 0;
+    const text = start !== end ? el.value.substring(start, end) : "";
+    setSelection({ start, end, text });
+  }, []);
+
+  const isSelectionBold = useMemo(() => {
+    if (!selection.text) return false;
+    const { start, end, text } = selection;
+    if (text.startsWith("**") && text.endsWith("**") && text.length >= 4)
+      return true;
+    if (
+      start >= 2 &&
+      end <= content.length - 2 &&
+      content.substring(start - 2, start) === "**" &&
+      content.substring(end, end + 2) === "**"
+    )
+      return true;
+    return false;
+  }, [selection, content]);
+
+  const isSelectionItalic = useMemo(() => {
+    if (!selection.text) return false;
+    const { start, end, text } = selection;
+    if (
+      text.startsWith("*") &&
+      text.endsWith("*") &&
+      !text.startsWith("**") &&
+      text.length >= 2
+    )
+      return true;
+    if (
+      start >= 1 &&
+      end <= content.length - 1 &&
+      content[start - 1] === "*" &&
+      (start < 2 || content[start - 2] !== "*") &&
+      content[end] === "*" &&
+      (end >= content.length - 1 || content[end + 1] !== "*")
+    )
+      return true;
+    return false;
+  }, [selection, content]);
+
+  const isSelectionStrike = useMemo(() => {
+    if (!selection.text) return false;
+    const { start, end, text } = selection;
+    if (text.startsWith("~~") && text.endsWith("~~") && text.length >= 4)
+      return true;
+    if (
+      start >= 2 &&
+      end <= content.length - 2 &&
+      content.substring(start - 2, start) === "~~" &&
+      content.substring(end, end + 2) === "~~"
+    )
+      return true;
+    return false;
+  }, [selection, content]);
+
+  const isSelectionCode = useMemo(() => {
+    if (!selection.text) return false;
+    const { start, end, text } = selection;
+    if (text.startsWith("`") && text.endsWith("`") && text.length >= 2)
+      return true;
+    if (
+      start >= 1 &&
+      end <= content.length - 1 &&
+      content[start - 1] === "`" &&
+      content[end] === "`"
+    )
+      return true;
+    return false;
+  }, [selection, content]);
+
+  const isSelectionQuote = useMemo(() => {
+    if (!selection.text) return false;
+    const lines = selection.text.split("\n");
+    return lines.length > 0 && lines.every((l) => l.startsWith("> "));
+  }, [selection]);
 
   const applyMarkdownWrap = (
     prefix: string,
@@ -562,6 +673,61 @@ export function CreateNoteSheet({
     const selectedText = currentVal.substring(start, end);
 
     if (selectedText.length > 0) {
+      // 1. Direct inside-selection unwrap (e.g. user selected "**word**")
+      if (
+        selectedText.startsWith(prefix) &&
+        selectedText.endsWith(suffix) &&
+        selectedText.length >= prefix.length + suffix.length
+      ) {
+        const isBoldVsItalicMismatch =
+          prefix === "*" &&
+          (selectedText.startsWith("**") || selectedText.endsWith("**"));
+
+        if (!isBoldVsItalicMismatch) {
+          const unwrapped = selectedText.slice(prefix.length, -suffix.length);
+          const nextVal =
+            currentVal.substring(0, start) +
+            unwrapped +
+            currentVal.substring(end);
+          setContent(nextVal);
+
+          setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(start, start + unwrapped.length);
+            updateSelection();
+          }, 10);
+          return;
+        }
+      }
+
+      // 2. Surrounding outside-selection unwrap (e.g. user selected "word" inside "**word**")
+      const before = currentVal.substring(start - prefix.length, start);
+      const after = currentVal.substring(end, end + suffix.length);
+      if (before === prefix && after === suffix) {
+        const isBoldVsItalicMismatch =
+          prefix === "*" &&
+          ((start >= 2 && currentVal[start - 2] === "*") ||
+            (end < currentVal.length - 1 && currentVal[end + 1] === "*"));
+
+        if (!isBoldVsItalicMismatch) {
+          const nextVal =
+            currentVal.substring(0, start - prefix.length) +
+            selectedText +
+            currentVal.substring(end + suffix.length);
+          setContent(nextVal);
+
+          const newStart = start - prefix.length;
+          const newEnd = newStart + selectedText.length;
+          setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(newStart, newEnd);
+            updateSelection();
+          }, 10);
+          return;
+        }
+      }
+
+      // 3. Not formatted yet -> wrap it!
       const nextVal =
         currentVal.substring(0, start) +
         prefix +
@@ -573,6 +739,7 @@ export function CreateNoteSheet({
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + prefix.length, end + prefix.length);
+        updateSelection();
       }, 10);
     } else {
       const insertText = `${prefix}${placeholder}${suffix}`;
@@ -585,6 +752,7 @@ export function CreateNoteSheet({
         const selStart = start + prefix.length;
         const selEnd = selStart + placeholder.length;
         textarea.setSelectionRange(selStart, selEnd);
+        updateSelection();
       }, 10);
     }
   };
@@ -615,13 +783,23 @@ export function CreateNoteSheet({
         textarea.focus();
         const newPos = start + dividerInsert.length;
         textarea.setSelectionRange(newPos, newPos);
+        updateSelection();
       }, 10);
       return;
     }
 
     if (selectedText.length > 0) {
       const lines = selectedText.split("\n");
-      const transformed = lines.map((l) => `${prefix}${l}`).join("\n");
+      const allHavePrefix = lines.every((l) => l.startsWith(prefix));
+      let transformed: string;
+      if (allHavePrefix) {
+        // Toggle OFF / unwrap
+        transformed = lines.map((l) => l.slice(prefix.length)).join("\n");
+      } else {
+        // Toggle ON / wrap
+        transformed = lines.map((l) => `${prefix}${l}`).join("\n");
+      }
+
       const nextVal =
         currentVal.substring(0, start) +
         leading +
@@ -635,6 +813,7 @@ export function CreateNoteSheet({
           start + leading.length,
           start + leading.length + transformed.length,
         );
+        updateSelection();
       }, 10);
     } else {
       const blockInsert = `${leading}${prefix}${placeholder}\n`;
@@ -649,6 +828,7 @@ export function CreateNoteSheet({
         const selStart = start + leading.length + prefix.length;
         const selEnd = selStart + placeholder.length;
         textarea.setSelectionRange(selStart, selEnd);
+        updateSelection();
       }, 10);
     }
   };
@@ -779,178 +959,348 @@ export function CreateNoteSheet({
               setNoteTime={setNoteTime}
               canSave={canSave}
               isEditing={Boolean(editingNote)}
+              isPreview={isPreview}
+              onTogglePreview={() => setIsPreview((prev) => !prev)}
               onClose={handleRequestClose}
               onSave={handleSave}
             />
 
-            {/* 2. Writing Pad Content */}
-            <main
-              data-font={fontChoice}
-              className="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col gap-3 relative z-10"
-            >
-              {/* Location Tag */}
-              {locationName && (
-                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] font-sans">
-                  <MapPin className="w-3 h-3 text-[var(--text-tertiary)] shrink-0" />
-                  <span
-                    onClick={() => setIsEditingLocation(true)}
-                    className="cursor-pointer hover:underline"
-                  >
-                    {locationName}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("light");
-                      setLocationName("");
-                    }}
-                    className="p-0.5 text-[var(--text-tertiary)] hover:text-rose-500 transition-colors ml-0.5 cursor-pointer"
-                    title="Remove location"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
+            {/* Reusable Media Section */}
+            {(() => {
+              const mediaSectionJsx = (
+                <CreateNoteMediaSection
+                  photos={photos}
+                  photosMeta={photosMeta}
+                  onTriggerAddPhoto={handleTriggerPhotoSelect}
+                  onRemovePhoto={handleRemovePhoto}
+                  onOpenDarkroom={(idx) => setDarkroomIndex(idx)}
+                  videos={videos}
+                  onRemoveVideo={handleRemoveVideo}
+                  isPhotoProcessing={isPhotoProcessing}
+                  isVideoProcessing={isVideoProcessing}
+                  mediaProgressMessage={mediaProgressMessage}
+                  videoError={videoError}
+                  audioError={recorder.audioError}
+                  recordedAudio={recorder.recordedAudio}
+                  onRemoveAudio={() => recorder.setRecordedAudio(null)}
+                  imagePosition={imagePosition}
+                  onToggleImagePosition={() =>
+                    setImagePosition((prev) =>
+                      prev === "top" ? "bottom" : "top",
+                    )
+                  }
+                />
+              );
 
-              {/* Location Editing Input */}
-              {isEditingLocation && (
-                <div className="p-3 rounded-2xl apple-card flex items-center gap-2 animate-in fade-in duration-150">
-                  <MapPin className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
-                  <input
-                    type="text"
-                    value={locationName}
-                    onChange={(e) => setLocationName(e.target.value)}
-                    placeholder="e.g. Kyoto, Kansai, Tuaran..."
-                    autoCapitalize="words"
-                    autoFocus
-                    className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none font-sans select-text"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingLocation(false)}
-                    className="text-xs font-semibold text-[var(--text-primary)] px-2.5 py-1 rounded-lg inner-pseudo-glass cursor-pointer"
-                  >
-                    Done
-                  </button>
-                </div>
-              )}
-
-              {/* Title Field */}
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Optional title..."
-                autoCapitalize="sentences"
-                autoCorrect="on"
-                style={{
-                  fontSize: "calc(var(--note-font-size, 16px) * 1.16)",
-                }}
-                className={`w-full bg-transparent border-0 p-0 font-serif font-bold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none tracking-tight select-text ${
-                  textAlign === "center"
-                    ? "text-center"
-                    : textAlign === "right"
-                      ? "text-right"
-                      : "text-left"
-                }`}
-              />
-
-              {/* Primary Content Editor */}
-              <textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                onKeyDown={handleEditorKeyDown}
-                placeholder="What caught your eye today?"
-                rows={6}
-                autoCapitalize="sentences"
-                autoCorrect="on"
-                style={{ fontSize: "var(--note-font-size, 16px)" }}
-                className={`w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none select-text ${
-                  textAlign === "center"
-                    ? "text-center"
-                    : textAlign === "right"
-                      ? "text-right"
-                      : textAlign === "justify"
-                        ? "text-justify"
-                        : "text-left"
-                }`}
-              />
-
-              {/* Companion Sidenote Field */}
-              {(isMarginaliaOpen || marginaliaText) && (
-                <div className="p-3.5 rounded-2xl apple-card space-y-2 mt-1 animate-in fade-in duration-150 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.85)]">
-                  <div className="flex items-center justify-between text-[11px] font-sans font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
-                    <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
-                      <span className="marginalia-stamp font-serif font-bold text-xs">
-                        ¹
+              return (
+                <main
+                  data-font={fontChoice}
+                  className="flex-1 overflow-y-auto no-scrollbar p-5 flex flex-col gap-3 relative z-10"
+                >
+                  {/* Location Tag */}
+                  {locationName && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] font-sans">
+                      <MapPin className="w-3 h-3 text-[var(--text-tertiary)] shrink-0" />
+                      <span
+                        onClick={() => setIsEditingLocation(true)}
+                        className="cursor-pointer hover:underline"
+                      >
+                        {locationName}
                       </span>
-                      <span>Companion Sidenote</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setLocationName("");
+                        }}
+                        className="p-0.5 text-[var(--text-tertiary)] hover:text-rose-500 transition-colors ml-0.5 cursor-pointer"
+                        title="Remove location"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic("light");
-                        if (!marginaliaText.trim() && !citationText.trim()) {
-                          setIsMarginaliaOpen(false);
-                        } else {
-                          setMarginaliaText("");
-                          setCitationText("");
-                          setIsMarginaliaOpen(false);
-                        }
-                      }}
-                      className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-0.5 cursor-pointer"
-                      title="Remove sidenote"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  )}
 
-                  <textarea
-                    ref={marginaliaTextareaRef}
-                    value={marginaliaText}
-                    onChange={(e) => setMarginaliaText(e.target.value)}
-                    placeholder="Side commentary, footnote, or companion thought..."
-                    rows={3}
-                    style={{
-                      fontSize: "calc(var(--note-font-size, 16px) * 0.88)",
-                    }}
-                    className="w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-serif italic text-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none"
-                  />
+                  {/* Location Editing Input */}
+                  {isEditingLocation && (
+                    <div className="p-3 rounded-2xl apple-card flex items-center gap-2 animate-in fade-in duration-150">
+                      <MapPin className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
+                      <input
+                        type="text"
+                        value={locationName}
+                        onChange={(e) => setLocationName(e.target.value)}
+                        placeholder="e.g. Kyoto, Kansai, Tuaran..."
+                        autoCapitalize="words"
+                        autoFocus
+                        className="flex-1 bg-transparent text-xs text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none font-sans select-text"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingLocation(false)}
+                        className="text-xs font-semibold text-[var(--text-primary)] px-2.5 py-1 rounded-lg inner-pseudo-glass cursor-pointer"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  )}
 
-                  <div className="pt-2 border-t border-[var(--glass-border)]/50 flex items-center gap-2">
-                    <span className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] select-none">
-                      Citation:
-                    </span>
-                    <input
-                      type="text"
-                      value={citationText}
-                      onChange={(e) => setCitationText(e.target.value)}
-                      placeholder="e.g. Orwell (1945), p. 42 (optional)"
-                      className="flex-1 bg-transparent border-0 p-0 text-[12px] font-sans text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              )}
+                  {/* Top Media Placement (Above Title/Content) */}
+                  {imagePosition === "top" && mediaSectionJsx}
 
-              {/* Media Section: Photos, Videos, Audio Player & Alerts */}
-              <CreateNoteMediaSection
-                photos={photos}
-                photosMeta={photosMeta}
-                onTriggerAddPhoto={handleTriggerPhotoSelect}
-                onRemovePhoto={handleRemovePhoto}
-                onOpenDarkroom={(idx) => setDarkroomIndex(idx)}
-                videos={videos}
-                onRemoveVideo={handleRemoveVideo}
-                isPhotoProcessing={isPhotoProcessing}
-                isVideoProcessing={isVideoProcessing}
-                mediaProgressMessage={mediaProgressMessage}
-                videoError={videoError}
-                audioError={recorder.audioError}
-                recordedAudio={recorder.recordedAudio}
-                onRemoveAudio={() => recorder.setRecordedAudio(null)}
-              />
-            </main>
+                  {/* Medium-style Floating Format Bubble */}
+                  <AnimatePresence>
+                    {selection.text.trim().length > 0 && !isPreview && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                        transition={{ duration: 0.15, ease: "easeOut" }}
+                        className="sticky top-0 z-30 self-center mx-auto mb-1.5 px-2 py-1 rounded-full bg-[var(--sheet-bg)]/95 backdrop-blur-2xl border border-[var(--glass-border)] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.22)] flex items-center gap-1 shrink-0"
+                      >
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            applyMarkdownWrap("**", "**", "bold");
+                          }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer font-bold text-xs ${
+                            isSelectionBold
+                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
+                          }`}
+                          title="Bold (toggles on/off)"
+                        >
+                          <span className="font-serif font-black text-xs">B</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            applyMarkdownWrap("*", "*", "italic");
+                          }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer text-xs ${
+                            isSelectionItalic
+                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs font-bold"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
+                          }`}
+                          title="Italic (toggles on/off)"
+                        >
+                          <span className="font-serif italic font-bold text-xs">i</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            applyMarkdownWrap("~~", "~~", "strikethrough");
+                          }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer text-xs ${
+                            isSelectionStrike
+                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs font-bold"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
+                          }`}
+                          title="Strikethrough (toggles on/off)"
+                        >
+                          <span className="line-through text-xs font-medium">S</span>
+                        </button>
+
+                        <div className="w-px h-3.5 bg-[var(--glass-border)] opacity-60 mx-0.5" />
+
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            applyMarkdownBlock("> ", "quote");
+                          }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer text-xs ${
+                            isSelectionQuote
+                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs font-bold"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
+                          }`}
+                          title="Quote (toggles on/off)"
+                        >
+                          <span className="font-serif font-bold text-xs leading-none">“</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            applyMarkdownWrap("`", "`", "code");
+                          }}
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer font-mono text-xs ${
+                            isSelectionCode
+                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs font-bold"
+                              : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
+                          }`}
+                          title="Inline Code (toggles on/off)"
+                        >
+                          <span className="text-[11px] font-mono leading-none">&lt;&gt;</span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Manuscript: Edit vs Formatted Preview */}
+                  {isPreview ? (
+                    <div className="flex-1 py-1 space-y-3 animate-in fade-in duration-200">
+                      {title.trim() && (
+                        <h1
+                          style={{
+                            fontSize:
+                              "calc(var(--note-font-size, 16px) * 1.2)",
+                          }}
+                          className={`font-serif font-bold text-[var(--text-primary)] tracking-tight ${
+                            textAlign === "center"
+                              ? "text-center"
+                              : textAlign === "right"
+                                ? "text-right"
+                                : "text-left"
+                          }`}
+                        >
+                          {title}
+                        </h1>
+                      )}
+
+                      {content.trim() ? (
+                        <EditorialMarkdown
+                          content={content}
+                          className={`leading-relaxed font-content select-text ${
+                            textAlign === "center"
+                              ? "text-center"
+                              : textAlign === "right"
+                                ? "text-right"
+                                : textAlign === "justify"
+                                  ? "text-justify"
+                                  : "text-left"
+                          }`}
+                        />
+                      ) : (
+                        <p className="font-serif italic text-xs text-[var(--text-tertiary)] opacity-60">
+                          Empty manuscript... tap Edit above to write.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {/* Title Field */}
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Optional title..."
+                        autoCapitalize="sentences"
+                        autoCorrect="on"
+                        style={{
+                          fontSize: "calc(var(--note-font-size, 16px) * 1.16)",
+                        }}
+                        className={`w-full bg-transparent border-0 p-0 font-serif font-bold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none tracking-tight select-text ${
+                          textAlign === "center"
+                            ? "text-center"
+                            : textAlign === "right"
+                              ? "text-right"
+                              : "text-left"
+                        }`}
+                      />
+
+                      {/* Primary Content Editor */}
+                      <textarea
+                        ref={textareaRef}
+                        value={content}
+                        onChange={(e) => {
+                          setContent(e.target.value);
+                          updateSelection();
+                        }}
+                        onSelect={updateSelection}
+                        onKeyUp={updateSelection}
+                        onMouseUp={updateSelection}
+                        onTouchEnd={updateSelection}
+                        onKeyDown={handleEditorKeyDown}
+                        placeholder="What caught your eye today?"
+                        rows={6}
+                        autoCapitalize="sentences"
+                        autoCorrect="on"
+                        style={{ fontSize: "var(--note-font-size, 16px)" }}
+                        className={`w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none select-text ${
+                          textAlign === "center"
+                            ? "text-center"
+                            : textAlign === "right"
+                              ? "text-right"
+                              : textAlign === "justify"
+                                ? "text-justify"
+                                : "text-left"
+                        }`}
+                      />
+                    </>
+                  )}
+
+                  {/* Companion Sidenote Field */}
+                  {(isMarginaliaOpen || marginaliaText) && (
+                    <div className="p-3.5 rounded-2xl apple-card space-y-2 mt-1 animate-in fade-in duration-150 shadow-[0_8px_20px_-6px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.85)]">
+                      <div className="flex items-center justify-between text-[11px] font-sans font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                        <div className="flex items-center gap-1.5 text-[var(--text-primary)]">
+                          <span className="marginalia-stamp font-serif font-bold text-xs">
+                            ¹
+                          </span>
+                          <span>Companion Sidenote</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            triggerHaptic("light");
+                            if (!marginaliaText.trim() && !citationText.trim()) {
+                              setIsMarginaliaOpen(false);
+                            } else {
+                              setMarginaliaText("");
+                              setCitationText("");
+                              setIsMarginaliaOpen(false);
+                            }
+                          }}
+                          className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-0.5 cursor-pointer"
+                          title="Remove sidenote"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <textarea
+                        ref={marginaliaTextareaRef}
+                        value={marginaliaText}
+                        onChange={(e) => setMarginaliaText(e.target.value)}
+                        placeholder="Side commentary, footnote, or companion thought..."
+                        rows={3}
+                        style={{
+                          fontSize: "calc(var(--note-font-size, 16px) * 0.88)",
+                        }}
+                        className="w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-serif italic text-[var(--text-secondary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none"
+                      />
+
+                      <div className="pt-2 border-t border-[var(--glass-border)]/50 flex items-center gap-2">
+                        <span className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] select-none">
+                          Citation:
+                        </span>
+                        <input
+                          type="text"
+                          value={citationText}
+                          onChange={(e) => setCitationText(e.target.value)}
+                          placeholder="e.g. Orwell (1945), p. 42 (optional)"
+                          className="flex-1 bg-transparent border-0 p-0 text-[12px] font-sans text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bottom Media Placement (Below Content & Marginalia) */}
+                  {imagePosition === "bottom" && mediaSectionJsx}
+                </main>
+              );
+            })()}
 
             {/* 3. Laci Format Teks "Aa" */}
             <CreateNoteMarkdownToolbar

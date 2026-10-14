@@ -1,6 +1,13 @@
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ThemePalette, FontChoice, TextAlign, ImageFrameSize } from "@/types";
+import {
+  ThemePalette,
+  FontChoice,
+  TextAlign,
+  ImageFrameSize,
+  ImagePosition,
+  LineSpacing,
+} from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
@@ -25,6 +32,10 @@ interface ThemeSelectorSheetProps {
   onSelectTextAlign?: (align: TextAlign) => void;
   imageFrameSize?: ImageFrameSize;
   onSelectImageFrameSize?: (size: ImageFrameSize) => void;
+  imagePosition?: ImagePosition;
+  onSelectImagePosition?: (pos: ImagePosition) => void;
+  lineSpacing?: LineSpacing;
+  onSelectLineSpacing?: (spacing: LineSpacing) => void;
   notebookName?: string;
 }
 
@@ -129,6 +140,10 @@ export function ThemeSelectorSheet({
   onSelectTextAlign,
   imageFrameSize = "editorial",
   onSelectImageFrameSize,
+  imagePosition = "bottom",
+  onSelectImagePosition,
+  lineSpacing = "editorial",
+  onSelectLineSpacing,
   notebookName,
 }: ThemeSelectorSheetProps) {
   useLockBodyScroll(isOpen);
@@ -159,6 +174,16 @@ export function ThemeSelectorSheet({
   const handleSelectImageSize = (size: ImageFrameSize) => {
     triggerHaptic("light");
     onSelectImageFrameSize?.(size);
+  };
+
+  const handleSelectImagePos = (pos: ImagePosition) => {
+    triggerHaptic("light");
+    onSelectImagePosition?.(pos);
+  };
+
+  const handleSelectSpacing = (spacing: LineSpacing) => {
+    triggerHaptic("light");
+    onSelectLineSpacing?.(spacing);
   };
 
   const activeThemeObj =
@@ -435,6 +460,40 @@ export function ThemeSelectorSheet({
                     </div>
                   )}
 
+                  {/* Media Position */}
+                  {onSelectImagePosition && (
+                    <div className="p-3 flex items-center justify-between">
+                      <div className="text-xs font-semibold text-[var(--text-primary)]">
+                        Media
+                      </div>
+
+                      <div className="p-1 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] flex items-center gap-1">
+                        {(
+                          [
+                            { id: "top", label: "Top" },
+                            { id: "bottom", label: "Bottom" },
+                          ] as const
+                        ).map((item) => {
+                          const active = imagePosition === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => handleSelectImagePos(item.id)}
+                              className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer ${
+                                active
+                                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
+                                  : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Image Frame Scale */}
                   {onSelectImageFrameSize && (
                     <div className="p-3 flex items-center justify-between">
@@ -456,6 +515,41 @@ export function ThemeSelectorSheet({
                               key={item.id}
                               type="button"
                               onClick={() => handleSelectImageSize(item.id)}
+                              className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer ${
+                                active
+                                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
+                                  : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                              }`}
+                            >
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Line Spacing */}
+                  {onSelectLineSpacing && (
+                    <div className="p-3 flex items-center justify-between">
+                      <div className="text-xs font-semibold text-[var(--text-primary)]">
+                        Leading
+                      </div>
+
+                      <div className="p-1 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] flex items-center gap-1">
+                        {(
+                          [
+                            { id: "compact", label: "Compact" },
+                            { id: "editorial", label: "Normal" },
+                            { id: "spacious", label: "Spacious" },
+                          ] as const
+                        ).map((item) => {
+                          const active = lineSpacing === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => handleSelectSpacing(item.id)}
                               className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer ${
                                 active
                                   ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"

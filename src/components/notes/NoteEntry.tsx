@@ -1,6 +1,14 @@
 import { useState, useMemo, useRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FieldNote, TextHighlight, TextAlign, ImageFrameSize } from "@/types";
+import {
+  FieldNote,
+  TextHighlight,
+  TextAlign,
+  ImageFrameSize,
+  ImagePosition,
+  LineSpacing,
+  PhotoMeta,
+} from "@/types";
 import { formatTimeOnly } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
 import { TextHighlighter, toSuperscriptNumber } from "./TextHighlighter";
@@ -30,6 +38,8 @@ interface NoteEntryProps {
   isReadingMode?: boolean;
   isFirstInGroup?: boolean;
   defaultTextAlign?: TextAlign;
+  defaultImagePosition?: ImagePosition;
+  defaultLineSpacing?: LineSpacing;
   imageFrameSize?: ImageFrameSize;
   isMenuOpen?: boolean;
   onToggleMenu?: (open: boolean) => void;
@@ -49,6 +59,8 @@ export const NoteEntry = memo(function NoteEntry({
   isHighlighted = false,
   isReadingMode = false,
   defaultTextAlign = "left",
+  defaultImagePosition = "bottom",
+  defaultLineSpacing = "editorial",
   imageFrameSize = "editorial",
   isMenuOpen = false,
   onToggleMenu,
@@ -454,6 +466,22 @@ export const NoteEntry = memo(function NoteEntry({
     );
   };
 
+  const effectiveImagePosition = note.imagePosition || defaultImagePosition;
+  const effectiveLineSpacing = note.lineSpacing || defaultLineSpacing;
+  const leadingClass =
+    effectiveLineSpacing === "compact"
+      ? "leading-[1.5]"
+      : effectiveLineSpacing === "spacious"
+        ? "leading-[2.0]"
+        : "leading-[1.78]";
+
+  const getAspectClass = (meta?: PhotoMeta) => {
+    if (meta?.aspectRatio === "original") return "aspect-auto max-h-[520px]";
+    if (meta?.aspectRatio === "1/1") return "aspect-square";
+    if (meta?.aspectRatio === "16/9") return "aspect-video";
+    return "aspect-[4/3]";
+  };
+
   return (
     <article
       id={`note-${note.id}`}
@@ -471,6 +499,270 @@ export const NoteEntry = memo(function NoteEntry({
       <div className="lg:grid lg:grid-cols-[1fr_220px] xl:grid-cols-[1fr_250px] lg:gap-8 lg:items-start">
         {/* Left Column: Primary Note Stream */}
         <div className="min-w-0 space-y-3">
+          {/* Top Media if imagePosition is top */}
+          {effectiveImagePosition === "top" && (
+            <div className="w-full space-y-3">
+              {/* Photos */}
+              {hasPhotos && (
+                <div className="w-full">
+                  {note.photos!.length === 1 ? (
+                    /* Single Photo */
+                    (() => {
+                      const meta = note.photosMeta?.[0];
+                      const filterClass = meta?.filter
+                        ? `film-filter-${meta.filter}`
+                        : "";
+                      const isPolaroid = meta?.frameMode === "polaroid";
+                      const isArchival = meta?.frameMode === "archival";
+                      const aspectClass = getAspectClass(meta);
+
+                      const sizingClass =
+                        imageFrameSize === "compact"
+                          ? "w-full max-w-[210px] sm:max-w-[250px]"
+                          : imageFrameSize === "editorial"
+                            ? "w-full max-w-[82%] sm:max-w-[74%]"
+                            : "w-full";
+
+                      const alignClass =
+                        imageFrameSize !== "full" && effectiveAlign === "center"
+                          ? "mx-auto"
+                          : imageFrameSize !== "full" && effectiveAlign === "right"
+                            ? "ml-auto"
+                            : "";
+
+                      if (isPolaroid) {
+                        return (
+                          <div
+                            onClick={() => onOpenPhotostrip?.(note)}
+                            className={`cursor-pointer polaroid-frame-card p-3 sm:p-3.5 pb-4 sm:pb-5 rounded-2xl sm:rounded-3xl active:scale-[0.99] transition-all duration-300 ${sizingClass} ${alignClass}`}
+                          >
+                            <div className={`relative ${aspectClass} rounded-xl overflow-hidden bg-black/5`}>
+                              <img
+                                src={note.photos![0]}
+                                alt="Captured moment"
+                                className={`w-full h-full object-cover ${filterClass}`}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              {meta?.hasGrain && (
+                                <div className="film-grain-overlay" />
+                              )}
+                            </div>
+
+                            {/* Polaroid Typewriter Caption Bottom Margin */}
+                            <div className="pt-2.5 sm:pt-3 px-1 flex items-baseline justify-between gap-2 border-t border-[var(--text-primary)]/10 mt-2">
+                              <p className="font-typewriter text-[11px] sm:text-[12px] tracking-tight leading-snug truncate flex-1 opacity-90 text-[var(--text-primary)]">
+                                {meta?.caption?.trim() || "—"}
+                              </p>
+                              <span className="font-typewriter text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 shrink-0 text-[var(--text-secondary)]">
+                                {meta?.filter && meta.filter !== "natural"
+                                  ? meta.filter.toUpperCase()
+                                  : ""}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (isArchival) {
+                        return (
+                          <div
+                            onClick={() => onOpenPhotostrip?.(note)}
+                            className={`cursor-pointer active:scale-[0.99] transition-all duration-300 ${sizingClass} ${alignClass}`}
+                          >
+                            <div className="p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl bg-[var(--bg-elevated)] border border-[var(--glass-border)] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.12)]">
+                              <div className={`relative ${aspectClass} overflow-hidden rounded-xl bg-black/5`}>
+                                <img
+                                  src={note.photos![0]}
+                                  alt="Captured moment"
+                                  className={`w-full h-full object-cover ${filterClass}`}
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                                {meta?.hasGrain && (
+                                  <div className="film-grain-overlay" />
+                                )}
+                              </div>
+                              {meta?.caption?.trim() && (
+                                <p className="font-serif italic text-center text-xs text-[var(--text-secondary)] pt-2 pb-0.5 px-2">
+                                  {meta.caption}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          onClick={() => onOpenPhotostrip?.(note)}
+                          className={`cursor-pointer active:scale-[0.99] transition-all duration-300 ${sizingClass} ${alignClass}`}
+                        >
+                          <div className={`relative ${aspectClass} overflow-hidden bg-black/5 rounded-2xl sm:rounded-3xl border border-[var(--glass-border)]/60 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.12)]`}>
+                            <img
+                              src={note.photos![0]}
+                              alt="Captured moment"
+                              className={`w-full h-full object-cover ${filterClass}`}
+                              loading="lazy"
+                              decoding="async"
+                            />
+                            {meta?.hasGrain && (
+                              <div className="film-grain-overlay" />
+                            )}
+                          </div>
+                          {meta?.caption?.trim() && (
+                            <p className="font-typewriter text-[11px] sm:text-[12px] text-[var(--text-secondary)] opacity-85 px-1 pt-1.5 truncate">
+                              {meta.caption}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    /* Multi Photos: Horizontal strip with snap */
+                    <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 snap-x">
+                      {note.photos!.map((photoUrl, idx) => {
+                        const meta = note.photosMeta?.[idx];
+                        const filterClass = meta?.filter
+                          ? `film-filter-${meta.filter}`
+                          : "";
+                        const isPolaroid = meta?.frameMode === "polaroid";
+                        const isArchival = meta?.frameMode === "archival";
+                        const aspectClass = getAspectClass(meta);
+
+                        const sizingClass =
+                          imageFrameSize === "compact"
+                            ? "w-[46%] sm:w-[36%]"
+                            : imageFrameSize === "editorial"
+                              ? "w-[62%] sm:w-[48%]"
+                              : "w-[76%] sm:w-[60%]";
+
+                        if (isPolaroid) {
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => onOpenPhotostrip?.(note)}
+                              className={`cursor-pointer shrink-0 snap-start polaroid-frame-card p-2.5 pb-3.5 sm:p-3 sm:pb-4 rounded-2xl active:scale-[0.99] transition-all duration-300 ${sizingClass}`}
+                            >
+                              <div className={`relative ${aspectClass} rounded-lg overflow-hidden bg-black/5`}>
+                                <img
+                                  src={photoUrl}
+                                  alt={`Captured moment ${idx + 1}`}
+                                  className={`w-full h-full object-cover ${filterClass}`}
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                                {meta?.hasGrain && (
+                                  <div className="film-grain-overlay" />
+                                )}
+                              </div>
+                              {/* Polaroid Bottom Margin */}
+                              <div className="pt-2 px-0.5 flex items-baseline justify-between gap-1.5 border-t border-[var(--text-primary)]/10 mt-1.5">
+                                <p className="font-typewriter text-[10px] sm:text-[11px] tracking-tight leading-snug truncate flex-1 opacity-90 text-[var(--text-primary)]">
+                                  {meta?.caption?.trim() || `Plate #${idx + 1}`}
+                                </p>
+                                <span className="font-typewriter text-[8.5px] uppercase tracking-wider opacity-60 shrink-0 text-[var(--text-secondary)]">
+                                  {meta?.filter && meta.filter !== "natural"
+                                    ? meta.filter.toUpperCase()
+                                    : ""}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (isArchival) {
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => onOpenPhotostrip?.(note)}
+                              className={`cursor-pointer shrink-0 snap-start active:scale-[0.99] transition-all duration-300 ${sizingClass}`}
+                            >
+                              <div className="p-2 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--glass-border)] shadow-md">
+                                <div className={`relative ${aspectClass} overflow-hidden rounded-xl bg-black/5`}>
+                                  <img
+                                    src={photoUrl}
+                                    alt={`Captured moment ${idx + 1}`}
+                                    className={`w-full h-full object-cover ${filterClass}`}
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                  {meta?.hasGrain && (
+                                    <div className="film-grain-overlay" />
+                                  )}
+                                </div>
+                                {meta?.caption?.trim() && (
+                                  <p className="font-serif italic text-center text-[10.5px] text-[var(--text-secondary)] pt-1.5 truncate">
+                                    {meta.caption}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => onOpenPhotostrip?.(note)}
+                            className={`cursor-pointer shrink-0 snap-start active:scale-[0.99] transition-all duration-300 space-y-1 ${sizingClass}`}
+                          >
+                            <div className={`relative ${aspectClass} overflow-hidden bg-black/5 rounded-2xl sm:rounded-3xl border border-[var(--glass-border)]/60 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.12)]`}>
+                              <img
+                                src={photoUrl}
+                                alt={`Captured moment ${idx + 1}`}
+                                className={`w-full h-full object-cover ${filterClass}`}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              {meta?.hasGrain && (
+                                <div className="film-grain-overlay" />
+                              )}
+                            </div>
+                            {meta?.caption?.trim() && (
+                              <p className="font-typewriter text-[10px] sm:text-[11px] text-[var(--text-secondary)] opacity-85 px-1 truncate">
+                                {meta.caption}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Inline Videos */}
+              {hasVideos && (
+                <div className="w-full space-y-2.5">
+                  {note.videos!.map((videoUrl, idx) => (
+                    <div
+                      key={idx}
+                      className={`
+                        ${
+                          imageFrameSize === "compact"
+                            ? "w-full max-w-[280px] sm:max-w-[320px]"
+                            : imageFrameSize === "editorial"
+                              ? "w-full max-w-[92%] sm:max-w-[84%]"
+                              : "w-full"
+                        }
+                        ${
+                          imageFrameSize !== "full" && effectiveAlign === "center"
+                            ? "mx-auto"
+                            : imageFrameSize !== "full" && effectiveAlign === "right"
+                              ? "ml-auto"
+                              : ""
+                        }
+                      `}
+                    >
+                      <InlineVideoPlayer src={videoUrl} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 1. Note Header & Text Content Flow */}
           {(note.content || note.title) && (
             <div
@@ -480,7 +772,7 @@ export const NoteEntry = memo(function NoteEntry({
                   : "var(--note-font-size, 15.5px)",
               }}
               data-font={note.fontChoice || "editorial"}
-              className={`font-content leading-[1.78] text-[var(--text-primary)] whitespace-pre-wrap selection:bg-[var(--text-primary)] selection:text-[var(--bg-base)] after:content-[''] after:table after:clear-both ${textAlignClass}`}
+              className={`font-content ${leadingClass} text-[var(--text-primary)] whitespace-pre-wrap selection:bg-[var(--text-primary)] selection:text-[var(--bg-base)] after:content-[''] after:table after:clear-both ${textAlignClass}`}
             >
               {note.title && (
                 <h3
@@ -585,119 +877,109 @@ export const NoteEntry = memo(function NoteEntry({
             </div>
           )}
 
-          {/* 2. Photos attached under the note */}
-          {hasPhotos && (
-            <div className="w-full">
-              {note.photos!.length === 1 ? (
-                /* Single Photo */
-                (() => {
-                  const meta = note.photosMeta?.[0];
-                  const filterClass = meta?.filter
-                    ? `film-filter-${meta.filter}`
-                    : "";
-                  const isPolaroid = meta?.frameMode === "polaroid";
-
-                  const sizingClass =
-                    imageFrameSize === "compact"
-                      ? "w-full max-w-[210px] sm:max-w-[250px]"
-                      : imageFrameSize === "editorial"
-                        ? "w-full max-w-[82%] sm:max-w-[74%]"
-                        : "w-full";
-
-                  const alignClass =
-                    imageFrameSize !== "full" && effectiveAlign === "center"
-                      ? "mx-auto"
-                      : imageFrameSize !== "full" && effectiveAlign === "right"
-                        ? "ml-auto"
+          {/* Bottom Media if imagePosition is bottom */}
+          {effectiveImagePosition === "bottom" && (
+            <div className="w-full space-y-3">
+              {/* Photos attached under the note */}
+              {hasPhotos && (
+                <div className="w-full">
+                  {note.photos!.length === 1 ? (
+                    /* Single Photo */
+                    (() => {
+                      const meta = note.photosMeta?.[0];
+                      const filterClass = meta?.filter
+                        ? `film-filter-${meta.filter}`
                         : "";
+                      const isPolaroid = meta?.frameMode === "polaroid";
+                      const isArchival = meta?.frameMode === "archival";
+                      const aspectClass = getAspectClass(meta);
 
-                  if (isPolaroid) {
-                    return (
-                      <div
-                        onClick={() => onOpenPhotostrip?.(note)}
-                        className={`cursor-pointer polaroid-frame-card p-3 sm:p-3.5 pb-4 sm:pb-5 rounded-2xl sm:rounded-3xl active:scale-[0.99] transition-all duration-300 ${sizingClass} ${alignClass}`}
-                      >
-                        <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-black/5">
-                          <img
-                            src={note.photos![0]}
-                            alt="Captured moment"
-                            className={`w-full h-full object-cover ${filterClass}`}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          {meta?.hasGrain && (
-                            <div className="film-grain-overlay" />
-                          )}
-                        </div>
+                      const sizingClass =
+                        imageFrameSize === "compact"
+                          ? "w-full max-w-[210px] sm:max-w-[250px]"
+                          : imageFrameSize === "editorial"
+                            ? "w-full max-w-[82%] sm:max-w-[74%]"
+                            : "w-full";
 
-                        {/* Polaroid Typewriter Caption Bottom Margin */}
-                        <div className="pt-2.5 sm:pt-3 px-1 flex items-baseline justify-between gap-2 border-t border-[var(--text-primary)]/10 mt-2">
-                          <p className="font-typewriter text-[11px] sm:text-[12px] tracking-tight leading-snug truncate flex-1 opacity-90 text-[var(--text-primary)]">
-                            {meta?.caption?.trim() || "—"}
-                          </p>
-                          <span className="font-typewriter text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 shrink-0 text-[var(--text-secondary)]">
-                            {meta?.filter && meta.filter !== "natural"
-                              ? meta.filter.toUpperCase()
-                              : ""}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  }
+                      const alignClass =
+                        imageFrameSize !== "full" && effectiveAlign === "center"
+                          ? "mx-auto"
+                          : imageFrameSize !== "full" && effectiveAlign === "right"
+                            ? "ml-auto"
+                            : "";
 
-                  return (
-                    <div
-                      onClick={() => onOpenPhotostrip?.(note)}
-                      className={`cursor-pointer active:scale-[0.99] transition-all duration-300 ${sizingClass} ${alignClass}`}
-                    >
-                      <div className="relative aspect-[4/3] overflow-hidden bg-black/5 rounded-2xl sm:rounded-3xl border border-[var(--glass-border)]/60 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.12)]">
-                        <img
-                          src={note.photos![0]}
-                          alt="Captured moment"
-                          className={`w-full h-full object-cover ${filterClass}`}
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        {meta?.hasGrain && (
-                          <div className="film-grain-overlay" />
-                        )}
-                      </div>
-                      {meta?.caption?.trim() && (
-                        <p className="font-typewriter text-[11px] sm:text-[12px] text-[var(--text-secondary)] opacity-85 px-1 pt-1.5 truncate">
-                          {meta.caption}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })()
-              ) : (
-                /* Multi Photos: Horizontal strip with snap */
-                <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 snap-x">
-                  {note.photos!.map((photoUrl, idx) => {
-                    const meta = note.photosMeta?.[idx];
-                    const filterClass = meta?.filter
-                      ? `film-filter-${meta.filter}`
-                      : "";
-                    const isPolaroid = meta?.frameMode === "polaroid";
+                      if (isPolaroid) {
+                        return (
+                          <div
+                            onClick={() => onOpenPhotostrip?.(note)}
+                            className={`cursor-pointer polaroid-frame-card p-3 sm:p-3.5 pb-4 sm:pb-5 rounded-2xl sm:rounded-3xl active:scale-[0.99] transition-all duration-300 ${sizingClass} ${alignClass}`}
+                          >
+                            <div className={`relative ${aspectClass} rounded-xl overflow-hidden bg-black/5`}>
+                              <img
+                                src={note.photos![0]}
+                                alt="Captured moment"
+                                className={`w-full h-full object-cover ${filterClass}`}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              {meta?.hasGrain && (
+                                <div className="film-grain-overlay" />
+                              )}
+                            </div>
 
-                    const sizingClass =
-                      imageFrameSize === "compact"
-                        ? "w-[46%] sm:w-[36%]"
-                        : imageFrameSize === "editorial"
-                          ? "w-[62%] sm:w-[48%]"
-                          : "w-[76%] sm:w-[60%]";
+                            {/* Polaroid Typewriter Caption Bottom Margin */}
+                            <div className="pt-2.5 sm:pt-3 px-1 flex items-baseline justify-between gap-2 border-t border-[var(--text-primary)]/10 mt-2">
+                              <p className="font-typewriter text-[11px] sm:text-[12px] tracking-tight leading-snug truncate flex-1 opacity-90 text-[var(--text-primary)]">
+                                {meta?.caption?.trim() || "—"}
+                              </p>
+                              <span className="font-typewriter text-[9px] sm:text-[10px] uppercase tracking-wider opacity-60 shrink-0 text-[var(--text-secondary)]">
+                                {meta?.filter && meta.filter !== "natural"
+                                  ? meta.filter.toUpperCase()
+                                  : ""}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      }
 
-                    if (isPolaroid) {
+                      if (isArchival) {
+                        return (
+                          <div
+                            onClick={() => onOpenPhotostrip?.(note)}
+                            className={`cursor-pointer active:scale-[0.99] transition-all duration-300 ${sizingClass} ${alignClass}`}
+                          >
+                            <div className="p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl bg-[var(--bg-elevated)] border border-[var(--glass-border)] shadow-[0_8px_24px_-6px_rgba(0,0,0,0.12)]">
+                              <div className={`relative ${aspectClass} overflow-hidden rounded-xl bg-black/5`}>
+                                <img
+                                  src={note.photos![0]}
+                                  alt="Captured moment"
+                                  className={`w-full h-full object-cover ${filterClass}`}
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                                {meta?.hasGrain && (
+                                  <div className="film-grain-overlay" />
+                                )}
+                              </div>
+                              {meta?.caption?.trim() && (
+                                <p className="font-serif italic text-center text-xs text-[var(--text-secondary)] pt-2 pb-0.5 px-2">
+                                  {meta.caption}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
                       return (
                         <div
-                          key={idx}
                           onClick={() => onOpenPhotostrip?.(note)}
-                          className={`cursor-pointer shrink-0 snap-start polaroid-frame-card p-2.5 pb-3.5 sm:p-3 sm:pb-4 rounded-2xl active:scale-[0.99] transition-all duration-300 ${sizingClass}`}
+                          className={`cursor-pointer active:scale-[0.99] transition-all duration-300 ${sizingClass} ${alignClass}`}
                         >
-                          <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-black/5">
+                          <div className={`relative ${aspectClass} overflow-hidden bg-black/5 rounded-2xl sm:rounded-3xl border border-[var(--glass-border)]/60 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.12)]`}>
                             <img
-                              src={photoUrl}
-                              alt={`Captured moment ${idx + 1}`}
+                              src={note.photos![0]}
+                              alt="Captured moment"
                               className={`w-full h-full object-cover ${filterClass}`}
                               loading="lazy"
                               decoding="async"
@@ -706,78 +988,156 @@ export const NoteEntry = memo(function NoteEntry({
                               <div className="film-grain-overlay" />
                             )}
                           </div>
-                          {/* Polaroid Bottom Margin */}
-                          <div className="pt-2 px-0.5 flex items-baseline justify-between gap-1.5 border-t border-[var(--text-primary)]/10 mt-1.5">
-                            <p className="font-typewriter text-[10px] sm:text-[11px] tracking-tight leading-snug truncate flex-1 opacity-90 text-[var(--text-primary)]">
-                              {meta?.caption?.trim() || `Plate #${idx + 1}`}
+                          {meta?.caption?.trim() && (
+                            <p className="font-typewriter text-[11px] sm:text-[12px] text-[var(--text-secondary)] opacity-85 px-1 pt-1.5 truncate">
+                              {meta.caption}
                             </p>
-                            <span className="font-typewriter text-[8.5px] uppercase tracking-wider opacity-60 shrink-0 text-[var(--text-secondary)]">
-                              {meta?.filter && meta.filter !== "natural"
-                                ? meta.filter.toUpperCase()
-                                : ""}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => onOpenPhotostrip?.(note)}
-                        className={`cursor-pointer shrink-0 snap-start active:scale-[0.99] transition-all duration-300 space-y-1 ${sizingClass}`}
-                      >
-                        <div className="relative aspect-[4/3] overflow-hidden bg-black/5 rounded-2xl sm:rounded-3xl border border-[var(--glass-border)]/60 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.12)]">
-                          <img
-                            src={photoUrl}
-                            alt={`Captured moment ${idx + 1}`}
-                            className={`w-full h-full object-cover ${filterClass}`}
-                            loading="lazy"
-                            decoding="async"
-                          />
-                          {meta?.hasGrain && (
-                            <div className="film-grain-overlay" />
                           )}
                         </div>
-                        {meta?.caption?.trim() && (
-                          <p className="font-typewriter text-[10px] sm:text-[11px] text-[var(--text-secondary)] opacity-85 px-1 truncate">
-                            {meta.caption}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })()
+                  ) : (
+                    /* Multi Photos: Horizontal strip with snap */
+                    <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 snap-x">
+                      {note.photos!.map((photoUrl, idx) => {
+                        const meta = note.photosMeta?.[idx];
+                        const filterClass = meta?.filter
+                          ? `film-filter-${meta.filter}`
+                          : "";
+                        const isPolaroid = meta?.frameMode === "polaroid";
+                        const isArchival = meta?.frameMode === "archival";
+                        const aspectClass = getAspectClass(meta);
+
+                        const sizingClass =
+                          imageFrameSize === "compact"
+                            ? "w-[46%] sm:w-[36%]"
+                            : imageFrameSize === "editorial"
+                              ? "w-[62%] sm:w-[48%]"
+                              : "w-[76%] sm:w-[60%]";
+
+                        if (isPolaroid) {
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => onOpenPhotostrip?.(note)}
+                              className={`cursor-pointer shrink-0 snap-start polaroid-frame-card p-2.5 pb-3.5 sm:p-3 sm:pb-4 rounded-2xl active:scale-[0.99] transition-all duration-300 ${sizingClass}`}
+                            >
+                              <div className={`relative ${aspectClass} rounded-lg overflow-hidden bg-black/5`}>
+                                <img
+                                  src={photoUrl}
+                                  alt={`Captured moment ${idx + 1}`}
+                                  className={`w-full h-full object-cover ${filterClass}`}
+                                  loading="lazy"
+                                  decoding="async"
+                                />
+                                {meta?.hasGrain && (
+                                  <div className="film-grain-overlay" />
+                                )}
+                              </div>
+                              {/* Polaroid Bottom Margin */}
+                              <div className="pt-2 px-0.5 flex items-baseline justify-between gap-1.5 border-t border-[var(--text-primary)]/10 mt-1.5">
+                                <p className="font-typewriter text-[10px] sm:text-[11px] tracking-tight leading-snug truncate flex-1 opacity-90 text-[var(--text-primary)]">
+                                  {meta?.caption?.trim() || `Plate #${idx + 1}`}
+                                </p>
+                                <span className="font-typewriter text-[8.5px] uppercase tracking-wider opacity-60 shrink-0 text-[var(--text-secondary)]">
+                                  {meta?.filter && meta.filter !== "natural"
+                                    ? meta.filter.toUpperCase()
+                                    : ""}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (isArchival) {
+                          return (
+                            <div
+                              key={idx}
+                              onClick={() => onOpenPhotostrip?.(note)}
+                              className={`cursor-pointer shrink-0 snap-start active:scale-[0.99] transition-all duration-300 ${sizingClass}`}
+                            >
+                              <div className="p-2 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--glass-border)] shadow-md">
+                                <div className={`relative ${aspectClass} overflow-hidden rounded-xl bg-black/5`}>
+                                  <img
+                                    src={photoUrl}
+                                    alt={`Captured moment ${idx + 1}`}
+                                    className={`w-full h-full object-cover ${filterClass}`}
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
+                                  {meta?.hasGrain && (
+                                    <div className="film-grain-overlay" />
+                                  )}
+                                </div>
+                                {meta?.caption?.trim() && (
+                                  <p className="font-serif italic text-center text-[10.5px] text-[var(--text-secondary)] pt-1.5 truncate">
+                                    {meta.caption}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => onOpenPhotostrip?.(note)}
+                            className={`cursor-pointer shrink-0 snap-start active:scale-[0.99] transition-all duration-300 space-y-1 ${sizingClass}`}
+                          >
+                            <div className={`relative ${aspectClass} overflow-hidden bg-black/5 rounded-2xl sm:rounded-3xl border border-[var(--glass-border)]/60 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.12)]`}>
+                              <img
+                                src={photoUrl}
+                                alt={`Captured moment ${idx + 1}`}
+                                className={`w-full h-full object-cover ${filterClass}`}
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              {meta?.hasGrain && (
+                                <div className="film-grain-overlay" />
+                              )}
+                            </div>
+                            {meta?.caption?.trim() && (
+                              <p className="font-typewriter text-[10px] sm:text-[11px] text-[var(--text-secondary)] opacity-85 px-1 truncate">
+                                {meta.caption}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* 1.5 Inline Videos */}
-          {hasVideos && (
-            <div className="w-full space-y-2.5">
-              {note.videos!.map((videoUrl, idx) => (
-                <div
-                  key={idx}
-                  className={`
-                    ${
-                      imageFrameSize === "compact"
-                        ? "w-full max-w-[280px] sm:max-w-[320px]"
-                        : imageFrameSize === "editorial"
-                          ? "w-full max-w-[92%] sm:max-w-[84%]"
-                          : "w-full"
-                    }
-                    ${
-                      imageFrameSize !== "full" && effectiveAlign === "center"
-                        ? "mx-auto"
-                        : imageFrameSize !== "full" && effectiveAlign === "right"
-                          ? "ml-auto"
-                          : ""
-                    }
-                  `}
-                >
-                  <InlineVideoPlayer src={videoUrl} />
+              {/* Inline Videos */}
+              {hasVideos && (
+                <div className="w-full space-y-2.5">
+                  {note.videos!.map((videoUrl, idx) => (
+                    <div
+                      key={idx}
+                      className={`
+                        ${
+                          imageFrameSize === "compact"
+                            ? "w-full max-w-[280px] sm:max-w-[320px]"
+                            : imageFrameSize === "editorial"
+                              ? "w-full max-w-[92%] sm:max-w-[84%]"
+                              : "w-full"
+                        }
+                        ${
+                          imageFrameSize !== "full" && effectiveAlign === "center"
+                            ? "mx-auto"
+                            : imageFrameSize !== "full" && effectiveAlign === "right"
+                              ? "ml-auto"
+                              : ""
+                        }
+                      `}
+                    >
+                      <InlineVideoPlayer src={videoUrl} />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
 

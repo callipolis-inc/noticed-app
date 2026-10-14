@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Space } from "@/types";
 import { triggerHaptic } from "@/lib/haptics";
 import { formatTimeOnly } from "@/lib/utils";
-import { X, Check, ChevronDown } from "lucide-react";
+import { X, Check, ChevronDown, Eye, Edit3 } from "lucide-react";
 
 interface CreateNoteHeaderProps {
   spaces: Space[];
@@ -15,6 +15,8 @@ interface CreateNoteHeaderProps {
   setNoteTime: (time: string) => void;
   canSave: boolean;
   isEditing: boolean;
+  isPreview?: boolean;
+  onTogglePreview?: () => void;
   onClose: () => void;
   onSave: () => void;
 }
@@ -29,6 +31,8 @@ export function CreateNoteHeader({
   setNoteTime,
   canSave,
   isEditing,
+  isPreview = false,
+  onTogglePreview,
   onClose,
   onSave,
 }: CreateNoteHeaderProps) {
@@ -164,17 +168,47 @@ export function CreateNoteHeader({
         </div>
       </div>
 
-      {/* Kanan: Primary Action (Notice / Save) */}
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={!canSave}
-        className="px-3.5 py-1.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center gap-1 disabled:opacity-30 active:scale-95 transition-transform cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.12)] shrink-0"
-        title={isEditing ? "Save changes" : "Notice into timeline"}
-      >
-        <span>{isEditing ? "Save" : "Notice"}</span>
-        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-      </button>
+      {/* Kanan: Preview Toggle & Primary Action (Notice / Save) */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {onTogglePreview && (
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic("light");
+              onTogglePreview();
+            }}
+            className={`h-7 px-2.5 rounded-full text-[11px] font-sans font-medium flex items-center gap-1 transition-all cursor-pointer ${
+              isPreview
+                ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold shadow-xs"
+                : "inner-pseudo-glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+            title={isPreview ? "Back to editing" : "Preview formatted note"}
+          >
+            {isPreview ? (
+              <>
+                <Edit3 className="w-3 h-3" />
+                <span className="hidden sm:inline">Edit</span>
+              </>
+            ) : (
+              <>
+                <Eye className="w-3 h-3" />
+                <span className="hidden sm:inline">Preview</span>
+              </>
+            )}
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!canSave}
+          className="px-3.5 py-1.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center gap-1 disabled:opacity-30 active:scale-95 transition-transform cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.12)] shrink-0"
+          title={isEditing ? "Save changes" : "Notice into timeline"}
+        >
+          <span>{isEditing ? "Save" : "Notice"}</span>
+          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+        </button>
+      </div>
     </header>
   );
 }

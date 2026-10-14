@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FilmFilter, PhotoMeta } from "@/types";
+import { FilmFilter, PhotoMeta, PhotoAspectRatio, FrameMode } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import {
@@ -13,6 +13,7 @@ import {
   RectangleHorizontal,
   Square,
   RotateCcw,
+  Frame,
 } from "lucide-react";
 
 interface DarkroomModalProps {
@@ -77,8 +78,11 @@ export function DarkroomModal({
   const [filter, setFilter] = useState<FilmFilter>(
     initialMeta?.filter || "natural",
   );
-  const [frameMode, setFrameMode] = useState<"polaroid" | "borderless">(
+  const [frameMode, setFrameMode] = useState<FrameMode>(
     initialMeta?.frameMode || "polaroid",
+  );
+  const [aspectRatio, setAspectRatio] = useState<PhotoAspectRatio>(
+    initialMeta?.aspectRatio || "4/3",
   );
   const [caption, setCaption] = useState<string>(initialMeta?.caption || "");
   const [hasGrain, setHasGrain] = useState<boolean>(
@@ -90,6 +94,7 @@ export function DarkroomModal({
     if (isOpen) {
       setFilter(initialMeta?.filter || "natural");
       setFrameMode(initialMeta?.frameMode || "polaroid");
+      setAspectRatio(initialMeta?.aspectRatio || "4/3");
       setCaption(initialMeta?.caption || "");
       setHasGrain(initialMeta?.hasGrain ?? true);
     }
@@ -119,6 +124,7 @@ export function DarkroomModal({
       url: photoUrl,
       filter,
       frameMode,
+      aspectRatio,
       caption: caption.trim() || undefined,
       hasGrain,
     });
@@ -128,9 +134,10 @@ export function DarkroomModal({
   const handleReset = () => {
     triggerHaptic("light");
     setFilter("natural");
-    setFrameMode("borderless");
+    setFrameMode("polaroid");
+    setAspectRatio("4/3");
     setCaption("");
-    setHasGrain(false);
+    setHasGrain(true);
   };
 
   return createPortal(
@@ -196,11 +203,11 @@ export function DarkroomModal({
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 no-scrollbar">
             {/* Live Preview Display Stage */}
-            <div className="flex justify-center items-center py-2 bg-black/[0.03] dark:bg-white/[0.02] rounded-2xl p-3 border border-[var(--glass-border)]/50">
+            <div className="flex justify-center items-center py-2 bg-black/[0.03] dark:bg-white/[0.02] rounded-2xl p-3 border border-[var(--glass-border)]/50 min-h-[220px]">
               {frameMode === "polaroid" ? (
                 /* Polaroid Paper Frame */
                 <div className="polaroid-frame-card p-3 pb-5 rounded-2xl w-full max-w-[280px] sm:max-w-[300px]">
-                  <div className="relative aspect-[4/3] rounded-lg overflow-hidden bg-black/10">
+                  <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-lg overflow-hidden bg-black/10`}>
                     <img
                       src={photoUrl}
                       alt="Darkroom plate preview"
@@ -219,10 +226,29 @@ export function DarkroomModal({
                     </span>
                   </div>
                 </div>
+              ) : frameMode === "archival" ? (
+                /* Archival Museum Mat Frame */
+                <div className="w-full max-w-[280px] sm:max-w-[300px]">
+                  <div className="p-2.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--glass-border)] shadow-md">
+                    <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-xl overflow-hidden bg-black/10`}>
+                      <img
+                        src={photoUrl}
+                        alt="Darkroom plate preview"
+                        className={`w-full h-full object-cover transition-all duration-300 ${currentPreset.filterClass}`}
+                      />
+                      {hasGrain && <div className="film-grain-overlay" />}
+                    </div>
+                    {caption.trim() && (
+                      <p className="font-serif italic text-center text-xs text-[var(--text-secondary)] pt-2 pb-0.5 px-2">
+                        {caption}
+                      </p>
+                    )}
+                  </div>
+                </div>
               ) : (
                 /* Classic Borderless Frame */
                 <div className="w-full max-w-[280px] sm:max-w-[300px] space-y-2">
-                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-md border border-[var(--glass-border)]">
+                  <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-2xl overflow-hidden shadow-md border border-[var(--glass-border)]`}>
                     <img
                       src={photoUrl}
                       alt="Darkroom plate preview"
@@ -296,44 +322,105 @@ export function DarkroomModal({
               />
             </div>
 
-            {/* 3. Physical Attributes (Frame Mode & Grain) */}
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
-              {/* Frame Mode Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic("light");
-                  setFrameMode((prev) =>
-                    prev === "polaroid" ? "borderless" : "polaroid",
+            {/* 3. Aspect Ratio Selection */}
+            <div className="space-y-1.5">
+              <span className="font-mono uppercase tracking-wider text-[11px] font-semibold text-[var(--text-secondary)] block px-0.5">
+                Aspect Ratio
+              </span>
+              <div className="grid grid-cols-4 gap-1.5 p-1 rounded-2xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]">
+                {(
+                  [
+                    { id: "original", label: "Natural" },
+                    { id: "4/3", label: "4:3" },
+                    { id: "1/1", label: "1:1" },
+                    { id: "16/9", label: "16:9" },
+                  ] as const
+                ).map((opt) => {
+                  const isActive = aspectRatio === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setAspectRatio(opt.id);
+                      }}
+                      className={`py-1.5 px-1 rounded-xl text-xs font-mono text-center transition-all cursor-pointer ${
+                        isActive
+                          ? "bg-white dark:bg-neutral-800 text-[var(--text-primary)] font-semibold shadow-xs"
+                          : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
                   );
-                }}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                  frameMode === "polaroid"
-                    ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/[0.04]"
-                    : "border-[var(--glass-border)] inner-pseudo-glass"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  {frameMode === "polaroid" ? (
-                    <Square className="w-4 h-4 text-[var(--text-primary)]" />
-                  ) : (
-                    <RectangleHorizontal className="w-4 h-4 text-[var(--text-secondary)]" />
-                  )}
-                  {frameMode === "polaroid" && (
-                    <span className="w-2 h-2 rounded-full bg-[var(--text-primary)]" />
-                  )}
-                </div>
-                <div className="mt-2">
-                  <span className="text-xs font-semibold block text-[var(--text-primary)]">
-                    Polaroid Card
+                })}
+              </div>
+            </div>
+
+            {/* 4. Physical Attributes (Frame Mode & Grain) */}
+            <div className="space-y-1.5">
+              <span className="font-mono uppercase tracking-wider text-[11px] font-semibold text-[var(--text-secondary)] block px-0.5">
+                Frame & Texture
+              </span>
+              <div className="grid grid-cols-3 gap-2">
+                {/* Polaroid Frame */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setFrameMode("polaroid");
+                  }}
+                  className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between gap-1.5 ${
+                    frameMode === "polaroid"
+                      ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/[0.04] shadow-xs"
+                      : "border-[var(--glass-border)] inner-pseudo-glass"
+                  }`}
+                >
+                  <Square className="w-4 h-4 text-[var(--text-primary)]" />
+                  <span className="text-[11px] font-semibold text-[var(--text-primary)]">
+                    Polaroid
                   </span>
-                  <span className="text-[10px] text-[var(--text-tertiary)] block">
-                    {frameMode === "polaroid"
-                      ? "Linen paper frame"
-                      : "Borderless photo"}
+                </button>
+
+                {/* Archival Mat Frame */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setFrameMode("archival");
+                  }}
+                  className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between gap-1.5 ${
+                    frameMode === "archival"
+                      ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/[0.04] shadow-xs"
+                      : "border-[var(--glass-border)] inner-pseudo-glass"
+                  }`}
+                >
+                  <Frame className="w-4 h-4 text-[var(--text-primary)]" />
+                  <span className="text-[11px] font-semibold text-[var(--text-primary)]">
+                    Archival Mat
                   </span>
-                </div>
-              </button>
+                </button>
+
+                {/* Borderless Frame */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setFrameMode("borderless");
+                  }}
+                  className={`p-2.5 rounded-2xl border text-center transition-all cursor-pointer flex flex-col items-center justify-between gap-1.5 ${
+                    frameMode === "borderless"
+                      ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/[0.04] shadow-xs"
+                      : "border-[var(--glass-border)] inner-pseudo-glass"
+                  }`}
+                >
+                  <RectangleHorizontal className="w-4 h-4 text-[var(--text-primary)]" />
+                  <span className="text-[11px] font-semibold text-[var(--text-primary)]">
+                    Borderless
+                  </span>
+                </button>
+              </div>
 
               {/* Physical Grain Toggle Button */}
               <button
@@ -342,13 +429,13 @@ export function DarkroomModal({
                   triggerHaptic("light");
                   setHasGrain((prev) => !prev);
                 }}
-                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                className={`w-full p-2.5 mt-2 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                   hasGrain
                     ? "border-[var(--text-primary)]/30 bg-[var(--text-primary)]/[0.04]"
                     : "border-[var(--glass-border)] inner-pseudo-glass"
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <Sparkles
                     className={`w-4 h-4 ${
                       hasGrain
@@ -356,18 +443,18 @@ export function DarkroomModal({
                         : "text-[var(--text-secondary)]"
                     }`}
                   />
-                  {hasGrain && (
-                    <span className="w-2 h-2 rounded-full bg-[var(--text-primary)]" />
-                  )}
+                  <div>
+                    <span className="text-xs font-semibold block text-[var(--text-primary)]">
+                      Analog Film Grain
+                    </span>
+                    <span className="text-[10px] text-[var(--text-tertiary)] block">
+                      {hasGrain ? "Physical emulsion noise applied" : "Clean digital render"}
+                    </span>
+                  </div>
                 </div>
-                <div className="mt-2">
-                  <span className="text-xs font-semibold block text-[var(--text-primary)]">
-                    Analog Grain
-                  </span>
-                  <span className="text-[10px] text-[var(--text-tertiary)] block">
-                    {hasGrain ? "Physical emulsion noise" : "Clean digital"}
-                  </span>
-                </div>
+                {hasGrain && (
+                  <span className="w-2 h-2 rounded-full bg-[var(--text-primary)]" />
+                )}
               </button>
             </div>
           </div>

@@ -19,6 +19,8 @@ import {
   StreamSortOrder,
   TextAlign,
   ImageFrameSize,
+  ImagePosition,
+  LineSpacing,
 } from "@/types";
 import { NoteEntry } from "@/components/notes/NoteEntry";
 import { DateGroupDivider } from "@/components/notes/DateGroupDivider";
@@ -899,6 +901,46 @@ export function App() {
     showFlyout(`Frame: ${size}`, 2000);
   };
 
+  const [imagePosition, setImagePosition] = useState<ImagePosition>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(
+        "sidenotes_image_position",
+      ) as ImagePosition;
+      if (saved === "top" || saved === "bottom") {
+        return saved;
+      }
+    }
+    return "bottom";
+  });
+
+  const handleSelectImagePosition = (pos: ImagePosition) => {
+    setImagePosition(pos);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidenotes_image_position", pos);
+    }
+    showFlyout(`Media: ${pos === "top" ? "Top" : "Bottom"}`, 2000);
+  };
+
+  const [lineSpacing, setLineSpacing] = useState<LineSpacing>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(
+        "sidenotes_line_spacing",
+      ) as LineSpacing;
+      if (saved === "compact" || saved === "editorial" || saved === "spacious") {
+        return saved;
+      }
+    }
+    return "editorial";
+  });
+
+  const handleSelectLineSpacing = (spacing: LineSpacing) => {
+    setLineSpacing(spacing);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sidenotes_line_spacing", spacing);
+    }
+    showFlyout(`Leading: ${spacing}`, 2000);
+  };
+
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     if (
@@ -1416,6 +1458,8 @@ export function App() {
                               isReadingMode={isReadingMode}
                               isFirstInGroup={noteIdx === 0}
                               defaultTextAlign={defaultTextAlign}
+                              defaultImagePosition={imagePosition}
+                              defaultLineSpacing={lineSpacing}
                               imageFrameSize={imageFrameSize}
                               isMenuOpen={activeMenuNoteId === note.id}
                               onToggleMenu={(isOpen) =>
@@ -1691,6 +1735,7 @@ export function App() {
             defaultSpaceId={activeSpace.id}
             defaultTextAlign={defaultTextAlign}
             defaultFontChoice={activeSpace.fontChoice || "editorial"}
+            defaultImagePosition={imagePosition}
             editingNote={editingNote}
             onSaveNote={handleSaveNote}
             onUpdateNote={handleUpdateNote}
@@ -1750,6 +1795,10 @@ export function App() {
             onSelectTextAlign={handleSelectTextAlign}
             imageFrameSize={imageFrameSize}
             onSelectImageFrameSize={handleSelectImageFrameSize}
+            imagePosition={imagePosition}
+            onSelectImagePosition={handleSelectImagePosition}
+            lineSpacing={lineSpacing}
+            onSelectLineSpacing={handleSelectLineSpacing}
             notebookName={activeSpace.name}
           />
         )}
