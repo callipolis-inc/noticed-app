@@ -12,10 +12,12 @@ import {
   Crown,
   BookOpen,
   Printer,
+  RotateCw,
 } from "lucide-react";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
-import { setProUser, useProStatus, ProFeature } from "@/lib/proManager";
+import { useProStatus, ProFeature } from "@/lib/proManager";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import { purchaseAtelierPlan, restoreAtelierPurchases } from "@/lib/purchases";
 import { LegalModal, LegalTab } from "./LegalModal";
 
 interface AtelierProModalProps {
@@ -74,13 +76,66 @@ export function AtelierProModal({
   const [selectedPlan, setSelectedPlan] = useState<PricingPlanId>("lifetime");
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>("terms");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [purchaseStatusMsg, setPurchaseStatusMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleUnlockPro = () => {
-    triggerSuccessHaptic();
-    setProUser(true);
-    onClose();
+  const handleUnlockPro = async () => {
+    if (isPro) {
+      onClose();
+      return;
+    }
+
+    setIsProcessing(true);
+    setPurchaseStatusMsg(null);
+    triggerHaptic("medium");
+
+    try {
+      const res = await purchaseAtelierPlan(selectedPlan);
+      if (res.isPro) {
+        triggerSuccessHaptic();
+        setPurchaseStatusMsg(res.message || "Selamat datang di Atelier Pro.");
+        setTimeout(() => {
+          onClose();
+        }, 1200);
+      } else {
+        triggerHaptic("medium");
+        if (res.message && res.message !== "Pembelian dibatalkan.") {
+          setPurchaseStatusMsg(res.message);
+        }
+      }
+    } catch {
+      triggerHaptic("heavy");
+      setPurchaseStatusMsg("Terjadi kendala saat memproses pembelian.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    setIsProcessing(true);
+    setPurchaseStatusMsg(null);
+    triggerHaptic("medium");
+
+    try {
+      const res = await restoreAtelierPurchases();
+      if (res.isPro) {
+        triggerSuccessHaptic();
+        setPurchaseStatusMsg(res.message || "Pembelian berhasil dipulihkan.");
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } else {
+        triggerHaptic("light");
+        setPurchaseStatusMsg(res.message || "Tidak ada transaksi aktif.");
+      }
+    } catch {
+      triggerHaptic("heavy");
+      setPurchaseStatusMsg("Gagal memeriksa riwayat pembelian.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const featureDescriptions: Record<ProFeature, { title: string; desc: string }> = {
@@ -304,22 +359,38 @@ export function AtelierProModal({
           </div>
 
           {/* Action Footer */}
-          <div className="pt-4 mt-auto space-y-2 border-t border-[var(--glass-border)]/40">
+          <div className="pt-3 mt-auto space-y-2 border-t border-[var(--glass-border)]/40">
+            {purchaseStatusMsg && (
+              <div className="p-2 rounded-xl text-center text-[10.5px] font-sans font-medium bg-[var(--text-primary)]/5 border border-[var(--glass-border)] text-[var(--text-secondary)]">
+                {purchaseStatusMsg}
+              </div>
+            )}
+
             <button
               type="button"
               onClick={handleUnlockPro}
-              className="w-full py-3 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform cursor-pointer shadow-[0_4px_14px_rgba(0,0,0,0.14)]"
+              disabled={isProcessing}
+              className="w-full py-3 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform cursor-pointer shadow-[0_4px_14px_rgba(0,0,0,0.14)] disabled:opacity-60"
             >
-              <Sparkles className="w-3.5 h-3.5 stroke-[2.2]" />
-              <span>
-                {isPro
-                  ? "Atelier Pro Pass Active"
-                  : selectedPlan === "lifetime"
-                  ? "Unlock All-Time Pass · Rp 499.000"
-                  : selectedPlan === "annual"
-                  ? "Subscribe Annual · Rp 299.000 / thn"
-                  : "Subscribe Monthly · Rp 39.000 / bln"}
-              </span>
+              {isProcessing ? (
+                <>
+                  <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Memproses...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 stroke-[2.2]" />
+                  <span>
+                    {isPro
+                      ? "Atelier Pro Pass Active"
+                      : selectedPlan === "lifetime"
+                      ? "Unlock All-Time Pass · Rp 499.000"
+                      : selectedPlan === "annual"
+                      ? "Subscribe Annual · Rp 299.000 / thn"
+                      : "Subscribe Monthly · Rp 39.000 / bln"}
+                  </span>
+                </>
+              )}
             </button>
 
             <button
@@ -328,13 +399,23 @@ export function AtelierProModal({
                 triggerHaptic("light");
                 onClose();
               }}
+              disabled={isProcessing}
               className="w-full py-1 text-center text-[11px] font-sans font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               Lanjutkan dengan Edisi Standar
             </button>
 
             {/* Legal Footnote for Store Compliance */}
-            <div className="pt-0.5 text-center text-[10px] text-[var(--text-tertiary)] flex items-center justify-center gap-2">
+            <div className="pt-0.5 text-center text-[10px] text-[var(--text-tertiary)] flex items-center justify-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleRestorePurchases}
+                disabled={isProcessing}
+                className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
+              >
+                Restore Purchases
+              </button>
+              <span>·</span>
               <button
                 type="button"
                 onClick={() => {

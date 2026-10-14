@@ -98,6 +98,11 @@ import {
 } from "@/lib/syncEngine";
 import { isProUser } from "@/lib/proManager";
 import {
+  initPurchases,
+  loginPurchasesUser,
+  logoutPurchasesUser,
+} from "@/lib/purchases";
+import {
   DEMO_SHOWCASE_SPACES,
   DEMO_SHOWCASE_NOTES,
 } from "@/lib/showcaseData";
@@ -354,26 +359,31 @@ export function App() {
     return null;
   });
 
-  // Listen to Supabase session state
+  // Listen to Supabase session state & initialize RevenueCat purchases
   useEffect(() => {
     getCurrentUser().then((user) => {
       if (user?.email) {
         setUserEmail(user.email);
+        initPurchases(user.id);
+      } else {
+        initPurchases(null);
       }
     });
 
     const { data: authListener } = onAuthStateChange((event, session) => {
       if (session?.user?.email) {
         setUserEmail(session.user.email);
+        loginPurchasesUser(session.user.id);
         if (event === "PASSWORD_RECOVERY") {
           setIsProfileOpen(true);
           showFlyout(
             "Password recovery active — tap Change Password in Profile",
-            4500
+            4500,
           );
         }
       } else {
         setUserEmail(null);
+        logoutPurchasesUser();
       }
     });
 
