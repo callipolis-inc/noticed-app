@@ -3,7 +3,7 @@ import { RecordedAudio } from "@/lib/audioRecorder";
 import { triggerHaptic } from "@/lib/haptics";
 import { InlineVideoPlayer } from "../InlineVideoPlayer";
 import { TactileAudioPlayer } from "../TactileAudioPlayer";
-import { Sliders, Plus, X, Trash2 } from "lucide-react";
+import { Sliders, Plus, X, Trash2, AlertCircle } from "lucide-react";
 
 interface CreateNoteMediaSectionProps {
   photos: string[];
@@ -290,13 +290,21 @@ export function CreateNoteMediaSection({
         </div>
       )}
       {videoError && (
-        <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans">
-          {videoError}
+        <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans flex items-start gap-2">
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <span className="font-semibold block">Video Error</span>
+            <span>{videoError}</span>
+          </div>
         </div>
       )}
       {audioError && (
-        <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans">
-          {audioError}
+        <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans flex items-start gap-2">
+          <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <span className="font-semibold block">Audio Notice</span>
+            <span>{audioError}. Please ensure microphone access is granted in your device or browser settings.</span>
+          </div>
         </div>
       )}
 

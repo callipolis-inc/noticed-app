@@ -27,7 +27,6 @@ import {
   LayoutGrid,
   Check,
   Share2,
-  Archive,
 } from "lucide-react";
 
 export interface BookshelfViewProps {
@@ -428,7 +427,7 @@ export function BookshelfView({
       }}
     >
       {/* 1. TOP FLOATING LIQUID GLASS BAR */}
-      <header className="px-5 pb-2 flex items-center justify-between z-40 max-w-md mx-auto w-full">
+      <header className="px-3.5 sm:px-5 pb-2 flex items-center justify-between z-40 max-w-md md:max-w-2xl lg:max-w-4xl mx-auto w-full">
         {/* Profile Pill */}
         <button
           type="button"
@@ -436,7 +435,7 @@ export function BookshelfView({
             triggerHaptic("light");
             onOpenProfile?.();
           }}
-          className="flex items-center gap-2 py-1 pl-1 pr-3.5 h-9 rounded-full dynamic-island-shell cursor-pointer hover:opacity-95 active:scale-95 transition-all shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)]"
+          className="flex items-center gap-2 py-1 pl-1 pr-3.5 h-9 rounded-full dynamic-island-shell cursor-pointer hover:opacity-95 active:scale-95 transition-all shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)] min-w-0"
           title="Profile"
         >
           <div className="dynamic-island-specular-rim" />
@@ -464,7 +463,7 @@ export function BookshelfView({
             )}
           </div>
           <div className="flex items-center text-left min-w-0 py-0.5">
-            <span className="text-xs font-semibold leading-snug text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[180px] sm:max-w-[220px]">
+            <span className="text-xs font-semibold leading-snug text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[115px] sm:max-w-[200px]">
               {isSyncing
                 ? `Syncing · ${userName}`
                 : `${timeGreeting}, ${userName}`}
@@ -473,7 +472,7 @@ export function BookshelfView({
         </button>
 
         {/* Right Actions Pod */}
-        <div className="flex items-center p-1 rounded-full dynamic-island-shell shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)] gap-1">
+        <div className="flex items-center p-1 rounded-full dynamic-island-shell shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)] gap-0.5 sm:gap-1 shrink-0">
           <div className="dynamic-island-specular-rim" />
 
           {/* Segmented Layout Switcher */}
@@ -572,7 +571,7 @@ export function BookshelfView({
           </div>
         ) : shelfLayout === "spines" ? (
           /* SPINES MODE (Contained) */
-          <div className="w-full max-w-lg px-3 sm:px-4 mx-auto flex flex-col items-center justify-center my-auto">
+          <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl px-3 sm:px-4 mx-auto flex flex-col items-center justify-center my-auto">
             <div className="relative w-full flex items-end justify-center overflow-x-auto no-scrollbar pt-10 pb-0 px-2 z-20 scroll-smooth">
               <div className="flex items-end justify-center min-w-full shrink-0">
                 {spaces.map((space) => {
@@ -1081,12 +1080,18 @@ export function BookshelfView({
               {/* Title & Epigraph */}
               <div className="space-y-2">
                 <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] mb-1">
-                    Notebook Title
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                      Notebook Title
+                    </label>
+                    <span className="text-[10px] font-mono text-[var(--text-tertiary)]">
+                      {editName.length}/24
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={editName}
+                    maxLength={24}
                     onChange={(e) => setEditName(e.target.value)}
                     placeholder="e.g. Field Notes, Kyoto Trip..."
                     className="w-full px-3.5 py-2 rounded-xl apple-card text-xs font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]"
@@ -1338,7 +1343,7 @@ export function BookshelfView({
                   className="w-full p-3 rounded-2xl apple-card text-rose-500 hover:text-rose-600 active:scale-98 transition-all text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(244,63,94,0.08)] border border-rose-500/15"
                 >
                   <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
-                  <span>Archive Volume</span>
+                  <span>Delete Volume</span>
                 </button>
               </div>
             </form>
@@ -1397,12 +1402,18 @@ export function BookshelfView({
               {/* Title & Epigraph */}
               <div className="space-y-2">
                 <div>
-                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] mb-1">
-                    Notebook Title
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                      Notebook Title
+                    </label>
+                    <span className="text-[10px] font-mono text-[var(--text-tertiary)]">
+                      {newName.length}/24
+                    </span>
+                  </div>
                   <input
                     type="text"
                     value={newName}
+                    maxLength={24}
                     onChange={(e) => setNewName(e.target.value)}
                     placeholder="e.g. Kyoto Trip, Morning Thoughts..."
                     autoFocus
@@ -1649,13 +1660,13 @@ export function BookshelfView({
                   className="relative w-full max-w-xs dynamic-island-shell rounded-3xl p-5 z-10 pointer-events-auto border border-[var(--glass-border)] shadow-2xl text-center"
                 >
                   <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                    <Archive className="w-5 h-5" />
+                    <Trash2 className="w-5 h-5" />
                   </div>
                   <h3 className="font-serif font-bold text-sm text-[var(--text-primary)]">
-                    Archive Notebook?
+                    Delete Notebook?
                   </h3>
                   <p className="text-xs text-[var(--text-secondary)] mt-1.5 mb-4 leading-relaxed">
-                    Archive &ldquo;{activeSelected.name}&rdquo; and remove it from your active bookshelf? All notes will remain preserved in your archive vault.
+                    Permanently delete &ldquo;{activeSelected.name}&rdquo; from your bookshelf? All notes in this volume will be permanently removed.
                   </p>
                   <div className="flex items-center gap-2">
                     <button
@@ -1683,7 +1694,7 @@ export function BookshelfView({
                       }}
                       className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                     >
-                      Archive Volume
+                      Delete Volume
                     </button>
                   </div>
                 </motion.div>

@@ -89,6 +89,19 @@ export function SettingsSheet({
     }
   }, [isOpen, notes, spaces]);
 
+  // Keyboard navigation (Escape to close)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleOptimizeStorage = async () => {
     if (isOptimizing) return;
     triggerHaptic("medium");

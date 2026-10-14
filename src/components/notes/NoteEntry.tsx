@@ -159,14 +159,19 @@ export const NoteEntry = memo(function NoteEntry({
               triggerHaptic("light");
               onOpenQuickAnnotator(note);
             }}
-            className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[var(--text-primary)] opacity-40 hover:opacity-100 inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle"
+            aria-label={
+              hasMarginalia
+                ? "Edit footnote or sidenote"
+                : "Add footnote or sidenote"
+            }
+            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--text-primary)] opacity-40 hover:opacity-100 inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle shrink-0"
             title={
               hasMarginalia
                 ? "Edit footnote / sidenote"
                 : "Add footnote / sidenote"
             }
           >
-            <Quote className="w-3 h-3 stroke-[1.85]" />
+            <Quote className="w-3.5 h-3.5 stroke-[1.85]" />
           </button>
         )}
 
@@ -183,7 +188,8 @@ export const NoteEntry = memo(function NoteEntry({
             }
             onToggleMenu?.(!showMenu);
           }}
-          className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[var(--text-primary)] inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle ${
+          aria-label="More notice options"
+          className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--text-primary)] inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle shrink-0 ${
             showMenu
               ? "opacity-100 bg-[var(--text-primary)]/10"
               : "opacity-40 hover:opacity-100"
@@ -437,7 +443,8 @@ export const NoteEntry = memo(function NoteEntry({
               triggerHaptic("light");
               setIsFootnotesExpanded((prev) => !prev);
             }}
-            className="inline-flex items-center justify-center min-w-[20px] min-h-[20px] p-0.5 font-serif font-bold text-[12px] leading-none text-[var(--text-primary)] opacity-80 hover:opacity-100 active:scale-125 cursor-pointer transition-all rounded-full hover:bg-[var(--text-primary)]/10"
+            aria-label={`Footnote ${num}: ${item.content}`}
+            className="inline-flex items-center justify-center min-w-[28px] min-h-[28px] -my-1 p-0.5 font-serif font-bold text-[13px] leading-none text-[var(--text-primary)] opacity-85 hover:opacity-100 active:scale-125 cursor-pointer transition-all rounded-full hover:bg-[var(--text-primary)]/10"
             title={`Footnote ${num}: ${item.content}`}
           >
             {toSuperscriptNumber(num)}
@@ -465,7 +472,7 @@ export const NoteEntry = memo(function NoteEntry({
         {/* Left Column: Primary Note Stream */}
         <div className="min-w-0 space-y-3">
           {/* 1. Note Header & Text Content Flow */}
-          {note.content && (
+          {(note.content || note.title) && (
             <div
               style={{
                 fontSize: isReadingMode
@@ -520,26 +527,28 @@ export const NoteEntry = memo(function NoteEntry({
                 )}{" "}
                 —
               </span>
-              <TextHighlighter
-                content={note.content}
-                highlights={note.highlights}
-                marginaliaItems={marginaliaList}
-                isReadingMode={isReadingMode}
-                className="inline"
-                onSaveHighlight={handleSaveHighlight}
-                onUpdateHighlight={handleUpdateHighlight}
-                onDeleteHighlight={handleDeleteHighlight}
-                onToggleFootnotes={() =>
-                  setIsFootnotesExpanded((prev) => !prev)
-                }
-              />
+              {note.content && (
+                <TextHighlighter
+                  content={note.content}
+                  highlights={note.highlights}
+                  marginaliaItems={marginaliaList}
+                  isReadingMode={isReadingMode}
+                  className="inline"
+                  onSaveHighlight={handleSaveHighlight}
+                  onUpdateHighlight={handleUpdateHighlight}
+                  onDeleteHighlight={handleDeleteHighlight}
+                  onToggleFootnotes={() =>
+                    setIsFootnotesExpanded((prev) => !prev)
+                  }
+                />
+              )}
               {renderParagraphEndSuperscripts()}
               {renderInlineEndControls(false)}
             </div>
           )}
 
-          {/* Standalone timestamp if there is no text content */}
-          {!note.content && (
+          {/* Standalone timestamp if there is no text content and no title */}
+          {!note.content && !note.title && (
             <div
               style={{ fontSize: "calc(11px * var(--font-scale, 1))" }}
               className="font-sans font-semibold tracking-wider text-[var(--text-primary)] uppercase select-none flex items-center justify-between w-full gap-2"

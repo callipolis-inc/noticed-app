@@ -128,6 +128,19 @@ export function ProfileSheet({
     setEditingBio(authorBio);
   }, [authorBio]);
 
+  // Keyboard navigation (Escape to close)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   // Debounced auto-save for user name
   const saveNameNow = (nameToSave: string) => {
     const trimmed = nameToSave.trim();

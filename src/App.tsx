@@ -1001,7 +1001,7 @@ export function App() {
     setSpaces(remaining);
     setNotes((prev) => prev.filter((n) => n.spaceId !== spaceId));
     queueCloudDeleteSpace(spaceId, spaceNotes);
-    showFlyout("Notebook archived", 2000);
+    showFlyout("Notebook deleted", 2200);
   };
 
   const handleSaveNote = (newNote: FieldNote) => {
@@ -1322,10 +1322,12 @@ export function App() {
           >
             {/* Scrollable Canvas */}
             <main
-              className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-5 sm:px-8 pb-32 paper-micro-grain"
+              className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-5 sm:px-8 paper-micro-grain"
               style={{
                 paddingTop:
                   "max(calc(env(safe-area-inset-top, 0px) + 24px), 32px)",
+                paddingBottom:
+                  "max(calc(env(safe-area-inset-bottom, 0px) + 110px), 128px)",
               }}
             >
               {/* Literary Folio Header */}

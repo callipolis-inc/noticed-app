@@ -40,6 +40,7 @@ import {
   MapPin,
   X,
   Type,
+  AlertTriangle,
 } from "lucide-react";
 
 function toDateInputString(d: Date): string {
@@ -129,6 +130,7 @@ export function CreateNoteSheet({
 
   // Formatting Drawer state
   const [isFormattingOpen, setIsFormattingOpen] = useState(false);
+  const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -421,6 +423,7 @@ export function CreateNoteSheet({
 
   const handleSave = () => {
     if (
+      !title.trim() &&
       !content.trim() &&
       !marginaliaText.trim() &&
       photos.length === 0 &&
@@ -670,11 +673,22 @@ export function CreateNoteSheet({
   };
 
   const canSave =
+    title.trim().length > 0 ||
     content.trim().length > 0 ||
     marginaliaText.trim().length > 0 ||
     photos.length > 0 ||
     videos.length > 0 ||
     recorder.recordedAudio !== null;
+
+  const handleRequestClose = () => {
+    if (canSave) {
+      triggerHaptic("medium");
+      setIsDiscardConfirmOpen(true);
+    } else {
+      triggerHaptic("light");
+      onClose();
+    }
+  };
 
   if (typeof document === "undefined") return null;
 
@@ -688,10 +702,7 @@ export function CreateNoteSheet({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
-            onClick={() => {
-              triggerHaptic("light");
-              onClose();
-            }}
+            onClick={handleRequestClose}
             className="fixed inset-0 bg-black/40 backdrop-blur-md pointer-events-auto"
           />
 
@@ -768,7 +779,7 @@ export function CreateNoteSheet({
               setNoteTime={setNoteTime}
               canSave={canSave}
               isEditing={Boolean(editingNote)}
-              onClose={onClose}
+              onClose={handleRequestClose}
               onSave={handleSave}
             />
 
@@ -1389,6 +1400,61 @@ export function CreateNoteSheet({
               }}
             />
           )}
+
+          {/* Discard Draft Confirmation Dialog */}
+          <AnimatePresence>
+            {isDiscardConfirmOpen && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-auto">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsDiscardConfirmOpen(false)}
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                />
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                  className="relative w-full max-w-xs dynamic-island-shell rounded-3xl p-5 z-10 border border-[var(--glass-border)] shadow-2xl text-center"
+                >
+                  <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-serif font-bold text-sm text-[var(--text-primary)]">
+                    Discard Draft?
+                  </h3>
+                  <p className="text-xs text-[var(--text-secondary)] mt-1.5 mb-4 leading-relaxed">
+                    You have unsaved changes in this notice. Are you sure you want to discard them?
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setIsDiscardConfirmOpen(false);
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl border border-[var(--glass-border)] text-xs font-medium text-[var(--text-primary)] inner-pseudo-glass cursor-pointer"
+                    >
+                      Keep Editing
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("heavy");
+                        setIsDiscardConfirmOpen(false);
+                        onClose();
+                      }}
+                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </AnimatePresence>,
