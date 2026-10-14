@@ -71,15 +71,15 @@ export function dataUrlToBlob(dataUrl: string): {
  * Uploads a binary Blob or File to Supabase Storage ('noticed-media' bucket)
  * and returns its permanent public URL. Returns null if offline or bucket unavailable.
  */
-let cachedUserId: { id: string; expiresAt: number } | null = null;
+let cachedUserId: { id: string | null; expiresAt: number } | null = null;
 
-async function getCachedUserId(): Promise<string> {
+async function getCachedUserId(): Promise<string | null> {
   const now = Date.now();
   if (cachedUserId && cachedUserId.expiresAt > now) {
     return cachedUserId.id;
   }
   const user = await getCurrentUser();
-  const id = user?.id || "guest";
+  const id = user?.id || null;
   cachedUserId = { id, expiresAt: now + 30000 };
   return id;
 }
@@ -94,8 +94,14 @@ export async function uploadMediaToSupabase(
     return null;
   }
 
+  // Guest users keep media 100% local (IndexedDB / Base64).
+  // Only authenticated users upload media to Supabase Storage.
+  const ownerFolder = await getCachedUserId();
+  if (!ownerFolder) {
+    return null;
+  }
+
   try {
-    const ownerFolder = await getCachedUserId();
     const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
     const filePath = `${folder}/${ownerFolder}/${uniqueName}`;
 
