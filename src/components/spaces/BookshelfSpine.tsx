@@ -292,9 +292,6 @@ export function BookshelfSpine({
       triggerSuccessHaptic();
       onSelect();
       onOpen();
-    } else if (isSelected && onOpen) {
-      triggerSuccessHaptic();
-      onOpen();
     } else {
       triggerHaptic("light");
       onSelect();

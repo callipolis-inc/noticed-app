@@ -6,6 +6,7 @@ import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { formatNoteDate, formatTimeOnly } from "@/lib/utils";
 import { toSuperscriptNumber } from "../notes/TextHighlighter";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import { EditorialMarkdown } from "@/lib/markdownRenderer";
 import {
   X,
   Printer,
@@ -494,8 +495,11 @@ export function ManuscriptExportModal({
 
                             {/* Main Body Text */}
                             {note.content && (
-                              <div className="font-serif text-[15px] sm:text-[15.5px] leading-[1.7] text-stone-800 whitespace-pre-wrap">
-                                {note.content}
+                              <div className="font-serif text-[15px] sm:text-[15.5px] leading-[1.7] text-stone-800">
+                                <EditorialMarkdown
+                                  content={note.content}
+                                  className="font-serif text-[15px] sm:text-[15.5px] leading-[1.7] text-stone-800"
+                                />
                               </div>
                             )}
 

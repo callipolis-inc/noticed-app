@@ -265,6 +265,8 @@ export function BookshelfView({
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const isProgrammaticScrollRef = useRef(false);
+  const lastCoverTapRef = useRef<{ id: string; time: number }>({ id: "", time: 0 });
 
   // Edit State
   const [editName, setEditName] = useState("");
@@ -277,6 +279,7 @@ export function BookshelfView({
   const [editFoilColor, setEditFoilColor] = useState<string | undefined>(
     undefined,
   );
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Create State
   const [newName, setNewName] = useState("");
@@ -302,19 +305,66 @@ export function BookshelfView({
     return spaces.findIndex((s) => s.id === activeSelected?.id);
   }, [spaces, activeSelected]);
 
-  // Center active book smoothly when selectedId changes
+  // Center active book smoothly when selectedId changes via tap or external trigger
   useEffect(() => {
     if (shelfLayout === "covers" && activeSelected) {
       const el = itemRefs.current.get(activeSelected.id);
       if (el) {
+        isProgrammaticScrollRef.current = true;
         el.scrollIntoView({
           behavior: "smooth",
           inline: "center",
           block: "nearest",
         });
+        const timer = setTimeout(() => {
+          isProgrammaticScrollRef.current = false;
+        }, 360);
+        return () => clearTimeout(timer);
       }
     }
   }, [selectedId, shelfLayout, activeSelected]);
+
+  // Synchronize active selected book when user swipes/scrolls the 3D covers carousel
+  useEffect(() => {
+    const container = carouselRef.current;
+    if (shelfLayout !== "covers" || !container) return;
+
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const handleScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
+      if (timeoutId) clearTimeout(timeoutId);
+
+      timeoutId = setTimeout(() => {
+        const rect = container.getBoundingClientRect();
+        const centerLine = rect.left + rect.width / 2;
+
+        let closestId = "";
+        let minDistance = Infinity;
+
+        itemRefs.current.forEach((el, id) => {
+          const itemRect = el.getBoundingClientRect();
+          const itemCenter = itemRect.left + itemRect.width / 2;
+          const dist = Math.abs(centerLine - itemCenter);
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestId = id;
+          }
+        });
+
+        if (closestId && closestId !== selectedId) {
+          triggerHaptic("light");
+          setSelectedId(closestId);
+        }
+      }, 60);
+    };
+
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [shelfLayout, selectedId]);
 
   const handleSelectBook = (id: string) => {
     if (isOpening) return;
@@ -336,6 +386,7 @@ export function BookshelfView({
   const handleStartEdit = () => {
     if (!activeSelected) return;
     triggerHaptic("light");
+    setEditError(null);
     setEditName(activeSelected.name);
     setEditDesc(activeSelected.description || "");
     setEditCover(activeSelected.coverStyle || "espresso");
@@ -363,7 +414,12 @@ export function BookshelfView({
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editName.trim() || !activeSelected) return;
+    if (!editName.trim()) {
+      triggerHaptic("heavy");
+      setEditError("Volume title cannot be empty");
+      return;
+    }
+    if (!activeSelected) return;
     triggerSuccessHaptic();
 
     if (onUpdateSpace) {
@@ -379,6 +435,7 @@ export function BookshelfView({
       });
     }
 
+    setEditError(null);
     setIsEditing(false);
   };
 
@@ -717,10 +774,18 @@ export function BookshelfView({
                       else itemRefs.current.delete(space.id);
                     }}
                     onClick={() => {
-                      if (isSelected) {
+                      const now = Date.now();
+                      const isDoubleTap =
+                        lastCoverTapRef.current.id === space.id &&
+                        now - lastCoverTapRef.current.time < 320;
+                      lastCoverTapRef.current = { id: space.id, time: now };
+
+                      if (isDoubleTap) {
                         handleOpenActive();
-                      } else {
+                      } else if (!isSelected) {
                         handleSelectBook(space.id);
+                      } else {
+                        triggerHaptic("light");
                       }
                     }}
                     className="snap-center shrink-0 cursor-pointer select-none transition-transform duration-300 ease-out flex flex-col items-center"
@@ -1059,7 +1124,8 @@ export function BookshelfView({
               <button
                 type="button"
                 onClick={handleSaveEdit}
-                className="text-xs font-semibold px-3 py-1 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs hover:opacity-90 active:scale-95 transition-transform cursor-pointer"
+                disabled={!editName.trim()}
+                className="text-xs font-semibold px-3 py-1 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs hover:opacity-90 active:scale-95 transition-transform cursor-pointer disabled:opacity-40"
               >
                 Save
               </button>
@@ -1092,10 +1158,22 @@ export function BookshelfView({
                     type="text"
                     value={editName}
                     maxLength={24}
-                    onChange={(e) => setEditName(e.target.value)}
+                    onChange={(e) => {
+                      setEditName(e.target.value);
+                      if (editError) setEditError(null);
+                    }}
                     placeholder="e.g. Field Notes, Kyoto Trip..."
-                    className="w-full px-3.5 py-2 rounded-xl apple-card text-xs font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]"
+                    className={`w-full px-3.5 py-2 rounded-xl apple-card text-xs font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] ${
+                      editError
+                        ? "border border-rose-500 ring-1 ring-rose-500/30"
+                        : ""
+                    }`}
                   />
+                  {editError && (
+                    <span className="text-[10px] text-rose-500 font-medium block mt-1">
+                      {editError}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -1213,13 +1291,29 @@ export function BookshelfView({
                   <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
                     Title Foil Color
                   </label>
-                  <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
-                    {LUXURY_FOIL_PRESETS.find(
-                      (f) =>
-                        f.color.toLowerCase() ===
-                        (editFoilColor || selectedPalette.foil).toLowerCase(),
-                    )?.name || "Default Foil"}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
+                      {editFoilColor
+                        ? LUXURY_FOIL_PRESETS.find(
+                            (f) =>
+                              f.color.toLowerCase() ===
+                              editFoilColor.toLowerCase(),
+                          )?.name || "Custom Foil"
+                        : "Theme Default"}
+                    </span>
+                    {editFoilColor && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setEditFoilColor(undefined);
+                        }}
+                        className="text-[9.5px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] underline ml-1 cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-1.5 p-2 rounded-2xl apple-card shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
@@ -1536,16 +1630,29 @@ export function BookshelfView({
                   <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
                     Title Foil Color
                   </label>
-                  <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
-                    {LUXURY_FOIL_PRESETS.find(
-                      (f) =>
-                        f.color.toLowerCase() ===
-                        (
-                          newFoilColor ||
-                          getCoverPalette(newCover, newCustomColor, newName).foil
-                        ).toLowerCase(),
-                    )?.name || "Default Foil"}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
+                      {newFoilColor
+                        ? LUXURY_FOIL_PRESETS.find(
+                            (f) =>
+                              f.color.toLowerCase() ===
+                              newFoilColor.toLowerCase(),
+                          )?.name || "Custom Foil"
+                        : "Theme Default"}
+                    </span>
+                    {newFoilColor && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setNewFoilColor(undefined);
+                        }}
+                        className="text-[9.5px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] underline ml-1 cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between gap-1.5 p-2 rounded-2xl apple-card shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
