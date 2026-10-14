@@ -1322,7 +1322,7 @@ export function App() {
           >
             {/* Scrollable Canvas */}
             <main
-              className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-5 sm:px-8 paper-micro-grain"
+              className="max-w-md md:max-w-2xl lg:max-w-4xl mx-auto px-5 sm:px-8 paper-micro-grain scroll-gpu-layer"
               style={{
                 paddingTop:
                   "max(calc(env(safe-area-inset-top, 0px) + 24px), 32px)",

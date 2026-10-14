@@ -95,6 +95,19 @@ export function DarkroomModal({
     }
   }, [isOpen, initialMeta]);
 
+  // Keyboard navigation (Escape to close)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const currentPreset =
@@ -131,7 +144,7 @@ export function DarkroomModal({
           transition={{ duration: 0.2 }}
           onClick={(e) => {
             e.stopPropagation();
-            onClose();
+            handleApply();
           }}
           className="fixed inset-0 bg-black/60 backdrop-blur-md pointer-events-auto"
         />

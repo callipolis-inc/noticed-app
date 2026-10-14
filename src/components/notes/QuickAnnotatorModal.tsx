@@ -276,7 +276,7 @@ export function QuickAnnotatorModal({
             transition={{ duration: 0.22, ease: "easeOut" }}
             onClick={() => {
               triggerHaptic("light");
-              onClose();
+              handleSave();
             }}
             className="fixed inset-0 bg-black/35 backdrop-blur-[6px] pointer-events-auto"
           />

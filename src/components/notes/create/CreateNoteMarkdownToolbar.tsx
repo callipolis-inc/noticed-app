@@ -108,6 +108,7 @@ export function CreateNoteMarkdownToolbar({
                         : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     }`}
                     title={opt.label}
+                    aria-label={`Align text ${opt.label.toLowerCase()}`}
                   >
                     <Icon className="w-3.5 h-3.5 stroke-[2]" />
                   </button>
@@ -123,6 +124,7 @@ export function CreateNoteMarkdownToolbar({
               onClick={() => onApplyMarkdownWrap("**", "**", "bold")}
               className="px-2.5 py-1.5 min-h-[30px] rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0"
               title="Bold (Cmd+B)"
+              aria-label="Format bold"
             >
               <Bold className="w-3.5 h-3.5 stroke-[2.4]" />
               <span className="text-[11px]">Bold</span>
@@ -133,6 +135,7 @@ export function CreateNoteMarkdownToolbar({
               onClick={() => onApplyMarkdownWrap("*", "*", "italic")}
               className="px-2.5 py-1.5 min-h-[30px] rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0"
               title="Italic (Cmd+I)"
+              aria-label="Format italic"
             >
               <Italic className="w-3.5 h-3.5 stroke-[2.2]" />
               <span className="text-[11px]">Italic</span>
@@ -145,6 +148,7 @@ export function CreateNoteMarkdownToolbar({
               }
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer line-through opacity-80 shrink-0"
               title="Strikethrough (Cmd+Shift+X)"
+              aria-label="Format strikethrough"
             >
               <Strikethrough className="w-3.5 h-3.5 stroke-[2]" />
               <span className="text-[11px]">Strike</span>
@@ -155,6 +159,7 @@ export function CreateNoteMarkdownToolbar({
               onClick={() => onApplyMarkdownWrap("`", "`", "code")}
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-mono shrink-0"
               title="Inline Code (Cmd+E)"
+              aria-label="Insert inline code"
             >
               <Code className="w-3.5 h-3.5 stroke-[2]" />
               <span className="text-[11px]">Code</span>
@@ -167,6 +172,7 @@ export function CreateNoteMarkdownToolbar({
               onClick={() => onApplyMarkdownBlock("> ", "quote")}
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               title="Quote block"
+              aria-label="Insert quote block"
             >
               <Quote className="w-3.5 h-3.5 stroke-[2]" />
               <span className="text-[11px]">Quote</span>
@@ -177,6 +183,7 @@ export function CreateNoteMarkdownToolbar({
               onClick={() => onApplyMarkdownBlock("- ", "item")}
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               title="Bullet list"
+              aria-label="Insert bullet list"
             >
               <List className="w-3.5 h-3.5 stroke-[2]" />
               <span className="text-[11px]">Bullet</span>
@@ -187,6 +194,7 @@ export function CreateNoteMarkdownToolbar({
               onClick={() => onApplyMarkdownBlock("1. ", "item")}
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               title="Numbered list"
+              aria-label="Insert numbered list"
             >
               <ListOrdered className="w-3.5 h-3.5 stroke-[2]" />
               <span className="text-[11px]">Number</span>
@@ -197,6 +205,7 @@ export function CreateNoteMarkdownToolbar({
               onClick={() => onApplyMarkdownBlock("---\n", "")}
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               title="Horizontal divider"
+              aria-label="Insert horizontal divider"
             >
               <Minus className="w-3.5 h-3.5 stroke-[2.2]" />
               <span className="text-[11px]">Divider</span>
