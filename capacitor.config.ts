@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.noticed.mobile',
+  appId: 'com.syntheticae.noticed',
   appName: 'Noticed',
   webDir: 'dist',
   backgroundColor: '#121214',

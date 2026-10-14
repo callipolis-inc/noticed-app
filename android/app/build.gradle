@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "app.noticed.mobile"
+    namespace = "com.syntheticae.noticed"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.noticed.mobile"
+        applicationId "com.syntheticae.noticed"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

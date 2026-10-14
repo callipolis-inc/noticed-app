@@ -1,4 +1,4 @@
-package app.noticed.mobile;
+package com.syntheticae.noticed;
 
 import com.getcapacitor.BridgeActivity;
 

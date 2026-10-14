@@ -2,7 +2,7 @@
 
 > **Target Platforms:** Apple App Store Connect & Google Play Console  
 > **App Version:** 1.0.0  
-> **Bundle ID / Package Name:** `app.noticed.mobile`  
+> **Bundle ID / Package Name:** `com.syntheticae.noticed`  
 > **Publisher:** Callipolis Inc.  
 > **Date:** October 13, 2026  
 

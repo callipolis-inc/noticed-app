@@ -1,6 +1,6 @@
 # ✉️ Noticed — Standar Arsitektur Auth Zero-Cost & Zero-Friction
 
-Dokumen ini berisi panduan konfigurasi Supabase Auth, Instant Sign-Up, dan Gmail Custom SMTP untuk aplikasi **Noticed** (`app.noticed.mobile`).
+Dokumen ini berisi panduan konfigurasi Supabase Auth, Instant Sign-Up, dan Gmail Custom SMTP untuk aplikasi **Noticed** (`com.syntheticae.noticed`).
 
 ---
 
@@ -55,6 +55,6 @@ Buka **[Supabase URL Configuration](https://supabase.com/dashboard/project/ienbk
 1. **Site URL:** `https://noticed.app`
 2. **Redirect URLs:**
    - `https://noticed.app/**`
-   - `app.noticed.mobile://*`
+   - `com.syntheticae.noticed://*`
    - `http://localhost:5173/**`
    - `http://127.0.0.1:4173/**`
