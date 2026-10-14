@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { TactileAudioRecorder, RecordedAudio } from "@/lib/audioRecorder";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { MAX_AUDIO_DURATION_SECONDS, processAudioBlob } from "@/lib/mediaStorage";
+import { isProUser, FREE_MAX_AUDIO_DURATION } from "@/lib/proManager";
 
 interface UseAudioRecorderOptions {
   onAutoTranscribeStart?: () => void;
@@ -99,7 +100,10 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
 
       recordingTimerRef.current = window.setInterval(() => {
         setRecordingSeconds((prev) => {
-          if (prev >= MAX_AUDIO_DURATION_SECONDS) {
+          const maxSecs = isProUser()
+            ? MAX_AUDIO_DURATION_SECONDS
+            : FREE_MAX_AUDIO_DURATION;
+          if (prev >= maxSecs) {
             stopRecording();
             return prev;
           }

@@ -96,6 +96,7 @@ import {
   LEGACY_DUMMY_SPACE_IDS,
   isLegacyDummyNoteId,
 } from "@/lib/syncEngine";
+import { isProUser } from "@/lib/proManager";
 import {
   DEMO_SHOWCASE_SPACES,
   DEMO_SHOWCASE_NOTES,
@@ -387,6 +388,12 @@ export function App() {
   // Two-way synchronization handler (supports silent background mode or manual user trigger)
   const handleCloudSync = async (options?: { silent?: boolean }) => {
     const silent = options?.silent ?? false;
+    if (!isProUser()) {
+      if (!silent) {
+        showFlyout("Cloud sync requires Atelier Pro", 2500);
+      }
+      return;
+    }
     if (isSyncing) return;
     setIsSyncing(true);
     try {
@@ -1749,6 +1756,7 @@ export function App() {
             defaultFontChoice={activeSpace.fontChoice || "editorial"}
             defaultImagePosition={imagePosition}
             editingNote={editingNote}
+            notesCountMap={notesCountMap}
             onSaveNote={handleSaveNote}
             onUpdateNote={handleUpdateNote}
           />

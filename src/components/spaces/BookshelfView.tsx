@@ -12,6 +12,8 @@ import {
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { getTimeGreeting } from "@/lib/greetings";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import { useProStatus, FREE_MAX_SPACES, type ProFeature } from "@/lib/proManager";
+import { AtelierProModal } from "@/components/ui/AtelierProModal";
 import {
   ArrowRight,
   ArrowLeft,
@@ -260,6 +262,11 @@ export function BookshelfView({
     defaultShelfLayout,
   );
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+
+  // Atelier Pro Monetization States
+  const isPro = useProStatus();
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [proTriggerFeature, setProTriggerFeature] = useState<ProFeature | null>(null);
 
   useLockBodyScroll(isCreating || isEditing || isArchiveConfirmOpen);
 
@@ -587,6 +594,12 @@ export function BookshelfView({
           <button
             type="button"
             onClick={() => {
+              if (!isPro && spaces.length >= FREE_MAX_SPACES) {
+                triggerHaptic("medium");
+                setProTriggerFeature("spaces_limit");
+                setIsProModalOpen(true);
+                return;
+              }
               triggerHaptic("light");
               setIsCreating(true);
             }}
@@ -1288,9 +1301,16 @@ export function BookshelfView({
               {/* Title Foil Color (Letterpress Leaf) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
-                    Title Foil Color
-                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                      Title Foil Color
+                    </label>
+                    {!isPro && (
+                      <span className="text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                        PRO
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
                       {editFoilColor
@@ -1327,6 +1347,12 @@ export function BookshelfView({
                         key={foilItem.id}
                         type="button"
                         onClick={() => {
+                          if (!isPro) {
+                            triggerHaptic("medium");
+                            setProTriggerFeature("luxury_foil");
+                            setIsProModalOpen(true);
+                            return;
+                          }
                           triggerHaptic("light");
                           setEditFoilColor(foilItem.color);
                         }}
@@ -1627,9 +1653,16 @@ export function BookshelfView({
               {/* Title Foil Color (Letterpress Leaf) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
-                    Title Foil Color
-                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                      Title Foil Color
+                    </label>
+                    {!isPro && (
+                      <span className="text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                        PRO
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
                       {newFoilColor
@@ -1658,9 +1691,9 @@ export function BookshelfView({
                 <div className="flex items-center justify-between gap-1.5 p-2 rounded-2xl apple-card shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
                   {LUXURY_FOIL_PRESETS.map((foilItem) => {
                     const activeDefaultFoil = getCoverPalette(
-                      newCover,
-                      newCustomColor,
-                      newName,
+                       newCover,
+                       newCustomColor,
+                       newName,
                     ).foil;
                     const isSelected =
                       (newFoilColor || activeDefaultFoil).toLowerCase() ===
@@ -1671,6 +1704,12 @@ export function BookshelfView({
                         key={foilItem.id}
                         type="button"
                         onClick={() => {
+                          if (!isPro) {
+                            triggerHaptic("medium");
+                            setProTriggerFeature("luxury_foil");
+                            setIsProModalOpen(true);
+                            return;
+                          }
                           triggerHaptic("light");
                           setNewFoilColor(foilItem.color);
                         }}
@@ -1810,6 +1849,13 @@ export function BookshelfView({
           </AnimatePresence>,
           document.body,
         )}
+
+      {/* Atelier Pro Modal */}
+      <AtelierProModal
+        isOpen={isProModalOpen}
+        onClose={() => setIsProModalOpen(false)}
+        triggerFeature={proTriggerFeature}
+      />
     </div>
   );
 }

@@ -433,7 +433,7 @@ export function SettingsSheet({
                           </span>
                         </div>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
-                          Video captures & audio file imports
+                          Unlimited volumes, cloud sync & multimedia
                         </div>
                       </div>
                     </div>

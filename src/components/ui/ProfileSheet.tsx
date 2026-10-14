@@ -34,6 +34,8 @@ import { processPhotoFile } from "@/lib/mediaStorage";
 import { loadFromAtelierDB } from "@/lib/storage";
 import { updateUserPassword } from "@/lib/supabase";
 import { formatNoteRelativeDate } from "@/lib/utils";
+import { useProStatus } from "@/lib/proManager";
+import { AtelierProModal } from "./AtelierProModal";
 
 interface ProfileSheetProps {
   isOpen: boolean;
@@ -96,6 +98,10 @@ export function ProfileSheet({
 
   // Cloud Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // Atelier Pro Monetization State
+  const isPro = useProStatus();
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
 
   // Account Deletion State (Apple 5.1.1(v) & Google Play Compliance)
   const [isDeleteAccountConfirmOpen, setIsDeleteAccountConfirmOpen] = useState(false);
@@ -675,7 +681,11 @@ export function ProfileSheet({
                         </div>
                         <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1">
                           {userEmail ? (
-                            isSyncing ? (
+                            !isPro ? (
+                              <span className="text-amber-500/90 font-medium">
+                                On-device (Cloud Sync Pro)
+                              </span>
+                            ) : isSyncing ? (
                               <span className="flex items-center gap-1 text-sky-500">
                                 <RotateCw className="w-2.5 h-2.5 animate-spin" />
                                 <span>Syncing...</span>
@@ -699,11 +709,16 @@ export function ProfileSheet({
                         <button
                           type="button"
                           onClick={() => {
+                            if (!isPro) {
+                              triggerHaptic("medium");
+                              setIsProModalOpen(true);
+                              return;
+                            }
                             triggerHaptic("medium");
                             onTriggerSync?.();
                           }}
                           disabled={isSyncing}
-                          title="Sync changes now"
+                          title={isPro ? "Sync changes now" : "Upgrade to Pro to sync"}
                           className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer flex items-center gap-1 disabled:opacity-40 shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]"
                         >
                           <RotateCw
@@ -1297,6 +1312,11 @@ export function ProfileSheet({
             )}
           </AnimatePresence>
 
+          {/* Atelier Pro Showcase Modal */}
+          <AtelierProModal
+            isOpen={isProModalOpen}
+            onClose={() => setIsProModalOpen(false)}
+          />
         </div>
       )}
     </AnimatePresence>,

@@ -17,6 +17,7 @@ import {
   isProUser,
   canUseFeature,
   FREE_MAX_PHOTOS,
+  FREE_MAX_NOTES_PER_SPACE,
   type ProFeature,
 } from "@/lib/proManager";
 import { AtelierProModal } from "@/components/ui/AtelierProModal";
@@ -66,6 +67,7 @@ interface CreateNoteSheetProps {
   defaultFontChoice?: FontChoice;
   defaultImagePosition?: ImagePosition;
   editingNote?: FieldNote | null;
+  notesCountMap?: Record<string, number>;
   onSaveNote: (note: FieldNote) => void;
   onUpdateNote?: (note: FieldNote) => void;
 }
@@ -79,6 +81,7 @@ export function CreateNoteSheet({
   defaultFontChoice = "editorial",
   defaultImagePosition = "bottom",
   editingNote = null,
+  notesCountMap,
   onSaveNote,
   onUpdateNote,
 }: CreateNoteSheetProps) {
@@ -453,6 +456,17 @@ export function CreateNoteSheet({
     ) {
       onClose();
       return;
+    }
+
+    // Enforce Freemium per-notebook capacity limit (100 notes per notebook for free users)
+    if (!editingNote && !isProUser()) {
+      const currentSpaceNotesCount = notesCountMap?.[selectedSpaceId] ?? 0;
+      if (currentSpaceNotesCount >= FREE_MAX_NOTES_PER_SPACE) {
+        triggerHaptic("medium");
+        setProTriggerFeature("notes_limit");
+        setIsProModalOpen(true);
+        return;
+      }
     }
 
     triggerSuccessHaptic();
@@ -1647,6 +1661,11 @@ export function CreateNoteSheet({
                         .toString()
                         .padStart(2, "0")}
                     </span>
+                    {!speech.isDictatingOnly && (
+                      <span className="text-[10px] font-mono text-[var(--text-tertiary)] opacity-70">
+                        / {isProUser() ? "3:00" : "1:00"}
+                      </span>
+                    )}
                     <span className="text-[10px] uppercase tracking-wider font-mono text-[var(--text-secondary)]">
                       {speech.isDictatingOnly ? "Dictating" : "Rec"}
                     </span>

@@ -10,24 +10,31 @@ const PRO_STORAGE_KEY = "sidenotes_is_pro";
 const PRO_EVENT_KEY = "sidenotes_pro_status_changed";
 
 export const FREE_MAX_PHOTOS = 3;
+export const FREE_MAX_SPACES = 3;
+export const FREE_MAX_NOTES_PER_SPACE = 100;
+export const FREE_MAX_AUDIO_DURATION = 60; // 60s for Free, 180s for Pro
 
-export type ProFeature = "video" | "audio_import" | "unlimited_photos";
+export type ProFeature =
+  | "video"
+  | "audio_import"
+  | "unlimited_photos"
+  | "spaces_limit"
+  | "notes_limit"
+  | "manuscript_export"
+  | "luxury_foil";
 
 /**
  * Checks if the current user has Atelier Pro status.
- * Defaults to true for current owner / sideload device so testing is seamless.
  */
 export function isProUser(): boolean {
   try {
     const val = localStorage.getItem(PRO_STORAGE_KEY);
     if (val === null) {
-      // Default to Pro for the developer/owner sideload environment
-      localStorage.setItem(PRO_STORAGE_KEY, "true");
-      return true;
+      return false;
     }
     return val === "true";
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -89,6 +96,14 @@ export function canUseFeature(
       return false; // Pro required for importing external audio files
     case "unlimited_photos":
       return (currentCount ?? 0) < FREE_MAX_PHOTOS;
+    case "spaces_limit":
+      return (currentCount ?? 0) < FREE_MAX_SPACES;
+    case "notes_limit":
+      return (currentCount ?? 0) < FREE_MAX_NOTES_PER_SPACE;
+    case "manuscript_export":
+      return false; // Pro required for full manuscript export
+    case "luxury_foil":
+      return false; // Pro required for custom luxury foil
     default:
       return true;
   }

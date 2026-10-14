@@ -14,7 +14,10 @@ import {
   Check,
   BookOpen,
   SlidersHorizontal,
+  Sparkles,
 } from "lucide-react";
+import { useProStatus } from "@/lib/proManager";
+import { AtelierProModal } from "@/components/ui/AtelierProModal";
 
 interface ManuscriptExportModalProps {
   isOpen: boolean;
@@ -45,6 +48,10 @@ export function ManuscriptExportModal({
   const [showOptions, setShowOptions] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Atelier Pro status & preview limits
+  const isPro = useProStatus();
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+
   // Filter out any archived notes & sort chronologically (oldest to newest for manuscript reading)
   const sortedNotes = useMemo(() => {
     return [...notes]
@@ -55,12 +62,19 @@ export function ManuscriptExportModal({
       );
   }, [notes]);
 
+  // Free tier preview: up to 5 passages, Pro tier: entire folio
+  const isTruncatedForFree = !isPro && sortedNotes.length > 5;
+  const exportNotes = useMemo(() => {
+    if (isPro) return sortedNotes;
+    return sortedNotes.slice(0, 5);
+  }, [isPro, sortedNotes]);
+
   // Group notes by date
   const groupedPassages = useMemo(() => {
     const groups: { dateKey: string; notes: FieldNote[] }[] = [];
     const map = new Map<string, FieldNote[]>();
 
-    for (const note of sortedNotes) {
+    for (const note of exportNotes) {
       const key = formatNoteDate(note.createdAt);
       if (!map.has(key)) {
         map.set(key, []);
@@ -69,11 +83,11 @@ export function ManuscriptExportModal({
       map.get(key)!.push(note);
     }
     return groups;
-  }, [sortedNotes]);
+  }, [exportNotes]);
 
   // Total statistics for folio metadata
   const totalWords = useMemo(() => {
-    return sortedNotes.reduce((acc, note) => {
+    return exportNotes.reduce((acc, note) => {
       const words = (note.content || "")
         .trim()
         .split(/\s+/)
@@ -141,6 +155,10 @@ export function ManuscriptExportModal({
       });
       md += `---\n\n`;
     });
+
+    if (isTruncatedForFree) {
+      md += `*Pratinjau Edisi Standar (5 dari ${sortedNotes.length} Catatan). Buka Atelier Pro untuk ekspor manuskrip lengkap.*\n\n`;
+    }
 
     try {
       await navigator.clipboard.writeText(md);
@@ -260,6 +278,23 @@ export function ManuscriptExportModal({
                 )}
               </button>
 
+              {/* Unlock Full Folio Button */}
+              {isTruncatedForFree && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    setIsProModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-500 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-xs"
+                  title="Unlock Full Folio Manuscript"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="hidden xs:inline">Unlock Full Folio</span>
+                  <span className="xs:hidden">Pro</span>
+                </button>
+              )}
+
               {/* Primary Print / Save PDF Button */}
               <button
                 type="button"
@@ -340,7 +375,29 @@ export function ManuscriptExportModal({
           </AnimatePresence>
 
           {/* Interactive Folio Book Stage (Scrollable on screen, printable to native PDF) */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-10 bg-[#e7e4dc] dark:bg-[#0c0c0e] flex justify-center no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-10 bg-[#e7e4dc] dark:bg-[#0c0c0e] flex flex-col items-center no-scrollbar">
+            {/* Free Tier Preview Banner */}
+            {isTruncatedForFree && (
+              <div className="w-full max-w-[760px] mb-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs print:hidden shadow-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span className="text-[11.5px] text-[var(--text-secondary)]">
+                    <strong className="text-[var(--text-primary)] font-semibold">Pratinjau Edisi Standar:</strong> Menampilkan 5 dari {sortedNotes.length} catatan dalam volume ini.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    setIsProModalOpen(true);
+                  }}
+                  className="shrink-0 px-3 py-1 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-semibold active:scale-95 transition-all cursor-pointer shadow-xs"
+                >
+                  Buka Lengkap
+                </button>
+              </div>
+            )}
+
             {/* The Physical Paper Sheet (Alabaster Cream Linen in Print) */}
             <div
               className={`w-full ${
@@ -595,7 +652,9 @@ export function ManuscriptExportModal({
               {/* Colophon & End of Manuscript */}
               <div className="pt-16 pb-6 text-center border-t border-stone-300 space-y-2 manuscript-avoid-break">
                 <div className="font-serif italic text-sm text-stone-500">
-                  End of Volume · {space.name}
+                  {isTruncatedForFree
+                    ? `Standard Edition Preview · 5 of ${sortedNotes.length} Passages`
+                    : `End of Volume · ${space.name}`}
                 </div>
                 <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-stone-400">
                   Printed with Noticed — Sidenotes Literary Atelier
@@ -605,6 +664,13 @@ export function ManuscriptExportModal({
           </div>
         </motion.div>
       </div>
+
+      {/* Atelier Pro Modal */}
+      <AtelierProModal
+        isOpen={isProModalOpen}
+        onClose={() => setIsProModalOpen(false)}
+        triggerFeature="manuscript_export"
+      />
     </AnimatePresence>,
     document.body
   );
