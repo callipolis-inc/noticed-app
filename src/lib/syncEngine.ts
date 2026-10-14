@@ -192,6 +192,7 @@ function spaceToDb(space: Space, userId: string) {
     icon_name: space.iconName || "book-open",
     cover_style: space.coverStyle || "klein",
     custom_color: space.customColor || null,
+    foil_color: space.foilColor || null,
     font_choice: space.fontChoice || "editorial",
     is_shared: Boolean(space.isShared),
     invite_code: space.inviteCode || null,
@@ -210,6 +211,7 @@ function dbToSpace(row: any): Space {
     iconName: row.icon_name || "book-open",
     coverStyle: row.cover_style || "klein",
     customColor: row.custom_color || undefined,
+    foilColor: row.foil_color || undefined,
     fontChoice: row.font_choice || "editorial",
     isShared: Boolean(row.is_shared),
     inviteCode: row.invite_code || undefined,
@@ -396,9 +398,15 @@ export async function syncWithCloud(
       ) {
         return false;
       }
+      // Only discard default starter space "space-2" if it was NEVER customized and has no notes
+      const isUntouchedStarter =
+        s.id === "space-2" &&
+        s.name === "Field Notes" &&
+        !s.customColor &&
+        !s.foilColor;
       if (
         cloudAlreadyHasData &&
-        s.id === "space-2" &&
+        isUntouchedStarter &&
         !remoteSpaceIds.has("space-2") &&
         !spaceIdsWithRealNotes.has("space-2")
       ) {
@@ -491,8 +499,8 @@ export async function syncWithCloud(
       .order("created_at", { ascending: false });
     if (pullNotesError) throw pullNotesError;
 
-    // 6. Merge Spaces (Local changes take precedence for local edits, plus any cloud-only spaces)
-    const spacesMap = new Map<string, Space>();
+    // 6. Merge Spaces (Preserve local shelf ordering & edits, append any new cloud spaces)
+    const remoteSpacesMap = new Map<string, Space>();
     if (remoteSpacesData) {
       remoteSpacesData.forEach((row) => {
         if (
@@ -501,12 +509,27 @@ export async function syncWithCloud(
             spaceIdsWithRealNotes.has(row.id))
         ) {
           const remoteSpace = dbToSpace(row);
-          spacesMap.set(remoteSpace.id, remoteSpace);
+          remoteSpacesMap.set(remoteSpace.id, remoteSpace);
         }
       });
     }
-    activeLocalSpaces.forEach((s) => spacesMap.set(s.id, s));
-    const mergedSpaces = Array.from(spacesMap.values());
+
+    const mergedSpaces: Space[] = [];
+    const addedSpaceIds = new Set<string>();
+
+    // 6a. Preserve local spaces in their exact manual shelf order
+    activeLocalSpaces.forEach((localSpace) => {
+      mergedSpaces.push(localSpace);
+      addedSpaceIds.add(localSpace.id);
+    });
+
+    // 6b. Append any remote spaces added from another device
+    remoteSpacesMap.forEach((remoteSpace, id) => {
+      if (!addedSpaceIds.has(id)) {
+        mergedSpaces.push(remoteSpace);
+        addedSpaceIds.add(id);
+      }
+    });
 
     // 7. Merge Notes (Local hydrated notes + cloud notes, excluding deleted & legacy dummy)
     const notesMap = new Map<string, FieldNote>();

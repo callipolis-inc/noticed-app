@@ -1047,6 +1047,18 @@ export function App() {
   };
 
   const handleSaveNote = (newNote: FieldNote) => {
+    // Prevent orphan notes: ensure target space exists in spaces
+    const targetSpaceExists = spaces.some((s) => s.id === newNote.spaceId);
+    if (!targetSpaceExists) {
+      const fallbackSpace: Space = {
+        ...DEFAULT_STARTER_SPACE,
+        id: newNote.spaceId || generateId(),
+        createdAt: new Date().toISOString(),
+      };
+      newNote.spaceId = fallbackSpace.id;
+      setSpaces((prev) => [...prev, fallbackSpace]);
+      setActiveSpaceId(fallbackSpace.id);
+    }
     setNotes((prev) => [newNote, ...prev]);
     showFlyout("Notice added", 2500);
   };

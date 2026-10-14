@@ -72,6 +72,7 @@ create table if not exists public.spaces (
   icon_name text not null default 'book-open',
   cover_style text default 'klein',
   custom_color text,
+  foil_color text,
   font_choice text default 'editorial',
   is_shared boolean not null default false,
   invite_code text,

@@ -572,8 +572,8 @@ export function BookshelfView({
         ) : shelfLayout === "spines" ? (
           /* SPINES MODE (Contained) */
           <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl px-3 sm:px-4 mx-auto flex flex-col items-center justify-center my-auto">
-            <div className="relative w-full flex items-end justify-center overflow-x-auto no-scrollbar pt-10 pb-0 px-2 z-20 scroll-smooth">
-              <div className="flex items-end justify-center min-w-full shrink-0">
+            <div className="relative w-full overflow-x-auto no-scrollbar pt-10 pb-0 px-3 z-20 scroll-smooth">
+              <div className="flex items-end min-w-max mx-auto px-2">
                 {spaces.map((space) => {
                   const isSelected = space.id === activeSelected?.id;
                   const count = notesCountMap[space.id] || 0;
