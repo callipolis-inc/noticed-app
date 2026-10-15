@@ -61,6 +61,7 @@ jobs:
         run: |
           xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj
 
+          set -o pipefail
           xcodebuild \
             -project ios/App/App.xcodeproj \
             -scheme App \
@@ -78,7 +79,22 @@ jobs:
             VALIDATE_PRODUCT=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             DEVELOPMENT_TEAM="" \
-            PROVISIONING_PROFILE_SPECIFIER=""
+            PROVISIONING_PROFILE_SPECIFIER="" 2>&1 | tee xcodebuild.log || {
+              echo "=========================================="
+              echo "          XCODEBUILD FAILURE LOG          "
+              echo "=========================================="
+              grep -E -C 3 "(error:|fatal error:|BUILD FAILED|\*\* BUILD FAILED \*\*)" xcodebuild.log || tail -n 100 xcodebuild.log
+              exit 1
+            }
+
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Package .app into Noticed.ipa
         run: |
