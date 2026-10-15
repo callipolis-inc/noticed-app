@@ -21,13 +21,48 @@ export function getLuminance(hex: string): number {
 }
 
 export const LUXURY_FOIL_PRESETS = [
-  { id: "gold", name: "Antique Gold", color: "#e6ca85", desc: "Classic 24k leaf letterpress" },
-  { id: "silver", name: "Polished Silver", color: "#f1f5f9", desc: "Cool sterling silver foil" },
-  { id: "rosegold", name: "Rose Gold", color: "#e5b4bd", desc: "Warm coppery blush leaf" },
-  { id: "sage", name: "Pale Sage", color: "#d1dfbe", desc: "Subtle botanical champagne" },
-  { id: "ivory", name: "Warm Ivory", color: "#fae8b2", desc: "Aged vellum warm cream" },
-  { id: "platinum", name: "Platinum", color: "#d0d9ea", desc: "Deep cool noble metal" },
-  { id: "white", name: "Chalk White", color: "#ffffff", desc: "Pure high-contrast letterpress" },
+  {
+    id: "gold",
+    name: "Antique Gold",
+    color: "#e6ca85",
+    desc: "Classic 24k leaf letterpress",
+  },
+  {
+    id: "silver",
+    name: "Polished Silver",
+    color: "#f1f5f9",
+    desc: "Cool sterling silver foil",
+  },
+  {
+    id: "rosegold",
+    name: "Rose Gold",
+    color: "#e5b4bd",
+    desc: "Warm coppery blush leaf",
+  },
+  {
+    id: "sage",
+    name: "Pale Sage",
+    color: "#d1dfbe",
+    desc: "Subtle botanical champagne",
+  },
+  {
+    id: "ivory",
+    name: "Warm Ivory",
+    color: "#fae8b2",
+    desc: "Aged vellum warm cream",
+  },
+  {
+    id: "platinum",
+    name: "Platinum",
+    color: "#d0d9ea",
+    desc: "Deep cool noble metal",
+  },
+  {
+    id: "white",
+    name: "Chalk White",
+    color: "#ffffff",
+    desc: "Pure high-contrast letterpress",
+  },
 ];
 
 export function getCoverPalette(
@@ -49,7 +84,8 @@ export function getCoverPalette(
   const motifIndex = Math.abs(nameHash) % 6;
 
   let baseColor = "#111215";
-  let gradient = "linear-gradient(90deg, #1c1d22 0%, #111215 35%, #090a0c 100%)";
+  let gradient =
+    "linear-gradient(90deg, #1c1d22 0%, #111215 35%, #090a0c 100%)";
   let defaultFoil = "#f1f5f9";
 
   if (customColor) {
@@ -61,47 +97,56 @@ export function getCoverPalette(
     switch (style) {
       case "klein":
         baseColor = "#1d4ed8";
-        gradient = "linear-gradient(90deg, #2563eb 0%, #1d4ed8 35%, #1e40af 100%)";
+        gradient =
+          "linear-gradient(90deg, #2563eb 0%, #1d4ed8 35%, #1e40af 100%)";
         defaultFoil = "#f1f5f9";
         break;
       case "kraft":
         baseColor = "#9a3f24";
-        gradient = "linear-gradient(90deg, #b45309 0%, #9a3f24 35%, #78350f 100%)";
+        gradient =
+          "linear-gradient(90deg, #b45309 0%, #9a3f24 35%, #78350f 100%)";
         defaultFoil = "#fae8b2";
         break;
       case "marble":
         baseColor = "#1b3a2a";
-        gradient = "linear-gradient(90deg, #244e39 0%, #1b3a2a 35%, #13281d 100%)";
+        gradient =
+          "linear-gradient(90deg, #244e39 0%, #1b3a2a 35%, #13281d 100%)";
         defaultFoil = "#d1dfbe";
         break;
       case "electric":
         baseColor = "#4338ca";
-        gradient = "linear-gradient(90deg, #4f46e5 0%, #4338ca 35%, #3730a3 100%)";
+        gradient =
+          "linear-gradient(90deg, #4f46e5 0%, #4338ca 35%, #3730a3 100%)";
         defaultFoil = "#f1f5f9";
         break;
       case "obsidian":
         baseColor = "#141416";
-        gradient = "linear-gradient(90deg, #222328 0%, #141416 35%, #0a0a0c 100%)";
+        gradient =
+          "linear-gradient(90deg, #222328 0%, #141416 35%, #0a0a0c 100%)";
         defaultFoil = "#f1f5f9";
         break;
       case "alabaster":
         baseColor = "#f3eee4";
-        gradient = "linear-gradient(90deg, #faf7f2 0%, #f3eee4 35%, #e5ddcf 100%)";
+        gradient =
+          "linear-gradient(90deg, #faf7f2 0%, #f3eee4 35%, #e5ddcf 100%)";
         defaultFoil = "#1d4ed8";
         break;
       case "espresso":
         baseColor = "#3b2318";
-        gradient = "linear-gradient(90deg, #543224 0%, #3b2318 35%, #27160e 100%)";
+        gradient =
+          "linear-gradient(90deg, #543224 0%, #3b2318 35%, #27160e 100%)";
         defaultFoil = "#e6ca85";
         break;
       case "periwinkle":
         baseColor = "#475569";
-        gradient = "linear-gradient(90deg, #64748b 0%, #475569 35%, #334155 100%)";
+        gradient =
+          "linear-gradient(90deg, #64748b 0%, #475569 35%, #334155 100%)";
         defaultFoil = "#ffffff";
         break;
       default:
         baseColor = "#1d4ed8";
-        gradient = "linear-gradient(90deg, #2563eb 0%, #1d4ed8 35%, #1e40af 100%)";
+        gradient =
+          "linear-gradient(90deg, #2563eb 0%, #1d4ed8 35%, #1e40af 100%)";
         defaultFoil = "#f1f5f9";
         break;
     }
@@ -329,8 +374,8 @@ export function BookshelfSpine({
           borderLeft: `1px solid rgba(255,255,255,${isSelected ? 0.25 : 0.08})`,
           borderRight: "1px solid rgba(0,0,0,0.7)",
           boxShadow: isSelected
-            ? "0 18px 36px -4px rgba(0,0,0,0.75), 0 0 16px rgba(255,255,255,0.08), inset 2px 0 4px rgba(255,255,255,0.12), inset -3px 0 6px rgba(0,0,0,0.6)"
-            : "0 6px 16px -2px rgba(0,0,0,0.35), inset 2px 0 4px rgba(255,255,255,0.08), inset -3px 0 6px rgba(0,0,0,0.65)",
+            ? "0 18px 36px -4px rgba(0,0,0,0.2), 0 0 16px rgba(255,255,255,0.08), inset 2px 0 4px rgba(255,255,255,0.12), inset -3px 0 6px rgba(0,0,0,0.1)"
+            : "0 6px 16px -2px rgba(0,0,0,0.25), inset 2px 0 4px rgba(255,255,255,0.08), inset -3px 0 6px rgba(0,0,0,0.1)",
         }}
       >
         {/* Spine Cylindrical Highlight Streaks */}
@@ -389,7 +434,9 @@ export function BookshelfSpine({
         <div
           className="w-5 h-[1px] rounded-full shrink-0 z-10 opacity-80"
           style={{
-            backgroundColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.25)",
+            backgroundColor: isLight
+              ? "rgba(0,0,0,0.22)"
+              : "rgba(255,255,255,0.25)",
           }}
         />
 
@@ -426,7 +473,9 @@ export function BookshelfSpine({
           <div
             className="w-5 h-[1px] rounded-full shrink-0 opacity-80"
             style={{
-              backgroundColor: isLight ? "rgba(0,0,0,0.22)" : "rgba(255,255,255,0.25)",
+              backgroundColor: isLight
+                ? "rgba(0,0,0,0.22)"
+                : "rgba(255,255,255,0.25)",
             }}
           />
         </div>

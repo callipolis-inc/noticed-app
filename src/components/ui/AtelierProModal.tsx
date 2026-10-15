@@ -9,7 +9,6 @@ import {
   Cloud,
   X,
   Check,
-  Crown,
   BookOpen,
   Printer,
   RotateCw,
@@ -77,7 +76,9 @@ export function AtelierProModal({
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>("terms");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [purchaseStatusMsg, setPurchaseStatusMsg] = useState<string | null>(null);
+  const [purchaseStatusMsg, setPurchaseStatusMsg] = useState<string | null>(
+    null,
+  );
 
   if (!isOpen) return null;
 
@@ -138,7 +139,10 @@ export function AtelierProModal({
     }
   };
 
-  const featureDescriptions: Record<ProFeature, { title: string; desc: string }> = {
+  const featureDescriptions: Record<
+    ProFeature,
+    { title: string; desc: string }
+  > = {
     notes_limit: {
       title: "Volume Telah Genap (100 Halaman)",
       desc: "Volume ini telah mencapai batas 100 lembar catatan. Buka Atelier Pro untuk melanjutkan bab tanpa batas atau menambah volume baru di rak buku Anda.",
@@ -169,7 +173,9 @@ export function AtelierProModal({
     },
   };
 
-  const activeContext = triggerFeature ? featureDescriptions[triggerFeature] : null;
+  const activeContext = triggerFeature
+    ? featureDescriptions[triggerFeature]
+    : null;
 
   return createPortal(
     <AnimatePresence>
@@ -206,7 +212,8 @@ export function AtelierProModal({
           "
           style={{
             marginTop: "max(calc(env(safe-area-inset-top, 0px) + 14px), 20px)",
-            maxHeight: "calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 14px), 20px) - 20px)",
+            maxHeight:
+              "calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 14px), 20px) - 20px)",
           }}
         >
           {/* Top Specular Rim */}
@@ -229,9 +236,7 @@ export function AtelierProModal({
           <div className="overflow-y-auto no-scrollbar flex-1 pr-0.5 space-y-4">
             {/* Header Seal */}
             <div className="text-center pt-1 space-y-1.5">
-              <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] shadow-sm mb-1 text-[var(--text-primary)]">
-                <Crown className="w-5 h-5 stroke-[1.8] text-amber-500" />
-              </div>
+              <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] shadow-sm mb-1 text-[var(--text-primary)]"></div>
               <div className="text-[9.5px] font-mono uppercase tracking-[0.22em] text-[var(--text-tertiary)] font-semibold">
                 Atelier Membership
               </div>
@@ -248,7 +253,7 @@ export function AtelierProModal({
             {/* Contextual Trigger Alert Banner if feature triggered */}
             {activeContext && (
               <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
-                <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 block mb-0.5">
+                <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 block mb-0.5">
                   {activeContext.title}
                 </span>
                 <span className="text-[10px] text-[var(--text-secondary)]">
@@ -292,7 +297,9 @@ export function AtelierProModal({
                             : "border-[var(--text-tertiary)]"
                         }`}
                       >
-                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        {isSelected && (
+                          <Check className="w-2.5 h-2.5 stroke-[3]" />
+                        )}
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -301,7 +308,7 @@ export function AtelierProModal({
                             {plan.name}
                           </span>
                           {plan.badge && (
-                            <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-blue-600 dark:text-blue-400">
                               {plan.badge}
                             </span>
                           )}
@@ -347,7 +354,7 @@ export function AtelierProModal({
                       key={idx}
                       className="p-2 rounded-xl inner-pseudo-glass border border-[var(--glass-border)]/40 flex items-center gap-2"
                     >
-                      <Icon className="w-3.5 h-3.5 text-amber-500 shrink-0 stroke-[2]" />
+                      <Icon className="w-3.5 h-3.5 text-blue-500 shrink-0 stroke-[2]" />
                       <span className="text-[10px] font-medium text-[var(--text-secondary)] leading-tight">
                         {item.text}
                       </span>
@@ -384,10 +391,10 @@ export function AtelierProModal({
                     {isPro
                       ? "Atelier Pro Pass Active"
                       : selectedPlan === "lifetime"
-                      ? "Unlock All-Time Pass · Rp 499.000"
-                      : selectedPlan === "annual"
-                      ? "Subscribe Annual · Rp 299.000 / thn"
-                      : "Subscribe Monthly · Rp 39.000 / bln"}
+                        ? "Unlock All-Time Pass · Rp 499.000"
+                        : selectedPlan === "annual"
+                          ? "Subscribe Annual · Rp 299.000 / thn"
+                          : "Subscribe Monthly · Rp 39.000 / bln"}
                   </span>
                 </>
               )}
