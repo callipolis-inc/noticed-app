@@ -41,16 +41,16 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Select Xcode 16 & Ensure iOS Platform
+      - name: Select Latest Xcode & Ensure iOS Platform
         run: |
-          if [ -d "/Applications/Xcode_16.2.app" ]; then
-            sudo xcode-select -switch /Applications/Xcode_16.2.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.1.app" ]; then
-            sudo xcode-select -switch /Applications/Xcode_16.1.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.0.app" ]; then
-            sudo xcode-select -switch /Applications/Xcode_16.0.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.app" ]; then
-            sudo xcode-select -switch /Applications/Xcode_16.app/Contents/Developer
+          echo "Listing all installed Xcode versions:"
+          ls -ld /Applications/Xcode*.app || true
+
+          # Prefer Xcode 26 (required natively by Capacitor 8 / Swift 6.2). Fallback to Xcode 16.
+          XCODE_APP=$(ls -d /Applications/Xcode_26*.app /Applications/Xcode_16*.app /Applications/Xcode.app 2>/dev/null | head -n 1)
+          if [ -n "$XCODE_APP" ]; then
+            echo "Selecting $XCODE_APP"
+            sudo xcode-select -switch "$XCODE_APP/Contents/Developer"
           fi
           xcodebuild -version
           xcrun simctl list runtimes || true
@@ -68,17 +68,34 @@ jobs:
         run: |
           npx cap sync ios
 
-      - name: Patch SPM Dependencies for Swift 6 NonescapableTypes
-        run: |
-          node scripts/patch-spm-nonescapable.mjs
-
       - name: Verify Xcode Environment
         run: |
           xcodebuild -version
 
       - name: Build Xcode App (Unsigned for Sideloading)
         run: |
-          xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj
+          mkdir -p build/SourcePackages
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -clonedSourcePackagesDirPath build/SourcePackages
+
+          echo "Checking and patching any SPM swiftinterfaces with \$NonescapableTypes..."
+          python3 -c '
+          import glob
+          count = 0
+          for p in glob.glob("build/**/*.swiftinterface", recursive=True):
+              try:
+                  with open(p, "r", encoding="utf-8") as f:
+                      c = f.read()
+                  if "$NonescapableTypes" in c:
+                      with open(p, "w", encoding="utf-8") as f:
+                          f.write(c.replace("$NonescapableTypes", "true"))
+                      count += 1
+                      print(f"Patched: {p}")
+              except Exception as e:
+                  print(f"Error {p}: {e}")
+          print(f"Total swiftinterface files patched: {count}")
+          '
 
           set -o pipefail
           xcodebuild \
@@ -88,6 +105,7 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build/DerivedData \
+            -clonedSourcePackagesDirPath build/SourcePackages \
             -skipPackagePluginValidation \
             clean build \
             CODE_SIGN_IDENTITY="-" \
@@ -98,8 +116,7 @@ jobs:
             VALIDATE_PRODUCT=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             DEVELOPMENT_TEAM="" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            OTHER_SWIFT_FLAGS="-enable-experimental-feature NonescapableTypes" 2>&1 | tee xcodebuild.log || {
+            PROVISIONING_PROFILE_SPECIFIER="" 2>&1 | tee xcodebuild.log || {
               echo "=========================================="
               echo "          XCODEBUILD FAILURE LOG          "
               echo "=========================================="

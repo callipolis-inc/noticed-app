@@ -12,8 +12,7 @@
     "cap:build": "npm run build && npx cap sync",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test:e2e": "node scripts/run-e2e-tests.mjs",
-    "postinstall": "node scripts/patch-spm-nonescapable.mjs"
+    "test:e2e": "node scripts/run-e2e-tests.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.3",
