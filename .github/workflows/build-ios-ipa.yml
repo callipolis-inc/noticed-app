@@ -23,7 +23,7 @@ permissions:
 jobs:
   build-ipa:
     name: Build & Package Noticed.ipa
-    runs-on: macos-15
+    runs-on: macos-latest
 
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://ienbkpjldpzaewzewxfz.supabase.co' }}
@@ -46,8 +46,8 @@ jobs:
           echo "Listing all installed Xcode versions:"
           ls -ld /Applications/Xcode*.app || true
 
-          # Prefer Xcode 26 (required natively by Capacitor 8 / Swift 6.2). Fallback to Xcode 16.
-          XCODE_APP=$(ls -d /Applications/Xcode_26*.app /Applications/Xcode_16*.app /Applications/Xcode.app 2>/dev/null | head -n 1)
+          # Capacitor 8 requires Xcode 26 (Swift 6.2)
+          XCODE_APP=$(ls -d /Applications/Xcode_26*.app /Applications/Xcode*.app 2>/dev/null | head -n 1)
           if [ -n "$XCODE_APP" ]; then
             echo "Selecting $XCODE_APP"
             sudo xcode-select -switch "$XCODE_APP/Contents/Developer"
@@ -74,28 +74,7 @@ jobs:
 
       - name: Build Xcode App (Unsigned for Sideloading)
         run: |
-          mkdir -p build/SourcePackages
-          xcodebuild -resolvePackageDependencies \
-            -project ios/App/App.xcodeproj \
-            -clonedSourcePackagesDirPath build/SourcePackages
-
-          echo "Checking and patching any SPM swiftinterfaces with \$NonescapableTypes..."
-          python3 -c '
-          import glob
-          count = 0
-          for p in glob.glob("build/**/*.swiftinterface", recursive=True):
-              try:
-                  with open(p, "r", encoding="utf-8") as f:
-                      c = f.read()
-                  if "$NonescapableTypes" in c:
-                      with open(p, "w", encoding="utf-8") as f:
-                          f.write(c.replace("$NonescapableTypes", "true"))
-                      count += 1
-                      print(f"Patched: {p}")
-              except Exception as e:
-                  print(f"Error {p}: {e}")
-          print(f"Total swiftinterface files patched: {count}")
-          '
+          xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj
 
           set -o pipefail
           xcodebuild \
@@ -105,7 +84,6 @@ jobs:
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
             -derivedDataPath build/DerivedData \
-            -clonedSourcePackagesDirPath build/SourcePackages \
             -skipPackagePluginValidation \
             clean build \
             CODE_SIGN_IDENTITY="-" \
