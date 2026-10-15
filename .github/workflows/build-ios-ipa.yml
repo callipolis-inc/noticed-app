@@ -41,18 +41,20 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Select Xcode 16
+      - name: Select Xcode 16 & Ensure iOS Platform
         run: |
           if [ -d "/Applications/Xcode_16.2.app" ]; then
-            sudo xcode-select -switch /Applications/Xcode_16.2.app
+            sudo xcode-select -switch /Applications/Xcode_16.2.app/Contents/Developer
           elif [ -d "/Applications/Xcode_16.1.app" ]; then
-            sudo xcode-select -switch /Applications/Xcode_16.1.app
+            sudo xcode-select -switch /Applications/Xcode_16.1.app/Contents/Developer
           elif [ -d "/Applications/Xcode_16.0.app" ]; then
-            sudo xcode-select -switch /Applications/Xcode_16.0.app
+            sudo xcode-select -switch /Applications/Xcode_16.0.app/Contents/Developer
           elif [ -d "/Applications/Xcode_16.app" ]; then
-            sudo xcode-select -switch /Applications/Xcode_16.app
+            sudo xcode-select -switch /Applications/Xcode_16.app/Contents/Developer
           fi
           xcodebuild -version
+          xcrun simctl list runtimes || true
+          sudo xcodebuild -downloadPlatform iOS || true
 
       - name: Install Dependencies
         run: |
