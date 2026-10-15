@@ -59,9 +59,7 @@ jobs:
 
       - name: Build Xcode App (Unsigned for Sideloading)
         run: |
-          xcodebuild -resolvePackageDependencies \
-            -project ios/App/App.xcodeproj \
-            -derivedDataPath build/DerivedData
+          xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj
 
           xcodebuild \
             -project ios/App/App.xcodeproj \
