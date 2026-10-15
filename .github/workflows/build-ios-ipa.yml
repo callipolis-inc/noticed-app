@@ -68,6 +68,10 @@ jobs:
         run: |
           npx cap sync ios
 
+      - name: Patch SPM Dependencies for Swift 6 NonescapableTypes
+        run: |
+          node scripts/patch-spm-nonescapable.mjs
+
       - name: Verify Xcode Environment
         run: |
           xcodebuild -version
@@ -94,7 +98,8 @@ jobs:
             VALIDATE_PRODUCT=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             DEVELOPMENT_TEAM="" \
-            PROVISIONING_PROFILE_SPECIFIER="" 2>&1 | tee xcodebuild.log || {
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            OTHER_SWIFT_FLAGS="-enable-experimental-feature NonescapableTypes" 2>&1 | tee xcodebuild.log || {
               echo "=========================================="
               echo "          XCODEBUILD FAILURE LOG          "
               echo "=========================================="

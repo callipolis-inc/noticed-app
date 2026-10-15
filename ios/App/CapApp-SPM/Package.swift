@@ -23,6 +23,9 @@ let package = Package(
                 .product(name: "Cordova", package: "capacitor-swift-pm"),
                 .product(name: "CapacitorHaptics", package: "CapacitorHaptics"),
                 .product(name: "RevenuecatPurchasesCapacitor", package: "RevenuecatPurchasesCapacitor")
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("NonescapableTypes")
             ]
         )
     ]
