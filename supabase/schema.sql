@@ -79,6 +79,7 @@ create table if not exists public.spaces (
   invite_code text,
   partner_name text,
   members_count integer default 1,
+  archived boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -95,10 +96,13 @@ create table if not exists public.field_notes (
   text_align text default 'left',
   location_name text,
   photos jsonb default '[]'::jsonb,
+  photos_meta jsonb default '[]'::jsonb,
   videos jsonb default '[]'::jsonb,
   voice_memo jsonb,
   tags jsonb default '[]'::jsonb,
   pinned boolean not null default false,
+  archived boolean not null default false,
+  image_position text default 'bottom',
   photostrip_layout text default 'strip',
   marginalia text,
   quote_source text,
@@ -113,9 +117,14 @@ create table if not exists public.field_notes (
 -- 4. PERFORMANCE INDEXES
 -- ============================================================================
 create index if not exists idx_spaces_user_id on public.spaces(user_id);
+create index if not exists idx_spaces_invite_code on public.spaces(invite_code) where invite_code is not null;
+create index if not exists idx_spaces_archived on public.spaces(user_id, archived);
+
 create index if not exists idx_field_notes_space_id on public.field_notes(space_id);
+create index if not exists idx_field_notes_user_id on public.field_notes(user_id);
 create index if not exists idx_field_notes_created_at on public.field_notes(created_at desc);
 create index if not exists idx_field_notes_pinned on public.field_notes(pinned) where pinned = true;
+create index if not exists idx_field_notes_archived on public.field_notes(space_id, archived) where archived = true;
 
 -- ============================================================================
 -- 5. AUTOMATIC UPDATED_AT TRIGGER

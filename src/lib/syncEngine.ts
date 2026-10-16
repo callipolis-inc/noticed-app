@@ -91,6 +91,8 @@ export function isNoteContentDiverged(local: FieldNote, remote: FieldNote): bool
   if ((local.quoteSource || "") !== (remote.quoteSource || "")) return true;
   if ((local.textAlign || "left") !== (remote.textAlign || "left")) return true;
   if ((local.photostripLayout || "strip") !== (remote.photostripLayout || "strip")) return true;
+  if ((local.imagePosition || "bottom") !== (remote.imagePosition || "bottom")) return true;
+  if (JSON.stringify(local.photosMeta || []) !== JSON.stringify(remote.photosMeta || [])) return true;
 
   const localPhotos = local.photos || [];
   const remotePhotos = remote.photos || [];
@@ -226,6 +228,7 @@ function spaceToDb(space: Space, userId: string) {
     invite_code: space.inviteCode || null,
     partner_name: space.partnerName || null,
     members_count: space.membersCount || 1,
+    archived: Boolean(space.archived),
     created_at: space.createdAt || new Date().toISOString(),
     updated_at: space.updatedAt || space.createdAt || new Date().toISOString(),
   };
@@ -246,6 +249,7 @@ function dbToSpace(row: any): Space {
     inviteCode: row.invite_code || undefined,
     partnerName: row.partner_name || undefined,
     membersCount: row.members_count || 1,
+    archived: Boolean(row.archived),
     createdAt: row.created_at,
     updatedAt: row.updated_at || row.created_at,
   };
@@ -261,10 +265,13 @@ function noteToDb(note: FieldNote, userId: string) {
     text_align: note.textAlign || "left",
     location_name: note.locationName || null,
     photos: note.photos || [],
+    photos_meta: note.photosMeta || [],
     videos: note.videos || [],
     voice_memo: note.voiceMemo || null,
     tags: note.tags || [],
     pinned: Boolean(note.pinned),
+    archived: Boolean(note.archived),
+    image_position: note.imagePosition || "bottom",
     photostrip_layout: note.photostripLayout || "strip",
     marginalia: note.marginalia || null,
     quote_source: note.quoteSource || null,
@@ -285,10 +292,13 @@ function dbToNote(row: any): FieldNote {
     textAlign: row.text_align || "left",
     locationName: row.location_name || undefined,
     photos: Array.isArray(row.photos) ? row.photos : [],
+    photosMeta: Array.isArray(row.photos_meta) ? row.photos_meta : [],
     videos: Array.isArray(row.videos) ? row.videos : [],
     voiceMemo: row.voice_memo || undefined,
     tags: Array.isArray(row.tags) ? row.tags : [],
     pinned: Boolean(row.pinned),
+    archived: Boolean(row.archived),
+    imagePosition: row.image_position || "bottom",
     photostripLayout: row.photostrip_layout || "strip",
     marginalia: row.marginalia || undefined,
     quoteSource: row.quote_source || undefined,
