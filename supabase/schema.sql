@@ -15,6 +15,7 @@ create table if not exists public.profiles (
   avatar_url text,
   bio text,
   preferences jsonb default '{}'::jsonb,
+  is_pro boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

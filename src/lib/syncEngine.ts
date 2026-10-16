@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured, getCurrentUser } from "./supabase";
 import { Space, FieldNote } from "@/types";
+import { isProUser, setProUser } from "./proManager";
 import { saveToAtelierDB, safeLocalStorageSet } from "./storage";
 import {
   ensureRemoteMediaUrls,
@@ -331,9 +332,15 @@ export async function syncWithCloud(
     // 1. Two-Way Profile Sync (Pull remote profile first, then merge & upsert)
     const { data: remoteProfile } = await supabase
       .from("profiles")
-      .select("display_name, avatar_url")
+      .select("display_name, avatar_url, is_pro")
       .eq("id", user.id)
       .maybeSingle();
+
+    const localIsPro = isProUser();
+    const finalIsPro = Boolean(remoteProfile?.is_pro || localIsPro);
+    if (finalIsPro) {
+      setProUser(true);
+    }
 
     let resolvedUserName = userName?.trim() || "Author";
     if (
@@ -358,6 +365,7 @@ export async function syncWithCloud(
         id: user.id,
         display_name: resolvedUserName,
         avatar_url: resolvedAvatarUrl,
+        is_pro: finalIsPro,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "id" },

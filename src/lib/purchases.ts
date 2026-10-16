@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { Purchases, PurchasesOffering, PurchasesPackage } from "@revenuecat/purchases-capacitor";
 import { setProUser, isProUser } from "./proManager";
+import { supabase } from "./supabase";
 
 export const RC_ENTITLEMENT_ID = "atelier_pro";
 
@@ -13,6 +14,20 @@ interface PurchaseResult {
 }
 
 let isInitialized = false;
+
+async function syncProToSupabase(isPro: boolean, appUserId?: string | null): Promise<void> {
+  try {
+    const uid = appUserId || (await supabase.auth.getUser()).data.user?.id;
+    if (uid) {
+      await supabase
+        .from("profiles")
+        .update({ is_pro: isPro, updated_at: new Date().toISOString() })
+        .eq("id", uid);
+    }
+  } catch (err) {
+    console.warn("[Purchases] Failed to sync Pro status to Supabase profiles:", err);
+  }
+}
 
 /**
  * Resolves the appropriate RevenueCat API key based on runtime platform.
@@ -62,6 +77,7 @@ export async function initPurchases(appUserId?: string | null): Promise<void> {
     await Purchases.addCustomerInfoUpdateListener((customerInfo) => {
       const isPro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
       setProUser(isPro);
+      syncProToSupabase(isPro, appUserId);
     });
 
     // Check initial entitlement status on boot
@@ -69,6 +85,7 @@ export async function initPurchases(appUserId?: string | null): Promise<void> {
     const hasActivePro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
     if (hasActivePro) {
       setProUser(true);
+      syncProToSupabase(true, appUserId);
     }
   } catch (err) {
     console.warn("[Purchases] RevenueCat configuration warning (using fallback):", err);
@@ -147,6 +164,7 @@ export async function purchaseAtelierPlan(
 
     const isPro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
     setProUser(isPro);
+    syncProToSupabase(isPro);
 
     return {
       success: isPro,
@@ -192,6 +210,7 @@ export async function restoreAtelierPurchases(): Promise<PurchaseResult> {
     const { customerInfo } = await Purchases.restorePurchases();
     const isPro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
     setProUser(isPro);
+    syncProToSupabase(isPro);
 
     return {
       success: true,

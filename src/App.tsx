@@ -84,6 +84,7 @@ import {
   safeLocalStorageSet,
 } from "@/lib/storage";
 import {
+  supabase,
   getCurrentUser,
   onAuthStateChange,
   signOutUser,
@@ -96,7 +97,9 @@ import {
   LEGACY_DUMMY_SPACE_IDS,
   isLegacyDummyNoteId,
 } from "@/lib/syncEngine";
-import { isProUser } from "@/lib/proManager";
+import { Capacitor } from "@capacitor/core";
+import { App as CapApp } from "@capacitor/app";
+import { isProUser, setProUser } from "@/lib/proManager";
 import {
   initPurchases,
   loginPurchasesUser,
@@ -361,19 +364,39 @@ export function App() {
 
   // Listen to Supabase session state & initialize RevenueCat purchases
   useEffect(() => {
-    getCurrentUser().then((user) => {
+    getCurrentUser().then(async (user) => {
       if (user?.email) {
         setUserEmail(user.email);
         initPurchases(user.id);
+
+        // Cross-platform Pro Entitlement sync: check if profile already has is_pro
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("is_pro")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (prof?.is_pro) {
+          setProUser(true);
+        }
       } else {
         initPurchases(null);
       }
     });
 
-    const { data: authListener } = onAuthStateChange((event, session) => {
+    const { data: authListener } = onAuthStateChange(async (event, session) => {
       if (session?.user?.email) {
         setUserEmail(session.user.email);
         loginPurchasesUser(session.user.id);
+
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("is_pro")
+          .eq("id", session.user.id)
+          .maybeSingle();
+        if (prof?.is_pro) {
+          setProUser(true);
+        }
+
         if (event === "PASSWORD_RECOVERY") {
           setIsProfileOpen(true);
           showFlyout(
@@ -387,8 +410,51 @@ export function App() {
       }
     });
 
+    // Deep Linking listener for noticed:// URL scheme and external shortcuts
+    const handleDeepLink = (rawUrl: string) => {
+      try {
+        if (!rawUrl || !rawUrl.startsWith("noticed://")) return;
+        const url = new URL(rawUrl);
+        const host = url.hostname.toLowerCase();
+        const path = url.pathname.toLowerCase().replace(/^\//, "");
+
+        if (
+          host === "notebook" ||
+          host === "space" ||
+          path.startsWith("notebook/") ||
+          path.startsWith("space/")
+        ) {
+          const spaceId = url.searchParams.get("id") || path.split("/")[1];
+          if (spaceId) {
+            setActiveSpaceId(spaceId);
+            setCurrentView("notebook");
+          }
+        } else if (host === "search" || path === "search") {
+          setIsSearchOpen(true);
+        } else if (host === "new" || path === "new") {
+          setIsCreateOpen(true);
+        } else if (host === "profile" || path === "profile") {
+          setIsProfileOpen(true);
+        } else if (host === "settings" || path === "settings") {
+          setIsSettingsOpen(true);
+        }
+      } catch (err) {
+        console.warn("[App] Could not process deep link:", err);
+      }
+    };
+
+    let removeDeepLink: (() => void) | undefined;
+    if (Capacitor.isNativePlatform()) {
+      CapApp.addListener("appUrlOpen", (event) => {
+        handleDeepLink(event.url);
+      }).then((handle) => {
+        removeDeepLink = () => handle.remove();
+      });
+    }
+
     return () => {
       authListener?.subscription?.unsubscribe();
+      removeDeepLink?.();
     };
   }, []);
 
