@@ -16,18 +16,30 @@ import {
   Minus,
 } from "lucide-react";
 
+export type RichFormatAction =
+  | "bold"
+  | "italic"
+  | "strike"
+  | "code"
+  | "quote"
+  | "bullet"
+  | "number"
+  | "divider";
+
 interface CreateNoteMarkdownToolbarProps {
   isOpen: boolean;
   fontChoice: FontChoice;
   setFontChoice: (font: FontChoice) => void;
   textAlign: TextAlign;
   setTextAlign: (align: TextAlign) => void;
-  onApplyMarkdownWrap: (
-    prefix: string,
-    suffix: string,
-    placeholder?: string,
-  ) => void;
-  onApplyMarkdownBlock: (prefix: string, placeholder?: string) => void;
+  onFormatAction: (action: RichFormatAction) => void;
+  formatStates?: {
+    bold?: boolean;
+    italic?: boolean;
+    strike?: boolean;
+    quote?: boolean;
+    code?: boolean;
+  };
 }
 
 export function CreateNoteMarkdownToolbar({
@@ -36,8 +48,8 @@ export function CreateNoteMarkdownToolbar({
   setFontChoice,
   textAlign,
   setTextAlign,
-  onApplyMarkdownWrap,
-  onApplyMarkdownBlock,
+  onFormatAction,
+  formatStates,
 }: CreateNoteMarkdownToolbarProps) {
   return (
     <AnimatePresence>
@@ -117,12 +129,17 @@ export function CreateNoteMarkdownToolbar({
             </div>
           </div>
 
-          {/* Baris 2: Markdown Quick Actions */}
+          {/* Baris 2: Direct Inline Formatting Actions */}
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             <button
               type="button"
-              onClick={() => onApplyMarkdownWrap("**", "**", "bold")}
-              className="px-2.5 py-1.5 min-h-[30px] rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onFormatAction("bold")}
+              className={`px-2.5 py-1.5 min-h-[30px] rounded-lg text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-bold shrink-0 ${
+                formatStates?.bold
+                  ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5"
+              }`}
               title="Bold (Cmd+B)"
               aria-label="Format bold"
             >
@@ -132,8 +149,13 @@ export function CreateNoteMarkdownToolbar({
 
             <button
               type="button"
-              onClick={() => onApplyMarkdownWrap("*", "*", "italic")}
-              className="px-2.5 py-1.5 min-h-[30px] rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onFormatAction("italic")}
+              className={`px-2.5 py-1.5 min-h-[30px] rounded-lg text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer italic font-serif shrink-0 ${
+                formatStates?.italic
+                  ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs font-bold"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5"
+              }`}
               title="Italic (Cmd+I)"
               aria-label="Format italic"
             >
@@ -143,10 +165,13 @@ export function CreateNoteMarkdownToolbar({
 
             <button
               type="button"
-              onClick={() =>
-                onApplyMarkdownWrap("~~", "~~", "strikethrough")
-              }
-              className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer line-through opacity-80 shrink-0"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onFormatAction("strike")}
+              className={`px-2 py-1 rounded-lg text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer line-through shrink-0 ${
+                formatStates?.strike
+                  ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs font-bold"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 opacity-80"
+              }`}
               title="Strikethrough (Cmd+Shift+X)"
               aria-label="Format strikethrough"
             >
@@ -156,8 +181,13 @@ export function CreateNoteMarkdownToolbar({
 
             <button
               type="button"
-              onClick={() => onApplyMarkdownWrap("`", "`", "code")}
-              className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-mono shrink-0"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onFormatAction("code")}
+              className={`px-2 py-1 rounded-lg text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer font-mono shrink-0 ${
+                formatStates?.code
+                  ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs font-bold"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5"
+              }`}
               title="Inline Code (Cmd+E)"
               aria-label="Insert inline code"
             >
@@ -169,8 +199,13 @@ export function CreateNoteMarkdownToolbar({
 
             <button
               type="button"
-              onClick={() => onApplyMarkdownBlock("> ", "quote")}
-              className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onFormatAction("quote")}
+              className={`px-2 py-1 rounded-lg text-xs active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
+                formatStates?.quote
+                  ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs font-bold"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5"
+              }`}
               title="Quote block"
               aria-label="Insert quote block"
             >
@@ -180,7 +215,8 @@ export function CreateNoteMarkdownToolbar({
 
             <button
               type="button"
-              onClick={() => onApplyMarkdownBlock("- ", "item")}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onFormatAction("bullet")}
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               title="Bullet list"
               aria-label="Insert bullet list"
@@ -191,7 +227,8 @@ export function CreateNoteMarkdownToolbar({
 
             <button
               type="button"
-              onClick={() => onApplyMarkdownBlock("1. ", "item")}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onFormatAction("number")}
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               title="Numbered list"
               aria-label="Insert numbered list"
@@ -202,7 +239,8 @@ export function CreateNoteMarkdownToolbar({
 
             <button
               type="button"
-              onClick={() => onApplyMarkdownBlock("---\n", "")}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onFormatAction("divider")}
               className="px-2 py-1 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all flex items-center gap-1 cursor-pointer shrink-0"
               title="Horizontal divider"
               aria-label="Insert horizontal divider"

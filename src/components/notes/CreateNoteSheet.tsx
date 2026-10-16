@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Space, FieldNote, TextAlign, FontChoice, PhotoMeta, ImagePosition } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { generateId } from "@/lib/utils";
-import { EditorialMarkdown } from "@/lib/markdownRenderer";
+import { markdownToHtml, htmlToMarkdown } from "@/lib/editorSerializer";
 import {
   processPhotoFile,
   processVideoFile,
@@ -30,7 +30,10 @@ import {
 import { AudioTrimmerModal } from "./AudioTrimmerModal";
 import { DarkroomModal } from "./DarkroomModal";
 import { CreateNoteHeader } from "./create/CreateNoteHeader";
-import { CreateNoteMarkdownToolbar } from "./create/CreateNoteMarkdownToolbar";
+import {
+  CreateNoteMarkdownToolbar,
+  type RichFormatAction,
+} from "./create/CreateNoteMarkdownToolbar";
 import { CreateNoteMediaSection } from "./create/CreateNoteMediaSection";
 import {
   Camera,
@@ -98,12 +101,14 @@ export function CreateNoteSheet({
   const [imagePosition, setImagePosition] = useState<ImagePosition>(
     () => editingNote?.imagePosition || defaultImagePosition || "bottom",
   );
-  const [isPreview, setIsPreview] = useState(false);
-  const [selection, setSelection] = useState<{
-    start: number;
-    end: number;
-    text: string;
-  }>({ start: 0, end: 0, text: "" });
+  const [selectionText, setSelectionText] = useState("");
+  const [formatStates, setFormatStates] = useState({
+    bold: false,
+    italic: false,
+    strike: false,
+    quote: false,
+    code: false,
+  });
   const [selectedSpaceId, setSelectedSpaceId] = useState(defaultSpaceId);
   const [locationName, setLocationName] = useState("");
   const [isEditingLocation, setIsEditingLocation] = useState(false);
@@ -151,12 +156,18 @@ export function CreateNoteSheet({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioFileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // Speech Dictation Hook
   const speech = useSpeechDictation({
     onAppendText: useCallback((text: string) => {
-      setContent((prev) => appendTranscribedSegment(prev, text));
+      setContent((prev) => {
+        const next = appendTranscribedSegment(prev, text);
+        if (editorRef.current) {
+          editorRef.current.innerHTML = markdownToHtml(next);
+        }
+        return next;
+      });
     }, []),
     onError: useCallback((msg: string) => {
       recorder.setAudioError(msg);
@@ -223,10 +234,15 @@ export function CreateNoteSheet({
       setImagePosition(
         editingNote.imagePosition || defaultImagePosition || "bottom",
       );
-      setIsPreview(false);
-      setSelection({ start: 0, end: 0, text: "" });
+      setSelectionText("");
+      if (editorRef.current) {
+        editorRef.current.innerHTML = markdownToHtml(editingNote.content || "");
+      }
     } else {
       setContent("");
+      if (editorRef.current) {
+        editorRef.current.innerHTML = "";
+      }
       setTitle("");
       setTextAlign(defaultTextAlign);
       const s = spaces.find((sp) => sp.id === defaultSpaceId);
@@ -247,12 +263,11 @@ export function CreateNoteSheet({
       setNoteDate(toDateInputString(now));
       setNoteTime(toTimeInputString(now));
       setImagePosition(defaultImagePosition || "bottom");
-      setIsPreview(false);
-      setSelection({ start: 0, end: 0, text: "" });
+      setSelectionText("");
     }
 
     setTimeout(() => {
-      textareaRef.current?.focus();
+      editorRef.current?.focus();
     }, 150);
   }, [
     isOpen,
@@ -446,9 +461,13 @@ export function CreateNoteSheet({
   };
 
   const handleSave = () => {
+    const activeContent = editorRef.current
+      ? htmlToMarkdown(editorRef.current).trim()
+      : content.trim();
+
     if (
       !title.trim() &&
-      !content.trim() &&
+      !activeContent &&
       !marginaliaText.trim() &&
       photos.length === 0 &&
       videos.length === 0 &&
@@ -508,7 +527,7 @@ export function CreateNoteSheet({
         ...editingNote,
         spaceId: selectedSpaceId,
         title: title.trim() || undefined,
-        content: content.trim(),
+        content: activeContent,
         textAlign,
         fontChoice,
         marginalia: marginaliaText.trim() || undefined,
@@ -540,7 +559,7 @@ export function CreateNoteSheet({
       id: generateId(),
       spaceId: selectedSpaceId,
       title: title.trim() || undefined,
-      content: content.trim(),
+      content: activeContent,
       textAlign,
       fontChoice,
       marginalia: marginaliaText.trim() || undefined,
@@ -571,14 +590,16 @@ export function CreateNoteSheet({
 
     onSaveNote(newNote);
     setContent("");
+    if (editorRef.current) {
+      editorRef.current.innerHTML = "";
+    }
     setTitle("");
     setTextAlign(defaultTextAlign);
     setMarginaliaText("");
     setCitationText("");
     setIsMarginaliaOpen(false);
     setIsFormattingOpen(false);
-    setIsPreview(false);
-    setSelection({ start: 0, end: 0, text: "" });
+    setSelectionText("");
     setImagePosition(defaultImagePosition || "bottom");
     setPhotos([]);
     setVideos([]);
@@ -588,282 +609,147 @@ export function CreateNoteSheet({
   };
 
   const updateSelection = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) {
-      setSelection({ start: 0, end: 0, text: "" });
-      return;
+    if (typeof window === "undefined") return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+      setSelectionText("");
+    } else {
+      setSelectionText(sel.toString());
     }
-    const start = el.selectionStart ?? 0;
-    const end = el.selectionEnd ?? 0;
-    const text = start !== end ? el.value.substring(start, end) : "";
-    setSelection({ start, end, text });
+
+    const bold = document.queryCommandState("bold");
+    const italic = document.queryCommandState("italic");
+    const strike = document.queryCommandState("strikeThrough");
+
+    let quote = false;
+    let code = false;
+    if (sel && sel.rangeCount > 0) {
+      let node: Node | null = sel.anchorNode;
+      while (node && node !== editorRef.current) {
+        if (node.nodeName.toUpperCase() === "BLOCKQUOTE") quote = true;
+        if (node.nodeName.toUpperCase() === "CODE") code = true;
+        node = node.parentNode;
+      }
+    }
+
+    setFormatStates({ bold, italic, strike, quote, code });
   }, []);
 
-  const isSelectionBold = useMemo(() => {
-    if (!selection.text) return false;
-    const { start, end, text } = selection;
-    if (text.startsWith("**") && text.endsWith("**") && text.length >= 4)
-      return true;
-    if (
-      start >= 2 &&
-      end <= content.length - 2 &&
-      content.substring(start - 2, start) === "**" &&
-      content.substring(end, end + 2) === "**"
-    )
-      return true;
-    return false;
-  }, [selection, content]);
+  const handleEditorInput = useCallback(() => {
+    if (!editorRef.current) return;
+    const md = htmlToMarkdown(editorRef.current);
+    setContent(md);
+    updateSelection();
+  }, [updateSelection]);
 
-  const isSelectionItalic = useMemo(() => {
-    if (!selection.text) return false;
-    const { start, end, text } = selection;
-    if (
-      text.startsWith("*") &&
-      text.endsWith("*") &&
-      !text.startsWith("**") &&
-      text.length >= 2
-    )
-      return true;
-    if (
-      start >= 1 &&
-      end <= content.length - 1 &&
-      content[start - 1] === "*" &&
-      (start < 2 || content[start - 2] !== "*") &&
-      content[end] === "*" &&
-      (end >= content.length - 1 || content[end + 1] !== "*")
-    )
-      return true;
-    return false;
-  }, [selection, content]);
+  const toggleCodeFormat = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
 
-  const isSelectionStrike = useMemo(() => {
-    if (!selection.text) return false;
-    const { start, end, text } = selection;
-    if (text.startsWith("~~") && text.endsWith("~~") && text.length >= 4)
-      return true;
-    if (
-      start >= 2 &&
-      end <= content.length - 2 &&
-      content.substring(start - 2, start) === "~~" &&
-      content.substring(end, end + 2) === "~~"
-    )
-      return true;
-    return false;
-  }, [selection, content]);
-
-  const isSelectionCode = useMemo(() => {
-    if (!selection.text) return false;
-    const { start, end, text } = selection;
-    if (text.startsWith("`") && text.endsWith("`") && text.length >= 2)
-      return true;
-    if (
-      start >= 1 &&
-      end <= content.length - 1 &&
-      content[start - 1] === "`" &&
-      content[end] === "`"
-    )
-      return true;
-    return false;
-  }, [selection, content]);
-
-  const isSelectionQuote = useMemo(() => {
-    if (!selection.text) return false;
-    const lines = selection.text.split("\n");
-    return lines.length > 0 && lines.every((l) => l.startsWith("> "));
-  }, [selection]);
-
-  const applyMarkdownWrap = (
-    prefix: string,
-    suffix: string,
-    placeholder: string = "text",
-  ) => {
-    triggerHaptic("light");
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentVal = content;
-    const selectedText = currentVal.substring(start, end);
-
-    if (selectedText.length > 0) {
-      // 1. Direct inside-selection unwrap (e.g. user selected "**word**")
-      if (
-        selectedText.startsWith(prefix) &&
-        selectedText.endsWith(suffix) &&
-        selectedText.length >= prefix.length + suffix.length
-      ) {
-        const isBoldVsItalicMismatch =
-          prefix === "*" &&
-          (selectedText.startsWith("**") || selectedText.endsWith("**"));
-
-        if (!isBoldVsItalicMismatch) {
-          const unwrapped = selectedText.slice(prefix.length, -suffix.length);
-          const nextVal =
-            currentVal.substring(0, start) +
-            unwrapped +
-            currentVal.substring(end);
-          setContent(nextVal);
-
-          setTimeout(() => {
-            textarea.focus();
-            textarea.setSelectionRange(start, start + unwrapped.length);
-            updateSelection();
-          }, 10);
-          return;
-        }
+    let node: Node | null = range.commonAncestorContainer;
+    let codeEl: HTMLElement | null = null;
+    while (node && node !== editorRef.current) {
+      if (node.nodeName.toUpperCase() === "CODE") {
+        codeEl = node as HTMLElement;
+        break;
       }
+      node = node.parentNode;
+    }
 
-      // 2. Surrounding outside-selection unwrap (e.g. user selected "word" inside "**word**")
-      const before = currentVal.substring(start - prefix.length, start);
-      const after = currentVal.substring(end, end + suffix.length);
-      if (before === prefix && after === suffix) {
-        const isBoldVsItalicMismatch =
-          prefix === "*" &&
-          ((start >= 2 && currentVal[start - 2] === "*") ||
-            (end < currentVal.length - 1 && currentVal[end + 1] === "*"));
-
-        if (!isBoldVsItalicMismatch) {
-          const nextVal =
-            currentVal.substring(0, start - prefix.length) +
-            selectedText +
-            currentVal.substring(end + suffix.length);
-          setContent(nextVal);
-
-          const newStart = start - prefix.length;
-          const newEnd = newStart + selectedText.length;
-          setTimeout(() => {
-            textarea.focus();
-            textarea.setSelectionRange(newStart, newEnd);
-            updateSelection();
-          }, 10);
-          return;
-        }
+    if (codeEl) {
+      const parent = codeEl.parentNode;
+      while (codeEl.firstChild) {
+        parent?.insertBefore(codeEl.firstChild, codeEl);
       }
-
-      // 3. Not formatted yet -> wrap it!
-      const nextVal =
-        currentVal.substring(0, start) +
-        prefix +
-        selectedText +
-        suffix +
-        currentVal.substring(end);
-      setContent(nextVal);
-
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + prefix.length, end + prefix.length);
-        updateSelection();
-      }, 10);
+      parent?.removeChild(codeEl);
     } else {
-      const insertText = `${prefix}${placeholder}${suffix}`;
-      const nextVal =
-        currentVal.substring(0, start) + insertText + currentVal.substring(end);
-      setContent(nextVal);
-
-      setTimeout(() => {
-        textarea.focus();
-        const selStart = start + prefix.length;
-        const selEnd = selStart + placeholder.length;
-        textarea.setSelectionRange(selStart, selEnd);
-        updateSelection();
-      }, 10);
-    }
-  };
-
-  const applyMarkdownBlock = (prefix: string, placeholder: string = "text") => {
-    triggerHaptic("light");
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentVal = content;
-    const selectedText = currentVal.substring(start, end);
-
-    const textBefore = currentVal.substring(0, start);
-    const needsLeadingNewline =
-      textBefore.length > 0 && !textBefore.endsWith("\n");
-    const leading = needsLeadingNewline ? "\n" : "";
-
-    if (prefix === "---\n") {
-      const dividerInsert = `${leading}---\n`;
-      const nextVal =
-        currentVal.substring(0, start) +
-        dividerInsert +
-        currentVal.substring(end);
-      setContent(nextVal);
-      setTimeout(() => {
-        textarea.focus();
-        const newPos = start + dividerInsert.length;
-        textarea.setSelectionRange(newPos, newPos);
-        updateSelection();
-      }, 10);
-      return;
-    }
-
-    if (selectedText.length > 0) {
-      const lines = selectedText.split("\n");
-      const allHavePrefix = lines.every((l) => l.startsWith(prefix));
-      let transformed: string;
-      if (allHavePrefix) {
-        // Toggle OFF / unwrap
-        transformed = lines.map((l) => l.slice(prefix.length)).join("\n");
+      if (!range.collapsed) {
+        const el = document.createElement("code");
+        el.appendChild(range.extractContents());
+        range.insertNode(el);
+        sel.removeAllRanges();
+        const newRange = document.createRange();
+        newRange.selectNodeContents(el);
+        sel.addRange(newRange);
       } else {
-        // Toggle ON / wrap
-        transformed = lines.map((l) => `${prefix}${l}`).join("\n");
+        document.execCommand("insertHTML", false, "<code> </code>");
+      }
+    }
+  }, []);
+
+  const toggleQuoteFormat = useCallback(() => {
+    if (formatStates.quote) {
+      document.execCommand("formatBlock", false, "<p>");
+    } else {
+      document.execCommand("formatBlock", false, "<blockquote>");
+    }
+  }, [formatStates.quote]);
+
+  const handleFormatAction = useCallback(
+    (action: RichFormatAction) => {
+      triggerHaptic("light");
+      const editor = editorRef.current;
+      if (!editor) return;
+
+      editor.focus();
+
+      switch (action) {
+        case "bold":
+          document.execCommand("bold");
+          break;
+        case "italic":
+          document.execCommand("italic");
+          break;
+        case "strike":
+          document.execCommand("strikeThrough");
+          break;
+        case "code":
+          toggleCodeFormat();
+          break;
+        case "quote":
+          toggleQuoteFormat();
+          break;
+        case "bullet":
+          document.execCommand("insertUnorderedList");
+          break;
+        case "number":
+          document.execCommand("insertOrderedList");
+          break;
+        case "divider":
+          document.execCommand("insertHorizontalRule");
+          break;
       }
 
-      const nextVal =
-        currentVal.substring(0, start) +
-        leading +
-        transformed +
-        currentVal.substring(end);
-      setContent(nextVal);
+      handleEditorInput();
+    },
+    [toggleCodeFormat, toggleQuoteFormat, handleEditorInput]
+  );
 
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(
-          start + leading.length,
-          start + leading.length + transformed.length,
-        );
-        updateSelection();
-      }, 10);
-    } else {
-      const blockInsert = `${leading}${prefix}${placeholder}\n`;
-      const nextVal =
-        currentVal.substring(0, start) +
-        blockInsert +
-        currentVal.substring(end);
-      setContent(nextVal);
-
-      setTimeout(() => {
-        textarea.focus();
-        const selStart = start + leading.length + prefix.length;
-        const selEnd = selStart + placeholder.length;
-        textarea.setSelectionRange(selStart, selEnd);
-        updateSelection();
-      }, 10);
-    }
-  };
-
-  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const isMod = e.metaKey || e.ctrlKey;
     if (!isMod) return;
 
     if (e.key === "b" || e.key === "B") {
       e.preventDefault();
-      applyMarkdownWrap("**", "**", "bold");
+      handleFormatAction("bold");
     } else if (e.key === "i" || e.key === "I") {
       e.preventDefault();
-      applyMarkdownWrap("*", "*", "italic");
+      handleFormatAction("italic");
     } else if ((e.key === "x" || e.key === "X") && e.shiftKey) {
       e.preventDefault();
-      applyMarkdownWrap("~~", "~~", "strikethrough");
+      handleFormatAction("strike");
     } else if (e.key === "e" || e.key === "E") {
       e.preventDefault();
-      applyMarkdownWrap("`", "`", "code");
+      handleFormatAction("code");
     }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    document.execCommand("insertText", false, text);
+    handleEditorInput();
   };
 
   const canSave =
@@ -973,8 +859,6 @@ export function CreateNoteSheet({
               setNoteTime={setNoteTime}
               canSave={canSave}
               isEditing={Boolean(editingNote)}
-              isPreview={isPreview}
-              onTogglePreview={() => setIsPreview((prev) => !prev)}
               onClose={handleRequestClose}
               onSave={handleSave}
             />
@@ -1063,7 +947,7 @@ export function CreateNoteSheet({
 
                   {/* Medium-style Floating Format Bubble */}
                   <AnimatePresence>
-                    {selection.text.trim().length > 0 && !isPreview && (
+                    {selectionText.trim().length > 0 && (
                       <motion.div
                         initial={{ opacity: 0, y: -6, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1076,10 +960,10 @@ export function CreateNoteSheet({
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault();
-                            applyMarkdownWrap("**", "**", "bold");
+                            handleFormatAction("bold");
                           }}
                           className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer font-bold text-xs ${
-                            isSelectionBold
+                            formatStates.bold
                               ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs"
                               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
                           }`}
@@ -1093,10 +977,10 @@ export function CreateNoteSheet({
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault();
-                            applyMarkdownWrap("*", "*", "italic");
+                            handleFormatAction("italic");
                           }}
                           className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer text-xs ${
-                            isSelectionItalic
+                            formatStates.italic
                               ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs font-bold"
                               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
                           }`}
@@ -1110,10 +994,10 @@ export function CreateNoteSheet({
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault();
-                            applyMarkdownWrap("~~", "~~", "strikethrough");
+                            handleFormatAction("strike");
                           }}
                           className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer text-xs ${
-                            isSelectionStrike
+                            formatStates.strike
                               ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs font-bold"
                               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
                           }`}
@@ -1129,10 +1013,10 @@ export function CreateNoteSheet({
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault();
-                            applyMarkdownBlock("> ", "quote");
+                            handleFormatAction("quote");
                           }}
                           className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer text-xs ${
-                            isSelectionQuote
+                            formatStates.quote
                               ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs font-bold"
                               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
                           }`}
@@ -1146,10 +1030,10 @@ export function CreateNoteSheet({
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={(e) => {
                             e.preventDefault();
-                            applyMarkdownWrap("`", "`", "code");
+                            handleFormatAction("code");
                           }}
                           className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer font-mono text-xs ${
-                            isSelectionCode
+                            formatStates.code
                               ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-2xs font-bold"
                               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/10"
                           }`}
@@ -1161,98 +1045,51 @@ export function CreateNoteSheet({
                     )}
                   </AnimatePresence>
 
-                  {/* Manuscript: Edit vs Formatted Preview */}
-                  {isPreview ? (
-                    <div className="flex-1 py-1 space-y-3 animate-in fade-in duration-200">
-                      {title.trim() && (
-                        <h1
-                          style={{
-                            fontSize:
-                              "calc(var(--note-font-size, 16px) * 1.2)",
-                          }}
-                          className={`font-serif font-bold text-[var(--text-primary)] tracking-tight ${
-                            textAlign === "center"
-                              ? "text-center"
-                              : textAlign === "right"
-                                ? "text-right"
-                                : "text-left"
-                          }`}
-                        >
-                          {title}
-                        </h1>
-                      )}
+                  {/* Title Field */}
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Optional title..."
+                    autoCapitalize="sentences"
+                    autoCorrect="on"
+                    style={{
+                      fontSize: "calc(var(--note-font-size, 16px) * 1.16)",
+                    }}
+                    className={`w-full bg-transparent border-0 p-0 font-serif font-bold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none tracking-tight select-text ${
+                      textAlign === "center"
+                        ? "text-center"
+                        : textAlign === "right"
+                          ? "text-right"
+                          : "text-left"
+                    }`}
+                  />
 
-                      {content.trim() ? (
-                        <EditorialMarkdown
-                          content={content}
-                          className={`leading-relaxed font-content select-text ${
-                            textAlign === "center"
-                              ? "text-center"
-                              : textAlign === "right"
-                                ? "text-right"
-                                : textAlign === "justify"
-                                  ? "text-justify"
-                                  : "text-left"
-                          }`}
-                        />
-                      ) : (
-                        <p className="font-serif italic text-xs text-[var(--text-tertiary)] opacity-60">
-                          Empty manuscript... tap Edit above to write.
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      {/* Title Field */}
-                      <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Optional title..."
-                        autoCapitalize="sentences"
-                        autoCorrect="on"
-                        style={{
-                          fontSize: "calc(var(--note-font-size, 16px) * 1.16)",
-                        }}
-                        className={`w-full bg-transparent border-0 p-0 font-serif font-bold text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 focus:outline-none tracking-tight select-text ${
-                          textAlign === "center"
-                            ? "text-center"
-                            : textAlign === "right"
-                              ? "text-right"
-                              : "text-left"
-                        }`}
-                      />
-
-                      {/* Primary Content Editor */}
-                      <textarea
-                        ref={textareaRef}
-                        value={content}
-                        onChange={(e) => {
-                          setContent(e.target.value);
-                          updateSelection();
-                        }}
-                        onSelect={updateSelection}
-                        onKeyUp={updateSelection}
-                        onMouseUp={updateSelection}
-                        onTouchEnd={updateSelection}
-                        onKeyDown={handleEditorKeyDown}
-                        placeholder="What caught your eye today?"
-                        rows={6}
-                        autoCapitalize="sentences"
-                        autoCorrect="on"
-                        style={{ fontSize: "var(--note-font-size, 16px)" }}
-                        className={`w-full bg-transparent resize-none border-0 p-0 leading-relaxed font-content text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 placeholder:font-serif placeholder:italic focus:outline-none select-text ${
-                          textAlign === "center"
-                            ? "text-center"
-                            : textAlign === "right"
-                              ? "text-right"
-                              : textAlign === "justify"
-                                ? "text-justify"
-                                : "text-left"
-                        }`}
-                      />
-                    </>
-                  )}
+                  {/* Visual Inline WYSIWYG Content Editor */}
+                  <div
+                    ref={editorRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    data-placeholder="What caught your eye today?"
+                    data-empty={!content.trim()}
+                    onInput={handleEditorInput}
+                    onSelect={updateSelection}
+                    onKeyUp={updateSelection}
+                    onMouseUp={updateSelection}
+                    onTouchEnd={updateSelection}
+                    onKeyDown={handleEditorKeyDown}
+                    onPaste={handlePaste}
+                    style={{ fontSize: "var(--note-font-size, 16px)" }}
+                    className={`editorial-editable w-full min-h-[160px] bg-transparent border-0 p-0 leading-relaxed font-content text-[var(--text-primary)] focus:outline-none select-text ${
+                      textAlign === "center"
+                        ? "text-center"
+                        : textAlign === "right"
+                          ? "text-right"
+                          : textAlign === "justify"
+                            ? "text-justify"
+                            : "text-left"
+                    }`}
+                  />
 
                   {/* Companion Sidenote Field */}
                   {(isMarginaliaOpen || marginaliaText) && (
@@ -1323,8 +1160,8 @@ export function CreateNoteSheet({
               setFontChoice={setFontChoice}
               textAlign={textAlign}
               setTextAlign={setTextAlign}
-              onApplyMarkdownWrap={applyMarkdownWrap}
-              onApplyMarkdownBlock={applyMarkdownBlock}
+              onFormatAction={handleFormatAction}
+              formatStates={formatStates}
             />
 
             {/* Live Interim Speech Whisper Bar */}

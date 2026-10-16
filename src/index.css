@@ -1478,3 +1478,87 @@ a.liquid-glass:active {
   }
 }
 
+/* ============================================================
+   Editorial WYSIWYG Editable Surface
+   ============================================================ */
+.editorial-editable {
+  outline: none;
+  word-break: break-word;
+}
+
+.editorial-editable[data-empty="true"]::before {
+  content: attr(data-placeholder);
+  color: var(--text-tertiary);
+  opacity: 0.5;
+  font-family: var(--font-serif);
+  font-style: italic;
+  pointer-events: none;
+  display: block;
+}
+
+.editorial-editable p {
+  margin: 0;
+  line-height: inherit;
+}
+
+.editorial-editable blockquote {
+  border-left: 2px solid var(--text-primary);
+  opacity: 0.85;
+  padding-left: 0.875rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.editorial-editable ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.375rem;
+  margin-bottom: 0.375rem;
+}
+
+.editorial-editable ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-top: 0.375rem;
+  margin-bottom: 0.375rem;
+}
+
+.editorial-editable hr {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  border: 0;
+  height: 1px;
+  background-color: var(--glass-border);
+  opacity: 0.6;
+}
+
+.editorial-editable code {
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  background-color: rgba(125, 125, 125, 0.1);
+  font-family: monospace;
+  font-size: 0.88em;
+  border: 1px solid var(--glass-border);
+}
+
+.editorial-editable strong,
+.editorial-editable b {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.editorial-editable em,
+.editorial-editable i {
+  font-style: italic;
+  font-family: var(--font-serif);
+}
+
+.editorial-editable del,
+.editorial-editable s,
+.editorial-editable strike {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
