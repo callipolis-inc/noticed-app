@@ -247,12 +247,24 @@ create policy "Noticed Media Public Read"
 
 create policy "Noticed Media Authenticated Upload"
   on storage.objects for insert
-  with check (bucket_id = 'noticed-media');
+  with check (
+    bucket_id = 'noticed-media'
+    and auth.role() = 'authenticated'
+    and (storage.foldername(name))[2] = (select auth.uid()::text)
+  );
 
 create policy "Noticed Media Authenticated Update"
   on storage.objects for update
-  using (bucket_id = 'noticed-media');
+  using (
+    bucket_id = 'noticed-media'
+    and auth.role() = 'authenticated'
+    and (storage.foldername(name))[2] = (select auth.uid()::text)
+  );
 
 create policy "Noticed Media Authenticated Delete"
   on storage.objects for delete
-  using (bucket_id = 'noticed-media');
+  using (
+    bucket_id = 'noticed-media'
+    and auth.role() = 'authenticated'
+    and (storage.foldername(name))[2] = (select auth.uid()::text)
+  );

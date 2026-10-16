@@ -78,6 +78,33 @@ function collectNoteMediaUrls(note: FieldNote): string[] {
 }
 
 /**
+ * Checks whether content between a local and remote note has diverged.
+ * Used for Safe Forking when remote is newer than local.
+ */
+export function isNoteContentDiverged(local: FieldNote, remote: FieldNote): boolean {
+  if ((local.title || "") !== (remote.title || "")) return true;
+  if ((local.content || "").trim() !== (remote.content || "").trim()) return true;
+  if (Boolean(local.pinned) !== Boolean(remote.pinned)) return true;
+  if (Boolean(local.archived) !== Boolean(remote.archived)) return true;
+  if ((local.marginalia || "") !== (remote.marginalia || "")) return true;
+  if ((local.quoteSource || "") !== (remote.quoteSource || "")) return true;
+  if ((local.textAlign || "left") !== (remote.textAlign || "left")) return true;
+  if ((local.photostripLayout || "strip") !== (remote.photostripLayout || "strip")) return true;
+
+  const localPhotos = local.photos || [];
+  const remotePhotos = remote.photos || [];
+  if (localPhotos.length !== remotePhotos.length) return true;
+
+  const localVideos = local.videos || [];
+  const remoteVideos = remote.videos || [];
+  if (localVideos.length !== remoteVideos.length) return true;
+
+  if (Boolean(local.voiceMemo?.audioUrl) !== Boolean(remote.voiceMemo?.audioUrl)) return true;
+
+  return false;
+}
+
+/**
  * Queues a note deletion and immediately attempts to purge its media from
  * 'noticed-media' bucket and delete its row in Supabase PostgreSQL.
  * If offline, the deletion stays queued and flushes on next sync.
@@ -199,6 +226,7 @@ function spaceToDb(space: Space, userId: string) {
     partner_name: space.partnerName || null,
     members_count: space.membersCount || 1,
     created_at: space.createdAt || new Date().toISOString(),
+    updated_at: space.updatedAt || space.createdAt || new Date().toISOString(),
   };
 }
 
@@ -218,6 +246,7 @@ function dbToSpace(row: any): Space {
     partnerName: row.partner_name || undefined,
     membersCount: row.members_count || 1,
     createdAt: row.created_at,
+    updatedAt: row.updated_at || row.created_at,
   };
 }
 
@@ -242,6 +271,7 @@ function noteToDb(note: FieldNote, userId: string) {
     highlights: note.highlights || [],
     author: note.author || null,
     created_at: note.createdAt || new Date().toISOString(),
+    updated_at: note.updatedAt || note.createdAt || new Date().toISOString(),
   };
 }
 
@@ -267,6 +297,7 @@ function dbToNote(row: any): FieldNote {
     highlights: Array.isArray(row.highlights) ? row.highlights : [],
     author: row.author || undefined,
     createdAt: row.created_at,
+    updatedAt: row.updated_at || row.created_at,
   };
 }
 
@@ -430,9 +461,28 @@ export async function syncWithCloud(
       return true;
     });
 
-    // 3. Push Local Spaces (Upsert)
-    if (activeLocalSpaces.length > 0) {
-      const dbSpaces = activeLocalSpaces.map((s) => spaceToDb(s, user.id));
+    // 3. Push Local Spaces (Upsert newer local spaces, protect remote edits)
+    const remoteSpacesLookup = new Map<string, any>(
+      cleanRemoteSpaces.map((r: any) => [r.id, r]),
+    );
+    const spacesToPush: Space[] = [];
+    activeLocalSpaces.forEach((s) => {
+      const remote = remoteSpacesLookup.get(s.id);
+      if (!remote) {
+        spacesToPush.push(s);
+      } else {
+        const localTime = new Date(s.updatedAt || s.createdAt || 0).getTime();
+        const remoteTime = new Date(
+          remote.updated_at || remote.created_at || 0,
+        ).getTime();
+        if (localTime >= remoteTime) {
+          spacesToPush.push(s);
+        }
+      }
+    });
+
+    if (spacesToPush.length > 0) {
+      const dbSpaces = spacesToPush.map((s) => spaceToDb(s, user.id));
       const { error: pushSpaceError } = await supabase
         .from("spaces")
         .upsert(dbSpaces, { onConflict: "id" });
@@ -441,7 +491,7 @@ export async function syncWithCloud(
       }
     }
 
-    // 4. Push Local Notes (Offload any pending offline base64 photos, videos, and audio to 'noticed-media' bucket first)
+    // 4. Hydrate Local Media (Offload base64 to 'noticed-media' bucket)
     const hydratedLocalNotes: FieldNote[] = [];
     for (const note of activeLocalNotes) {
       const remotePhotos = note.photos?.length
@@ -477,8 +527,73 @@ export async function syncWithCloud(
       });
     }
 
-    if (hydratedLocalNotes.length > 0) {
-      const dbNotes = hydratedLocalNotes.map((n) => noteToDb(n, user.id));
+    // 5. Hybrid Last-Write-Wins (LWW) with Safe Forking
+    const remoteNotesMap = new Map<string, FieldNote>();
+    realRemoteNotes.forEach((row: any) => {
+      if (
+        !pendingDeletedNoteIds.has(row.id) &&
+        !pendingDeletedSpaceIds.has(row.space_id)
+      ) {
+        remoteNotesMap.set(row.id, dbToNote(row));
+      }
+    });
+
+    const notesToPush: FieldNote[] = [];
+    const finalNotesMap = new Map<string, FieldNote>();
+
+    for (const localNote of hydratedLocalNotes) {
+      const remoteNote = remoteNotesMap.get(localNote.id);
+
+      if (!remoteNote) {
+        // New note created locally -> push to cloud
+        notesToPush.push(localNote);
+        finalNotesMap.set(localNote.id, localNote);
+      } else {
+        const localTime = new Date(
+          localNote.updatedAt || localNote.createdAt || 0,
+        ).getTime();
+        const remoteTime = new Date(
+          remoteNote.updatedAt || remoteNote.createdAt || 0,
+        ).getTime();
+
+        if (localTime >= remoteTime) {
+          // Local is newer -> push to cloud
+          notesToPush.push(localNote);
+          finalNotesMap.set(localNote.id, localNote);
+        } else {
+          // Remote is strictly newer. Check if local edits diverged
+          if (isNoteContentDiverged(localNote, remoteNote)) {
+            // Safe Forking: fork local changes to prevent data loss
+            const conflictCopy: FieldNote = {
+              ...localNote,
+              id: `${localNote.id}-conflict-${Date.now()}`,
+              title: localNote.title
+                ? `${localNote.title} (Conflict Copy)`
+                : "Untitled Note (Conflict Copy)",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            notesToPush.push(conflictCopy);
+            finalNotesMap.set(conflictCopy.id, conflictCopy);
+            // Canonical ID takes remote note
+            finalNotesMap.set(remoteNote.id, remoteNote);
+          } else {
+            // Clean LWW: Local note was an older unchanged cache; remote wins
+            finalNotesMap.set(remoteNote.id, remoteNote);
+          }
+        }
+      }
+    }
+
+    // Add any remaining remote notes created on another device
+    remoteNotesMap.forEach((remoteNote, id) => {
+      if (!finalNotesMap.has(id)) {
+        finalNotesMap.set(id, remoteNote);
+      }
+    });
+
+    if (notesToPush.length > 0) {
+      const dbNotes = notesToPush.map((n) => noteToDb(n, user.id));
       const { error: pushNoteError } = await supabase
         .from("field_notes")
         .upsert(dbNotes, { onConflict: "id" });
@@ -487,66 +602,39 @@ export async function syncWithCloud(
       }
     }
 
-    // 5. Pull Final Remote Spaces & Notes after Upsert
-    const { data: remoteSpacesData, error: pullSpacesError } = await supabase
-      .from("spaces")
-      .select("*");
-    if (pullSpacesError) throw pullSpacesError;
-
-    const { data: remoteNotesData, error: pullNotesError } = await supabase
-      .from("field_notes")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (pullNotesError) throw pullNotesError;
-
-    // 6. Merge Spaces (Preserve local shelf ordering & edits, append any new cloud spaces)
-    const remoteSpacesMap = new Map<string, Space>();
-    if (remoteSpacesData) {
-      remoteSpacesData.forEach((row) => {
-        if (
-          !pendingDeletedSpaceIds.has(row.id) &&
-          (!LEGACY_DUMMY_SPACE_IDS.has(row.id) ||
-            spaceIdsWithRealNotes.has(row.id))
-        ) {
-          const remoteSpace = dbToSpace(row);
-          remoteSpacesMap.set(remoteSpace.id, remoteSpace);
-        }
-      });
-    }
+    // 6. Merge Spaces (Preserve local shelf ordering, apply newer cloud space edits)
+    const cleanRemoteSpacesMap = new Map<string, Space>();
+    cleanRemoteSpaces.forEach((row: any) => {
+      cleanRemoteSpacesMap.set(row.id, dbToSpace(row));
+    });
 
     const mergedSpaces: Space[] = [];
     const addedSpaceIds = new Set<string>();
 
-    // 6a. Preserve local spaces in their exact manual shelf order
     activeLocalSpaces.forEach((localSpace) => {
-      mergedSpaces.push(localSpace);
+      const remote = cleanRemoteSpacesMap.get(localSpace.id);
+      if (remote) {
+        const localTime = new Date(
+          localSpace.updatedAt || localSpace.createdAt || 0,
+        ).getTime();
+        const remoteTime = new Date(
+          remote.updatedAt || remote.createdAt || 0,
+        ).getTime();
+        mergedSpaces.push(remoteTime > localTime ? remote : localSpace);
+      } else {
+        mergedSpaces.push(localSpace);
+      }
       addedSpaceIds.add(localSpace.id);
     });
 
-    // 6b. Append any remote spaces added from another device
-    remoteSpacesMap.forEach((remoteSpace, id) => {
+    cleanRemoteSpacesMap.forEach((remoteSpace, id) => {
       if (!addedSpaceIds.has(id)) {
         mergedSpaces.push(remoteSpace);
         addedSpaceIds.add(id);
       }
     });
 
-    // 7. Merge Notes (Local hydrated notes + cloud notes, excluding deleted & legacy dummy)
-    const notesMap = new Map<string, FieldNote>();
-    if (remoteNotesData) {
-      remoteNotesData.forEach((row) => {
-        if (
-          !pendingDeletedNoteIds.has(row.id) &&
-          !pendingDeletedSpaceIds.has(row.space_id) &&
-          !isLegacyDummyNoteId(row.id)
-        ) {
-          const remoteNote = dbToNote(row);
-          notesMap.set(remoteNote.id, remoteNote);
-        }
-      });
-    }
-    hydratedLocalNotes.forEach((n) => notesMap.set(n.id, n));
-    const mergedNotes = Array.from(notesMap.values());
+    const mergedNotes = Array.from(finalNotesMap.values());
 
     // 8. Persist Merged Dataset into Offline Storage (IndexedDB + localStorage safe mirror)
     await saveToAtelierDB("sidenotes_spaces", mergedSpaces);

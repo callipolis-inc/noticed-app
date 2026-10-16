@@ -1035,6 +1035,7 @@ export function App() {
       isShared: false,
       membersCount: 1,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     setSpaces((prev) => [...prev, newSpace]);
@@ -1044,7 +1045,13 @@ export function App() {
   };
 
   const handleUpdateSpace = (updated: Space) => {
-    setSpaces((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+    const spaceWithTimestamp: Space = {
+      ...updated,
+      updatedAt: new Date().toISOString(),
+    };
+    setSpaces((prev) =>
+      prev.map((s) => (s.id === updated.id ? spaceWithTimestamp : s)),
+    );
     showFlyout(`Updated: ${updated.name}`, 2500);
   };
 
@@ -1064,25 +1071,35 @@ export function App() {
   };
 
   const handleSaveNote = (newNote: FieldNote) => {
+    const nowIso = new Date().toISOString();
     // Prevent orphan notes: ensure target space exists in spaces
     const targetSpaceExists = spaces.some((s) => s.id === newNote.spaceId);
     if (!targetSpaceExists) {
       const fallbackSpace: Space = {
         ...DEFAULT_STARTER_SPACE,
         id: newNote.spaceId || generateId(),
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
+        updatedAt: nowIso,
       };
       newNote.spaceId = fallbackSpace.id;
       setSpaces((prev) => [...prev, fallbackSpace]);
       setActiveSpaceId(fallbackSpace.id);
     }
-    setNotes((prev) => [newNote, ...prev]);
+    const noteToSave: FieldNote = {
+      ...newNote,
+      updatedAt: nowIso,
+    };
+    setNotes((prev) => [noteToSave, ...prev]);
     showFlyout("Notice added", 2500);
   };
 
   const handleUpdateNote = (updatedNote: FieldNote) => {
+    const noteToUpdate: FieldNote = {
+      ...updatedNote,
+      updatedAt: new Date().toISOString(),
+    };
     setNotes((prev) =>
-      prev.map((n) => (n.id === updatedNote.id ? updatedNote : n)),
+      prev.map((n) => (n.id === updatedNote.id ? noteToUpdate : n)),
     );
     setEditingNote(null);
     showFlyout("Notice updated", 2200);
@@ -1103,6 +1120,7 @@ export function App() {
               quoteSource,
               marginaliaItems:
                 marginaliaItems.length > 0 ? marginaliaItems : undefined,
+              updatedAt: new Date().toISOString(),
             }
           : n,
       ),
@@ -1113,7 +1131,11 @@ export function App() {
   const handleUpdateNoteHighlights = useCallback(
     (noteId: string, highlights: TextHighlight[]) => {
       setNotes((prev) =>
-        prev.map((n) => (n.id === noteId ? { ...n, highlights } : n)),
+        prev.map((n) =>
+          n.id === noteId
+            ? { ...n, highlights, updatedAt: new Date().toISOString() }
+            : n,
+        ),
       );
     },
     [],
@@ -1122,7 +1144,11 @@ export function App() {
   const handleUpdateNoteTextAlign = useCallback(
     (noteId: string, align: TextAlign) => {
       setNotes((prev) =>
-        prev.map((n) => (n.id === noteId ? { ...n, textAlign: align } : n)),
+        prev.map((n) =>
+          n.id === noteId
+            ? { ...n, textAlign: align, updatedAt: new Date().toISOString() }
+            : n,
+        ),
       );
     },
     [],
@@ -1131,28 +1157,39 @@ export function App() {
   const handlePinToggle = useCallback((noteId: string) => {
     triggerHaptic("light");
     setNotes((prev) =>
-      prev.map((n) => (n.id === noteId ? { ...n, pinned: !n.pinned } : n)),
+      prev.map((n) =>
+        n.id === noteId
+          ? { ...n, pinned: !n.pinned, updatedAt: new Date().toISOString() }
+          : n,
+      ),
     );
   }, []);
 
-  const handleArchiveNoteToggle = useCallback((noteId: string) => {
-    triggerHaptic("medium");
-    setNotes((prev) =>
-      prev.map((n) => {
-        if (n.id === noteId) {
-          const isArchivedNow = !n.archived;
-          showFlyout(
-            isArchivedNow
-              ? "Notice moved to Archive Vault"
-              : "Notice restored to notebook",
-            3000,
-          );
-          return { ...n, archived: isArchivedNow };
-        }
-        return n;
-      }),
-    );
-  }, [showFlyout]);
+  const handleArchiveNoteToggle = useCallback(
+    (noteId: string) => {
+      triggerHaptic("medium");
+      setNotes((prev) =>
+        prev.map((n) => {
+          if (n.id === noteId) {
+            const isArchivedNow = !n.archived;
+            showFlyout(
+              isArchivedNow
+                ? "Notice moved to Archive Vault"
+                : "Notice restored to notebook",
+              3000,
+            );
+            return {
+              ...n,
+              archived: isArchivedNow,
+              updatedAt: new Date().toISOString(),
+            };
+          }
+          return n;
+        }),
+      );
+    },
+    [showFlyout],
+  );
 
   const handleEditNoteCallback = useCallback((note: FieldNote) => {
     setEditingNote(note);
@@ -1165,6 +1202,13 @@ export function App() {
   const handleOpenQuickAnnotatorCallback = useCallback((note: FieldNote) => {
     setAnnotatorNote(note);
   }, []);
+
+  const handleToggleNoteMenu = useCallback(
+    (noteId: string, isOpen: boolean) => {
+      setActiveMenuNoteId(isOpen ? noteId : null);
+    },
+    [],
+  );
 
   // Soft-Delete 5-Second Undo Buffer State
   const pendingDeleteRef = useRef<{
@@ -1491,9 +1535,7 @@ export function App() {
                               defaultLineSpacing={lineSpacing}
                               imageFrameSize={imageFrameSize}
                               isMenuOpen={activeMenuNoteId === note.id}
-                              onToggleMenu={(isOpen) =>
-                                setActiveMenuNoteId(isOpen ? note.id : null)
-                              }
+                              onToggleMenu={handleToggleNoteMenu}
                               onPinToggle={handlePinToggle}
                               onArchiveToggle={handleArchiveNoteToggle}
                               onDeleteNote={handleDeleteNote}

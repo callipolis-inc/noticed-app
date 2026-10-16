@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, memo } from "react";
+import { useState, useMemo, useRef, memo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FieldNote,
@@ -42,7 +42,7 @@ interface NoteEntryProps {
   defaultLineSpacing?: LineSpacing;
   imageFrameSize?: ImageFrameSize;
   isMenuOpen?: boolean;
-  onToggleMenu?: (open: boolean) => void;
+  onToggleMenu?: (noteId: string, open: boolean) => void;
   onPinToggle?: (id: string) => void;
   onArchiveToggle?: (id: string) => void;
   onDeleteNote?: (id: string) => void;
@@ -77,6 +77,13 @@ export const NoteEntry = memo(function NoteEntry({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [menuPlacement, setMenuPlacement] = useState<"up" | "down">("down");
   const [isFootnotesExpanded, setIsFootnotesExpanded] = useState(false);
+
+  const toggleMenu = useCallback(
+    (open: boolean) => {
+      onToggleMenu?.(note.id, open);
+    },
+    [onToggleMenu, note.id],
+  );
 
   const marginaliaList = useMemo(() => {
     if (note.marginaliaItems && note.marginaliaItems.length > 0) {
@@ -198,7 +205,7 @@ export const NoteEntry = memo(function NoteEntry({
               const rect = menuButtonRef.current.getBoundingClientRect();
               setMenuPlacement(rect.top < 340 ? "down" : "up");
             }
-            onToggleMenu?.(!showMenu);
+            toggleMenu(!showMenu);
           }}
           aria-label="More notice options"
           className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--text-primary)] inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle shrink-0 ${
@@ -220,11 +227,11 @@ export const NoteEntry = memo(function NoteEntry({
                 className="fixed inset-0 z-40 bg-transparent"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onToggleMenu?.(false);
+                  toggleMenu(false);
                 }}
                 onTouchStart={(e) => {
                   e.stopPropagation();
-                  onToggleMenu?.(false);
+                  toggleMenu(false);
                 }}
               />
 
@@ -308,7 +315,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("light");
-                      onToggleMenu?.(false);
+                      toggleMenu(false);
                       onEditNote(note);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -325,7 +332,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("light");
-                      onToggleMenu?.(false);
+                      toggleMenu(false);
                       onOpenQuickAnnotator(note);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -344,7 +351,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("light");
-                      onToggleMenu?.(false);
+                      toggleMenu(false);
                       onOpenPhotostrip(note);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -361,7 +368,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("light");
-                      onToggleMenu?.(false);
+                      toggleMenu(false);
                       if (navigator.clipboard) {
                         navigator.clipboard.writeText(
                           `${note.title ? `${note.title}\n\n` : ""}${note.content}\n\n— noticed`,
@@ -382,7 +389,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("medium");
-                      onToggleMenu?.(false);
+                      toggleMenu(false);
                       onPinToggle(note.id);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -401,7 +408,7 @@ export const NoteEntry = memo(function NoteEntry({
                     onClick={(e) => {
                       e.stopPropagation();
                       triggerHaptic("medium");
-                      onToggleMenu?.(false);
+                      toggleMenu(false);
                       onArchiveToggle(note.id);
                     }}
                     className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 text-[var(--text-primary)] transition-colors cursor-pointer"
@@ -422,7 +429,7 @@ export const NoteEntry = memo(function NoteEntry({
                       onClick={(e) => {
                         e.stopPropagation();
                         triggerHaptic("heavy");
-                        onToggleMenu?.(false);
+                        toggleMenu(false);
                         onDeleteNote(note.id);
                       }}
                       className="w-full px-3.5 py-2 flex items-center gap-2.5 text-left hover:bg-rose-500/10 active:bg-rose-500/15 text-rose-500 transition-colors cursor-pointer font-medium"

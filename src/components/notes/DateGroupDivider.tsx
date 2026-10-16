@@ -1,10 +1,12 @@
+import { memo } from "react";
+
 interface DateGroupDividerProps {
   dateKey: string;
   noteCount?: number;
   className?: string;
 }
 
-export function DateGroupDivider({
+export const DateGroupDivider = memo(function DateGroupDivider({
   dateKey,
   className = "",
 }: DateGroupDividerProps) {
@@ -26,4 +28,4 @@ export function DateGroupDivider({
       <div className="h-[1px] flex-1 max-w-[60px] sm:max-w-[88px] bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent opacity-80" />
     </div>
   );
-}
+});

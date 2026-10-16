@@ -29,6 +29,7 @@ export interface Space {
   partnerName?: string;
   membersCount?: number;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface VoiceMemo {
@@ -92,6 +93,7 @@ export interface FieldNote {
   archived?: boolean;
   photostripLayout?: 'polaroid' | 'strip' | 'grid';
   createdAt: string;
+  updatedAt?: string;
   marginalia?: string;
   marginaliaItems?: MarginaliaItem[];
   quoteSource?: string;
