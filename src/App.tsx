@@ -77,8 +77,15 @@ const SpaceShareModal = lazy(() =>
     default: m.SpaceShareModal,
   })),
 );
+const JoinSpaceModal = lazy(() =>
+  import("@/components/spaces/JoinSpaceModal").then((m) => ({
+    default: m.JoinSpaceModal,
+  })),
+);
+import { AtelierProModal } from "@/components/ui/AtelierProModal";
 import {
   triggerHaptic,
+  triggerSuccessHaptic,
   setHapticsEnabled as setGlobalHapticsEnabled,
 } from "@/lib/haptics";
 import { generateId, getDateGroupKey } from "@/lib/utils";
@@ -104,7 +111,13 @@ import {
 } from "@/lib/syncEngine";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
-import { isProUser, setProUser, canUseFeature } from "@/lib/proManager";
+import {
+  isProUser,
+  setProUser,
+  canUseFeature,
+  FREE_MAX_SPACES,
+  type ProFeature,
+} from "@/lib/proManager";
 import {
   initPurchases,
   loginPurchasesUser,
@@ -125,6 +138,7 @@ import {
   SlidersHorizontal,
   ArrowUpDown,
   X,
+  Eye,
 } from "lucide-react";
 
 // Default starter notebook for a fresh installation or factory reset
@@ -320,6 +334,10 @@ export function App() {
   const [annotatorNote, setAnnotatorNote] = useState<FieldNote | null>(null);
   const [sharingSpace, setSharingSpace] = useState<Space | null>(null);
   const [exportingSpace, setExportingSpace] = useState<Space | null>(null);
+  const [isJoinSpaceOpen, setIsJoinSpaceOpen] = useState(false);
+  const [joinSpaceInitialCode, setJoinSpaceInitialCode] = useState<string | null>(null);
+  const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [proTriggerFeature, setProTriggerFeature] = useState<ProFeature | null>(null);
   const [flyoutMessage, setFlyoutMessage] = useState<string | null>(null);
   const [flyoutAction, setFlyoutAction] = useState<{
     label: string;
@@ -360,6 +378,7 @@ export function App() {
 
   // Cloud Auth & Sync State
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -373,6 +392,7 @@ export function App() {
     getCurrentUser().then(async (user) => {
       if (user?.email) {
         setUserEmail(user.email);
+        setCurrentUserId(user.id);
         initPurchases(user.id);
 
         // Cross-platform Pro Entitlement sync: check if profile already has is_pro
@@ -385,6 +405,7 @@ export function App() {
           setProUser(true);
         }
       } else {
+        setCurrentUserId(null);
         initPurchases(null);
       }
     });
@@ -392,6 +413,7 @@ export function App() {
     const { data: authListener } = onAuthStateChange(async (event, session) => {
       if (session?.user?.email) {
         setUserEmail(session.user.email);
+        setCurrentUserId(session.user.id);
         loginPurchasesUser(session.user.id);
 
         const { data: prof } = await supabase
@@ -412,9 +434,24 @@ export function App() {
         }
       } else {
         setUserEmail(null);
+        setCurrentUserId(null);
         logoutPurchasesUser();
       }
     });
+
+    // Check web URL parameters for ?join=CODE or ?code=CODE
+    if (typeof window !== "undefined") {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const joinCodeParam = urlParams.get("join") || urlParams.get("code");
+        if (joinCodeParam) {
+          setJoinSpaceInitialCode(joinCodeParam.trim().toUpperCase());
+          setIsJoinSpaceOpen(true);
+        }
+      } catch {
+        // ignore url parsing error
+      }
+    }
 
     // Deep Linking listener for noticed:// URL scheme and external shortcuts
     const handleDeepLink = (rawUrl: string) => {
@@ -425,6 +462,19 @@ export function App() {
         const path = url.pathname.toLowerCase().replace(/^\//, "");
 
         if (
+          (host === "space" && path.startsWith("join")) ||
+          host === "join" ||
+          path.startsWith("join")
+        ) {
+          const code =
+            url.searchParams.get("code") ||
+            url.searchParams.get("join") ||
+            path.split("/")[1];
+          if (code) {
+            setJoinSpaceInitialCode(code.trim().toUpperCase());
+            setIsJoinSpaceOpen(true);
+          }
+        } else if (
           host === "notebook" ||
           host === "space" ||
           path.startsWith("notebook/") ||
@@ -1079,11 +1129,56 @@ export function App() {
   const currentNotebookFont: FontChoice =
     activeSpace?.fontChoice || "editorial";
 
+  const isCurrentSpaceReadOnly = Boolean(
+    activeSpace &&
+      activeSpace.isShared &&
+      activeSpace.memberRole === "viewer" &&
+      activeSpace.userId &&
+      currentUserId &&
+      activeSpace.userId !== currentUserId,
+  );
+
   useEffect(() => {
     if (spaces.length === 0 && currentView === "notebook") {
       setCurrentView("bookshelf");
     }
   }, [spaces.length, currentView]);
+
+  const handleJoinSpaceSuccess = (
+    joinedSpace: Space,
+    newNotes: FieldNote[],
+  ) => {
+    if (!isProUser() && spaces.length >= FREE_MAX_SPACES) {
+      setProTriggerFeature("spaces_limit");
+      setIsProModalOpen(true);
+      return;
+    }
+
+    triggerSuccessHaptic();
+
+    const updatedSpaces = [
+      joinedSpace,
+      ...spaces.filter((s) => s.id !== joinedSpace.id),
+    ];
+    setSpaces(updatedSpaces);
+    safeLocalStorageSet("sidenotes_spaces", JSON.stringify(updatedSpaces));
+    saveToAtelierDB("sidenotes_spaces", updatedSpaces);
+
+    const existingNoteIds = new Set(notes.map((n) => n.id));
+    const notesToAdd = newNotes.filter((n) => !existingNoteIds.has(n.id));
+    const updatedNotes = [...notesToAdd, ...notes];
+    setNotes(updatedNotes);
+    safeLocalStorageSet("sidenotes_notes", JSON.stringify(updatedNotes));
+    saveToAtelierDB("sidenotes_notes", updatedNotes);
+
+    setActiveSpaceId(joinedSpace.id);
+    setCurrentView("notebook");
+    showFlyout(`Berhasil bergabung ke "${joinedSpace.name}"`, 3500);
+
+    if (isProUser()) {
+      handleCloudSync({ silent: true });
+    }
+  };
 
   const handleCreateSpace = (
     name: string,
@@ -1498,6 +1593,10 @@ export function App() {
               onOpenProfile={() => setIsProfileOpen(true)}
               onOpenSettings={() => setIsSettingsOpen(true)}
               onOpenSearch={() => setIsSearchOpen(true)}
+              onOpenJoinSpace={() => {
+                setJoinSpaceInitialCode(null);
+                setIsJoinSpaceOpen(true);
+              }}
             />
           </motion.div>
         ) : (
@@ -1543,6 +1642,16 @@ export function App() {
                     </p>
                   )}
 
+                  {/* Read-Only Badge for Collaborators */}
+                  {isCurrentSpaceReadOnly && (
+                    <div className="pt-2 flex items-center justify-center">
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full font-sans font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30 flex items-center gap-1">
+                        <Eye className="w-3 h-3" />
+                        <span>Mode Hanya Baca (Read-Only)</span>
+                      </span>
+                    </div>
+                  )}
+
                   {/* Caustic Ornament Divider */}
                   <div className="pt-3 flex items-center justify-center gap-3 opacity-30">
                     <div className="w-8 sm:w-10 h-px bg-[var(--text-primary)]" />
@@ -1559,6 +1668,11 @@ export function App() {
                   <div className="text-[12.5px] font-serif italic text-[var(--text-tertiary)]">
                     {userName || "Author"}
                   </div>
+                  {isCurrentSpaceReadOnly && (
+                    <div className="text-[10px] text-amber-500/80 font-sans font-medium">
+                      Mode Hanya Baca
+                    </div>
+                  )}
                   <div className="pt-1 w-16 mx-auto border-b border-[var(--glass-border)] opacity-35" />
                 </header>
               )}
@@ -1569,16 +1683,18 @@ export function App() {
                   <p className="text-sm text-[var(--text-tertiary)] italic">
                     A blank page awaits your notice.
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("light");
-                      setIsCreateOpen(true);
-                    }}
-                    className="px-5 py-2.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold cursor-pointer active:scale-95 transition-transform shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
-                  >
-                    Notice something
-                  </button>
+                  {!isCurrentSpaceReadOnly && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setIsCreateOpen(true);
+                      }}
+                      className="px-5 py-2.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold cursor-pointer active:scale-95 transition-transform shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
+                    >
+                      Notice something
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -1614,10 +1730,10 @@ export function App() {
                               imageFrameSize={imageFrameSize}
                               isMenuOpen={activeMenuNoteId === note.id}
                               onToggleMenu={handleToggleNoteMenu}
-                              onPinToggle={handlePinToggle}
-                              onArchiveToggle={handleArchiveNoteToggle}
-                              onDeleteNote={handleDeleteNote}
-                              onEditNote={handleEditNoteCallback}
+                              onPinToggle={isCurrentSpaceReadOnly ? undefined : handlePinToggle}
+                              onArchiveToggle={isCurrentSpaceReadOnly ? undefined : handleArchiveNoteToggle}
+                              onDeleteNote={isCurrentSpaceReadOnly ? undefined : handleDeleteNote}
+                              onEditNote={isCurrentSpaceReadOnly ? undefined : handleEditNoteCallback}
                               onOpenPhotostrip={handleOpenPhotostripCallback}
                               onOpenQuickAnnotator={
                                 handleOpenQuickAnnotatorCallback
@@ -1684,23 +1800,36 @@ export function App() {
                         <button
                           type="button"
                           onClick={() => {
+                            if (isCurrentSpaceReadOnly) {
+                              triggerHaptic("medium");
+                              showFlyout(
+                                "Notebook ini dalam mode hanya-baca oleh pemiliknya.",
+                                2500,
+                              );
+                              return;
+                            }
                             triggerHaptic("medium");
                             setActiveMenuNoteId(null);
                             setIsCreateOpen(true);
                           }}
-                          className="
+                          className={`
                             h-11 flex items-center gap-2 px-6 rounded-full
                             dynamic-island-shell text-[var(--text-primary)]
                             font-semibold text-xs tracking-wide
                             border border-[var(--glass-border)]
                             shadow-[0_16px_36px_-6px_rgba(0,0,0,0.28)]
                             transition-all active:scale-95 hover:opacity-95 cursor-pointer relative
-                          "
-                          title="Compose Entry"
+                            ${isCurrentSpaceReadOnly ? "opacity-75" : ""}
+                          `}
+                          title={isCurrentSpaceReadOnly ? "Mode Hanya Baca" : "Compose Entry"}
                         >
                           <div className="dynamic-island-specular-rim" />
-                          <PenLine className="w-4 h-4 stroke-[2]" />
-                          <span>noticing</span>
+                          {isCurrentSpaceReadOnly ? (
+                            <Eye className="w-4 h-4 text-amber-500/90" />
+                          ) : (
+                            <PenLine className="w-4 h-4 stroke-[2]" />
+                          )}
+                          <span>{isCurrentSpaceReadOnly ? "hanya baca" : "noticing"}</span>
                         </button>
 
                         {/* Tools Trigger */}
@@ -1915,6 +2044,37 @@ export function App() {
               setExportingSpace(s);
             }}
             onUpdateSpace={handleUpdateSpace}
+          />
+        )}
+
+        {/* Join Space via Invite Code / QR Scan Modal */}
+        {isJoinSpaceOpen && (
+          <JoinSpaceModal
+            isOpen={isJoinSpaceOpen}
+            onClose={() => {
+              setIsJoinSpaceOpen(false);
+              setJoinSpaceInitialCode(null);
+            }}
+            initialCode={joinSpaceInitialCode}
+            existingSpaces={spaces}
+            isPro={isProUser()}
+            onTriggerPro={(feat) => {
+              setProTriggerFeature(feat);
+              setIsProModalOpen(true);
+            }}
+            onJoinSuccess={handleJoinSpaceSuccess}
+          />
+        )}
+
+        {/* Atelier Pro Paywall Modal */}
+        {isProModalOpen && (
+          <AtelierProModal
+            isOpen={isProModalOpen}
+            onClose={() => {
+              setIsProModalOpen(false);
+              setProTriggerFeature(null);
+            }}
+            triggerFeature={proTriggerFeature}
           />
         )}
 

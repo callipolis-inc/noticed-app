@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import QRCode from "qrcode";
 import { Space } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import {
@@ -12,6 +13,9 @@ import {
   Sparkles,
   Link as LinkIcon,
   BookOpen,
+  QrCode,
+  Edit3,
+  Eye,
 } from "lucide-react";
 
 interface SpaceShareModalProps {
@@ -32,15 +36,34 @@ export function SpaceShareModal({
   onUpdateSpace,
 }: SpaceShareModalProps) {
   const [copied, setCopied] = useState(false);
-
-  if (!isOpen || !space) return null;
+  const [activeShareTab, setActiveShareTab] = useState<"link" | "qr">("link");
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
   const inviteCode =
-    space.inviteCode ||
-    space.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase();
+    space?.inviteCode ||
+    space?.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase() ||
+    "";
 
   const shareUrl = `https://noticed.app/join/${inviteCode}`;
   const deepLink = `noticed://space/join?code=${inviteCode}`;
+
+  useEffect(() => {
+    if (!shareUrl) return;
+    QRCode.toDataURL(shareUrl, {
+      width: 320,
+      margin: 1.5,
+      color: {
+        dark: "#14171f",
+        light: "#ffffff",
+      },
+    })
+      .then(setQrDataUrl)
+      .catch((err) => console.warn("[SpaceShareModal] QR generation failed:", err));
+  }, [shareUrl]);
+
+  if (!isOpen || !space) return null;
+
+  const currentRole = space.memberRole || "editor";
 
   const handleCopyLink = async () => {
     triggerSuccessHaptic();
@@ -57,7 +80,8 @@ export function SpaceShareModal({
 
   const handleNativeShare = async () => {
     triggerHaptic("medium");
-    const shareText = `Read and collaborate on "${space.name}" in Noticed. Join with code ${inviteCode}.`;
+    const roleText = currentRole === "viewer" ? "baca" : "kolaborasi";
+    const shareText = `Baca dan ${roleText} di notebook "${space.name}" di Noticed. Gabung dengan kode ${inviteCode}.`;
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -68,7 +92,6 @@ export function SpaceShareModal({
         });
         return;
       } catch (err) {
-        // Fallback to copying if user cancelled or system failed
         if ((err as Error)?.name !== "AbortError") {
           handleCopyLink();
         }
@@ -86,6 +109,19 @@ export function SpaceShareModal({
       ...space,
       isShared: nextShared,
       inviteCode: nextShared ? inviteCode : undefined,
+      memberRole: space.memberRole || "editor",
+      partnerName: `role:${space.memberRole || "editor"}`,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const handleRoleChange = (role: "editor" | "viewer") => {
+    triggerHaptic("medium");
+    if (!onUpdateSpace) return;
+    onUpdateSpace({
+      ...space,
+      memberRole: role,
+      partnerName: `role:${role}`,
       updatedAt: new Date().toISOString(),
     });
   };
@@ -166,7 +202,7 @@ export function SpaceShareModal({
             </div>
 
             {/* Space Collaboration & Invite Section */}
-            <div className="p-3.5 rounded-2xl apple-card space-y-3 border border-[var(--glass-border)]/50">
+            <div className="p-3.5 rounded-2xl apple-card space-y-3.5 border border-[var(--glass-border)]/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)]">
                   <Users className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
@@ -185,54 +221,159 @@ export function SpaceShareModal({
                 </button>
               </div>
 
-              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-sans">
-                Undang teman untuk membaca dan menulis catatan bersama di notebook ini secara real-time.
-              </p>
+              {space.isShared ? (
+                <>
+                  {/* Permission Role Selector */}
+                  <div className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]/40 space-y-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
+                      Izin Akses Anggota
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleRoleChange("editor")}
+                        className={`h-8 rounded-lg px-2 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          currentRole === "editor"
+                            ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
+                            : "inner-pseudo-glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        }`}
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>Bisa Edit</span>
+                      </button>
 
-              {/* Invite Code & Link Box */}
-              <div className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]/40 flex items-center justify-between gap-2">
-                <div className="min-w-0 flex items-center gap-1.5 text-xs font-mono">
-                  <LinkIcon className="w-3 h-3 text-[var(--text-tertiary)] shrink-0" />
-                  <span className="text-[var(--text-primary)] font-bold tracking-wider truncate">
-                    {inviteCode}
-                  </span>
-                </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRoleChange("viewer")}
+                        className={`h-8 rounded-lg px-2 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          currentRole === "viewer"
+                            ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
+                            : "inner-pseudo-glass text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        }`}
+                      >
+                        <Eye className="w-3 h-3" />
+                        <span>Hanya Baca</span>
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-[var(--text-tertiary)] leading-tight pt-0.5">
+                      {currentRole === "editor"
+                        ? "Anggota dapat membaca semua catatan dan membuat/mengedit catatan mereka sendiri."
+                        : "Anggota hanya dapat membaca dan menjelajahi catatan tanpa dapat mengubah isi."}
+                    </p>
+                  </div>
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleCopyLink}
-                    className="h-7 px-2.5 rounded-lg inner-pseudo-glass text-[11px] font-medium text-[var(--text-primary)] hover:opacity-80 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                    title="Salin Tautan Undangan"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="w-3 h-3 text-emerald-400" />
-                        <span className="text-emerald-400 font-semibold">Tersalin</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        <span>Salin</span>
-                      </>
-                    )}
-                  </button>
+                  {/* Share Method Tabs (Tautan vs QR Code) */}
+                  <div className="flex items-center justify-center p-0.5 rounded-xl inner-pseudo-glass border border-[var(--glass-border)]/50">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setActiveShareTab("link");
+                      }}
+                      className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        activeShareTab === "link"
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      <LinkIcon className="w-3 h-3" />
+                      <span>Tautan & Kode</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={handleNativeShare}
-                    className="h-7 px-2.5 rounded-lg bg-[var(--text-primary)] text-[var(--accent-ink)] text-[11px] font-semibold active:scale-95 transition-transform flex items-center gap-1 cursor-pointer shadow-2xs"
-                    title="Bagikan Tautan Undangan"
-                  >
-                    <Share2 className="w-3 h-3 stroke-[2.2]" />
-                    <span>Bagikan</span>
-                  </button>
-                </div>
-              </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setActiveShareTab("qr");
+                      }}
+                      className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        activeShareTab === "qr"
+                          ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      <QrCode className="w-3 h-3" />
+                      <span>Kode QR</span>
+                    </button>
+                  </div>
 
-              <div className="text-[10px] text-[var(--text-tertiary)] font-mono truncate">
-                {deepLink}
-              </div>
+                  {/* Tab Content: Link & Code */}
+                  {activeShareTab === "link" ? (
+                    <div className="space-y-2">
+                      <div className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]/40 flex items-center justify-between gap-2">
+                        <div className="min-w-0 flex items-center gap-1.5 text-xs font-mono">
+                          <LinkIcon className="w-3 h-3 text-[var(--text-tertiary)] shrink-0" />
+                          <span className="text-[var(--text-primary)] font-bold tracking-wider truncate">
+                            {inviteCode}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={handleCopyLink}
+                            className="h-7 px-2.5 rounded-lg inner-pseudo-glass text-[11px] font-medium text-[var(--text-primary)] hover:opacity-80 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                            title="Salin Tautan Undangan"
+                          >
+                            {copied ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-400" />
+                                <span className="text-emerald-400 font-semibold">Tersalin</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                <span>Salin</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleNativeShare}
+                            className="h-7 px-2.5 rounded-lg bg-[var(--text-primary)] text-[var(--accent-ink)] text-[11px] font-semibold active:scale-95 transition-transform flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title="Bagikan Tautan Undangan"
+                          >
+                            <Share2 className="w-3 h-3 stroke-[2.2]" />
+                            <span>Bagikan</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="text-[10px] text-[var(--text-tertiary)] font-mono truncate px-1">
+                        {deepLink}
+                      </div>
+                    </div>
+                  ) : (
+                    /* Tab Content: QR Code View */
+                    <div className="p-3 rounded-2xl bg-white border border-black/10 shadow-sm flex flex-col items-center justify-center text-center space-y-2.5 animate-in fade-in duration-200">
+                      {qrDataUrl ? (
+                        <img
+                          src={qrDataUrl}
+                          alt={`QR Code ${space.name}`}
+                          className="w-44 h-44 rounded-lg object-contain"
+                        />
+                      ) : (
+                        <div className="w-44 h-44 flex items-center justify-center text-xs text-neutral-400">
+                          Memuat QR Code...
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-[11px] font-bold text-neutral-900 tracking-wider font-mono">
+                          {inviteCode}
+                        </div>
+                        <p className="text-[10px] text-neutral-500 max-w-[200px] leading-tight mt-0.5">
+                          Arahkan kamera smartphone ke kode QR untuk langsung bergabung.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-sans">
+                  Aktifkan akses kolaborasi untuk mengundang partner membaca atau menulis catatan bersama melalui tautan, kode, atau kode QR.
+                </p>
+              )}
             </div>
 
             {/* Secondary Compact Section: Cetak & Ekspor PDF */}

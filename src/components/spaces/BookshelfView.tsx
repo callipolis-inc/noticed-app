@@ -30,6 +30,7 @@ import {
   Check,
   Share2,
   Archive,
+  UserPlus,
 } from "lucide-react";
 
 export interface BookshelfViewProps {
@@ -59,6 +60,7 @@ export interface BookshelfViewProps {
   onOpenProfile?: () => void;
   onOpenSettings?: () => void;
   onOpenSearch?: () => void;
+  onOpenJoinSpace?: () => void;
   isSyncing?: boolean;
   isCloudConnected?: boolean;
 }
@@ -248,6 +250,7 @@ export function BookshelfView({
   onOpenProfile,
   onOpenSettings,
   onOpenSearch: _onOpenSearch,
+  onOpenJoinSpace,
   isSyncing = false,
   isCloudConnected = false,
 }: BookshelfViewProps) {
@@ -635,6 +638,20 @@ export function BookshelfView({
           )}
 
           <div className="w-[1px] h-3.5 bg-[var(--glass-border)] opacity-60" />
+
+          {onOpenJoinSpace && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                onOpenJoinSpace();
+              }}
+              className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs border border-[var(--glass-border)]/60"
+              title="Gabung Notebook (Kode / Scan QR)"
+            >
+              <UserPlus className="w-3.5 h-3.5 stroke-[2]" />
+            </button>
+          )}
 
           <button
             type="button"

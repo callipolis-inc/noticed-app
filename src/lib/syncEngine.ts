@@ -212,7 +212,25 @@ export async function flushPendingDeletes(): Promise<void> {
 // CONVERTERS: Typescript CamelCase <-> PostgreSQL Snake_Case
 // ============================================================================
 
-function spaceToDb(space: Space, userId: string) {
+function parseMemberRole(row: any): "editor" | "viewer" {
+  if (row.member_role === "viewer" || row.member_role === "editor") {
+    return row.member_role;
+  }
+  if (
+    typeof row.partner_name === "string" &&
+    row.partner_name.startsWith("role:")
+  ) {
+    const r = row.partner_name.replace("role:", "").trim();
+    if (r === "viewer" || r === "editor") return r;
+  }
+  return "editor";
+}
+
+export function spaceToDb(space: Space, userId: string) {
+  const resolvedRole = space.memberRole || "editor";
+  const partnerNameWithRole =
+    space.partnerName || `role:${resolvedRole}`;
+
   return {
     id: space.id,
     user_id: userId,
@@ -226,7 +244,7 @@ function spaceToDb(space: Space, userId: string) {
     font_choice: space.fontChoice || "editorial",
     is_shared: Boolean(space.isShared),
     invite_code: space.inviteCode || null,
-    partner_name: space.partnerName || null,
+    partner_name: partnerNameWithRole,
     members_count: space.membersCount || 1,
     archived: Boolean(space.archived),
     created_at: space.createdAt || new Date().toISOString(),
@@ -234,7 +252,7 @@ function spaceToDb(space: Space, userId: string) {
   };
 }
 
-function dbToSpace(row: any): Space {
+export function dbToSpace(row: any): Space {
   return {
     id: row.id,
     name: row.name,
@@ -250,12 +268,14 @@ function dbToSpace(row: any): Space {
     partnerName: row.partner_name || undefined,
     membersCount: row.members_count || 1,
     archived: Boolean(row.archived),
+    userId: row.user_id || undefined,
+    memberRole: parseMemberRole(row),
     createdAt: row.created_at,
     updatedAt: row.updated_at || row.created_at,
   };
 }
 
-function noteToDb(note: FieldNote, userId: string) {
+export function noteToDb(note: FieldNote, userId: string) {
   return {
     id: note.id,
     space_id: note.spaceId,
@@ -283,7 +303,7 @@ function noteToDb(note: FieldNote, userId: string) {
   };
 }
 
-function dbToNote(row: any): FieldNote {
+export function dbToNote(row: any): FieldNote {
   return {
     id: row.id,
     spaceId: row.space_id,
@@ -485,6 +505,11 @@ export async function syncWithCloud(
     );
     const spacesToPush: Space[] = [];
     activeLocalSpaces.forEach((s) => {
+      // Guard: Do not push spaces that belong to another user. Collaborators
+      // should never overwrite owner's space metadata or trigger RLS 403 Forbidden.
+      if (s.userId && s.userId !== user.id) {
+        return;
+      }
       const remote = remoteSpacesLookup.get(s.id);
       if (!remote) {
         spacesToPush.push(s);
@@ -647,8 +672,12 @@ export async function syncWithCloud(
 
     cleanRemoteSpacesMap.forEach((remoteSpace, id) => {
       if (!addedSpaceIds.has(id)) {
-        mergedSpaces.push(remoteSpace);
-        addedSpaceIds.add(id);
+        // Only merge un-added remote spaces if the user owns them (user_id === user.id).
+        // This prevents foreign shared spaces from randomly leaking into the bookshelf.
+        if (!remoteSpace.userId || remoteSpace.userId === user.id) {
+          mergedSpaces.push(remoteSpace);
+          addedSpaceIds.add(id);
+        }
       }
     });
 

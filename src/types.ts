@@ -29,6 +29,8 @@ export interface Space {
   partnerName?: string;
   membersCount?: number;
   archived?: boolean;
+  userId?: string;
+  memberRole?: 'editor' | 'viewer';
   createdAt: string;
   updatedAt?: string;
 }
