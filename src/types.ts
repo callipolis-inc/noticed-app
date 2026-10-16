@@ -28,6 +28,7 @@ export interface Space {
   inviteCode?: string;
   partnerName?: string;
   membersCount?: number;
+  archived?: boolean;
   createdAt: string;
   updatedAt?: string;
 }

@@ -15,6 +15,7 @@ import {
   BookOpen,
   SlidersHorizontal,
   Sparkles,
+  Share2,
 } from "lucide-react";
 import { useProStatus } from "@/lib/proManager";
 import { AtelierProModal } from "@/components/ui/AtelierProModal";
@@ -101,6 +102,38 @@ export function ManuscriptExportModal({
   const handlePrint = () => {
     triggerSuccessHaptic();
     window.print();
+  };
+
+  const handleShareDocument = async () => {
+    triggerHaptic("medium");
+
+    let textContent = `${space.name.toUpperCase()}\n`;
+    if (space.description) textContent += `${space.description}\n`;
+    textContent += `Author: ${userName}\nDate: ${new Date().toLocaleDateString()}\n`;
+    textContent += `========================================\n\n`;
+
+    exportNotes.forEach((note, idx) => {
+      textContent += `[${idx + 1}] ${note.title || "Observation"} (${formatTimeOnly(note.createdAt)})\n`;
+      textContent += `${note.content}\n`;
+      if (includeMarginalia && note.marginalia) {
+        textContent += `Sidenote: ${note.marginalia}\n`;
+      }
+      textContent += `\n----------------------------------------\n\n`;
+    });
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${space.name} - Folio Manuscript`,
+          text: textContent,
+        });
+        return;
+      } catch (err) {
+        if ((err as Error)?.name === "AbortError") return;
+      }
+    }
+
+    handlePrint();
   };
 
   const handleCopyMarkdown = async () => {
@@ -295,6 +328,16 @@ export function ManuscriptExportModal({
                 </button>
               )}
 
+              {/* Mobile Share Sheet / AirPrint Fallback */}
+              <button
+                type="button"
+                onClick={handleShareDocument}
+                className="flex sm:hidden w-8 h-8 rounded-full inner-pseudo-glass items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer border border-[var(--glass-border)]"
+                title="Bagikan Dokumen Folio"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </button>
+
               {/* Primary Print / Save PDF Button */}
               <button
                 type="button"
@@ -370,6 +413,20 @@ export function ManuscriptExportModal({
                   />
                   <span>Footnotes Apparatus</span>
                 </label>
+
+                <div className="w-full pt-1.5 flex items-center justify-between border-t border-[var(--glass-border)]/60 mt-1">
+                  <span className="text-[11px] text-[var(--text-tertiary)]">
+                    Cadangan cetak mobile:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleShareDocument}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-all cursor-pointer border border-[var(--glass-border)]"
+                  >
+                    <Share2 className="w-3 h-3 text-[var(--text-secondary)]" />
+                    <span>Bagikan Teks Dokumen Folio</span>
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

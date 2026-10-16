@@ -29,6 +29,7 @@ import {
   LayoutGrid,
   Check,
   Share2,
+  Archive,
 } from "lucide-react";
 
 export interface BookshelfViewProps {
@@ -41,6 +42,7 @@ export interface BookshelfViewProps {
   onSelectSpace: (spaceId: string) => void;
   onBackToNotebook?: () => void;
   onExportManuscript?: (space: Space) => void;
+  onShareSpace?: (space: Space) => void;
   onCreateSpace: (
     name: string,
     isShared: boolean,
@@ -237,6 +239,7 @@ export function BookshelfView({
   defaultShelfLayout = "spines",
   onSelectSpace,
   onExportManuscript,
+  onShareSpace,
   onCreateSpace,
   onUpdateSpace,
   onDeleteSpace,
@@ -261,7 +264,20 @@ export function BookshelfView({
   const [shelfLayout, setShelfLayout] = useState<"spines" | "covers">(
     defaultShelfLayout,
   );
+  const [shelfTab, setShelfTab] = useState<"active" | "archived">("active");
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+
+  const activeSpaces = useMemo(
+    () => spaces.filter((s) => !s.archived),
+    [spaces],
+  );
+  const archivedSpaces = useMemo(
+    () => spaces.filter((s) => Boolean(s.archived)),
+    [spaces],
+  );
+  const visibleSpaces = useMemo(() => {
+    return shelfTab === "archived" ? archivedSpaces : activeSpaces;
+  }, [shelfTab, archivedSpaces, activeSpaces]);
 
   // Atelier Pro Monetization States
   const isPro = useProStatus();
@@ -302,15 +318,16 @@ export function BookshelfView({
 
   const activeSelected = useMemo(() => {
     return (
-      spaces.find((s) => s.id === selectedId) ||
-      spaces.find((s) => s.id === activeSpaceId) ||
-      spaces[0]
+      visibleSpaces.find((s) => s.id === selectedId) ||
+      visibleSpaces.find((s) => s.id === activeSpaceId) ||
+      visibleSpaces[0] ||
+      null
     );
-  }, [spaces, selectedId, activeSpaceId]);
+  }, [visibleSpaces, selectedId, activeSpaceId]);
 
   const activeIndex = useMemo(() => {
-    return spaces.findIndex((s) => s.id === activeSelected?.id);
-  }, [spaces, activeSelected]);
+    return visibleSpaces.findIndex((s) => s.id === activeSelected?.id);
+  }, [visibleSpaces, activeSelected]);
 
   // Center active book smoothly when selectedId changes via tap or external trigger
   useEffect(() => {
@@ -404,19 +421,41 @@ export function BookshelfView({
   };
 
   const handleMoveSpace = (direction: "left" | "right") => {
-    if (!activeSelected || !onReorderSpaces || spaces.length <= 1) return;
-    const currentIndex = spaces.findIndex((s) => s.id === activeSelected.id);
-    if (currentIndex === -1) return;
+    if (!activeSelected || !onReorderSpaces || visibleSpaces.length <= 1) return;
+    const currentVisibleIndex = visibleSpaces.findIndex(
+      (s) => s.id === activeSelected.id,
+    );
+    if (currentVisibleIndex === -1) return;
 
-    const targetIndex =
-      direction === "left" ? currentIndex - 1 : currentIndex + 1;
-    if (targetIndex < 0 || targetIndex >= spaces.length) return;
+    const targetVisibleIndex =
+      direction === "left"
+        ? currentVisibleIndex - 1
+        : currentVisibleIndex + 1;
+    if (targetVisibleIndex < 0 || targetVisibleIndex >= visibleSpaces.length)
+      return;
+
+    const targetSpace = visibleSpaces[targetVisibleIndex];
+    const currentIndex = spaces.findIndex((s) => s.id === activeSelected.id);
+    const targetIndex = spaces.findIndex((s) => s.id === targetSpace.id);
+    if (currentIndex === -1 || targetIndex === -1) return;
 
     triggerHaptic("medium");
     const newSpaces = [...spaces];
     const [moved] = newSpaces.splice(currentIndex, 1);
     newSpaces.splice(targetIndex, 0, moved);
     onReorderSpaces(newSpaces);
+  };
+
+  const handleToggleArchiveActive = () => {
+    if (!activeSelected || !onUpdateSpace) return;
+    triggerSuccessHaptic();
+    const nextArchived = !activeSelected.archived;
+    onUpdateSpace({
+      ...activeSelected,
+      archived: nextArchived,
+      updatedAt: new Date().toISOString(),
+    });
+    setIsEditing(false);
   };
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -455,6 +494,12 @@ export function BookshelfView({
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
+    if (!isPro && spaces.length >= FREE_MAX_SPACES) {
+      triggerHaptic("medium");
+      setProTriggerFeature("spaces_limit");
+      setIsProModalOpen(true);
+      return;
+    }
     triggerSuccessHaptic();
     onCreateSpace(
       newName.trim(),
@@ -611,6 +656,55 @@ export function BookshelfView({
         </div>
       </header>
 
+      {/* 1.5. SHELF TAB SELECTOR (ACTIVE VS ARCHIVED) */}
+      {spaces.length > 0 && (
+        <div className="z-30 my-1.5 flex items-center justify-center w-full px-4">
+          <div className="apple-segmented-track !p-0.5 rounded-full dynamic-island-shell shadow-[0_4px_14px_-2px_rgba(0,0,0,0.08)] border border-[var(--glass-border)] flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setShelfTab("active");
+                if (activeSpaces.length > 0) {
+                  setSelectedId(activeSpaces[0].id);
+                }
+              }}
+              className={`px-3.5 py-1 rounded-full text-xs font-medium tracking-wide transition-all cursor-pointer flex items-center gap-1.5 ${
+                shelfTab === "active"
+                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <span>Aktif</span>
+              <span className="text-[10px] opacity-75 font-mono">
+                {activeSpaces.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setShelfTab("archived");
+                if (archivedSpaces.length > 0) {
+                  setSelectedId(archivedSpaces[0].id);
+                }
+              }}
+              className={`px-3.5 py-1 rounded-full text-xs font-medium tracking-wide transition-all cursor-pointer flex items-center gap-1.5 ${
+                shelfTab === "archived"
+                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <Archive className="w-3 h-3 stroke-[1.8]" />
+              <span>Diarsipkan</span>
+              <span className="text-[10px] opacity-75 font-mono">
+                {archivedSpaces.length}
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 2. MAIN HORIZON DISPLAY: SPINES OR UNCONSTRAINED 3D SPATIAL CAROUSEL */}
       <main className="flex-1 flex flex-col justify-center items-center relative scene-3d w-full my-auto overflow-visible">
         {spaces.length === 0 ? (
@@ -639,12 +733,46 @@ export function BookshelfView({
               <span>Bind Your First Volume</span>
             </button>
           </div>
+        ) : visibleSpaces.length === 0 ? (
+          <div className="w-full max-w-md px-5 mx-auto flex flex-col items-center justify-center my-auto text-center space-y-4 animate-in fade-in duration-200">
+            <div className="w-14 h-16 rounded-xl apple-card border border-[var(--glass-border)] flex items-center justify-center shadow-sm">
+              {shelfTab === "archived" ? (
+                <Archive className="w-6 h-6 text-[var(--text-tertiary)] stroke-[1.5]" />
+              ) : (
+                <BookOpen className="w-6 h-6 text-[var(--text-tertiary)] stroke-[1.5]" />
+              )}
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-serif font-bold text-base text-[var(--text-primary)]">
+                {shelfTab === "archived"
+                  ? "Belum Ada Notebook Diarsipkan"
+                  : "Semua Notebook Diarsipkan"}
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)] italic max-w-xs mx-auto leading-relaxed">
+                {shelfTab === "archived"
+                  ? "Anda dapat mengarsipkan notebook dari menu Edit Notebook untuk merapikan rak baca Anda."
+                  : `Semua ${spaces.length} volume tersimpan di tab Arsip.`}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic("light");
+                setShelfTab(shelfTab === "archived" ? "active" : "archived");
+              }}
+              className="h-8 px-4 rounded-full inner-pseudo-glass text-xs font-semibold text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
+            >
+              {shelfTab === "archived"
+                ? "Kembali ke Rak Aktif"
+                : "Lihat Notebook Diarsipkan"}
+            </button>
+          </div>
         ) : shelfLayout === "spines" ? (
           /* SPINES MODE (Contained) */
           <div className="w-full max-w-lg md:max-w-2xl lg:max-w-4xl px-3 sm:px-4 mx-auto flex flex-col items-center justify-center my-auto">
             <div className="relative w-full overflow-x-auto no-scrollbar pt-10 pb-0 px-3 z-20 scroll-smooth">
               <div className="flex items-end min-w-max mx-auto px-2">
-                {spaces.map((space) => {
+                {visibleSpaces.map((space) => {
                   const isSelected = space.id === activeSelected?.id;
                   const count = notesCountMap[space.id] || 0;
 
@@ -672,14 +800,20 @@ export function BookshelfView({
                   className="flex items-center gap-1.5 text-[var(--text-secondary)] font-mono uppercase tracking-widest font-semibold"
                 >
                   <BookOpen className="w-3 h-3 text-[var(--text-tertiary)]" />
-                  <span>{spaces.length} Editions</span>
+                  <span>
+                    {visibleSpaces.length}{" "}
+                    {shelfTab === "archived" ? "Archived" : "Editions"}
+                  </span>
                 </div>
 
                 <span
                   style={{ fontSize: "calc(10px * var(--font-scale, 1))" }}
                   className="text-[var(--text-tertiary)] font-mono uppercase tracking-widest"
                 >
-                  {Object.values(notesCountMap).reduce((a, b) => a + b, 0)}{" "}
+                  {visibleSpaces.reduce(
+                    (acc, s) => acc + (notesCountMap[s.id] || 0),
+                    0,
+                  )}{" "}
                   Notices
                 </span>
               </div>
@@ -692,9 +826,16 @@ export function BookshelfView({
                   style={{ fontSize: "calc(10.5px * var(--font-scale, 1))" }}
                   className="flex items-center justify-center gap-2 mb-1.5"
                 >
-                  <span className="uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
-                    Edition
-                  </span>
+                  {activeSelected.archived ? (
+                    <span className="uppercase font-mono tracking-widest text-amber-500/90 font-semibold flex items-center gap-1">
+                      <Archive className="w-2.5 h-2.5" />
+                      Archived Edition
+                    </span>
+                  ) : (
+                    <span className="uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
+                      Edition
+                    </span>
+                  )}
                   <span className="text-[var(--text-tertiary)] opacity-40">
                     •
                   </span>
@@ -727,15 +868,19 @@ export function BookshelfView({
                     <span>Edit</span>
                   </button>
 
-                  {onExportManuscript && (
+                  {(onShareSpace || onExportManuscript) && (
                     <button
                       type="button"
                       onClick={() => {
                         triggerHaptic("light");
-                        onExportManuscript(activeSelected);
+                        if (onShareSpace) {
+                          onShareSpace(activeSelected);
+                        } else if (onExportManuscript) {
+                          onExportManuscript(activeSelected);
+                        }
                       }}
                       className="w-9 h-9 rounded-full inner-pseudo-glass text-[var(--text-primary)] flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer border border-[var(--glass-border)]"
-                      title="Export Folio Manuscript"
+                      title="Bagikan Notebook"
                     >
                       <Share2 className="w-3.5 h-3.5 stroke-[2]" />
                     </button>
@@ -768,7 +913,7 @@ export function BookshelfView({
                   "linear-gradient(to right, transparent 0%, black 7%, black 93%, transparent 100%)",
               }}
             >
-              {spaces.map((space, idx) => {
+              {visibleSpaces.map((space, idx) => {
                 const isSelected = space.id === activeSelected?.id;
                 const offset = idx - activeIndex;
                 const count = notesCountMap[space.id] || 0;
@@ -986,9 +1131,16 @@ export function BookshelfView({
                   style={{ fontSize: "calc(10.5px * var(--font-scale, 1))" }}
                   className="flex items-center justify-center gap-2 mb-1.5"
                 >
-                  <span className="uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
-                    Edition
-                  </span>
+                  {activeSelected.archived ? (
+                    <span className="uppercase font-mono tracking-widest text-amber-500/90 font-semibold flex items-center gap-1">
+                      <Archive className="w-2.5 h-2.5" />
+                      Archived Edition
+                    </span>
+                  ) : (
+                    <span className="uppercase font-mono tracking-widest text-[var(--text-tertiary)] font-semibold">
+                      Edition
+                    </span>
+                  )}
                   <span className="text-[var(--text-tertiary)] opacity-40">
                     •
                   </span>
@@ -1021,15 +1173,19 @@ export function BookshelfView({
                     <span>Edit</span>
                   </button>
 
-                  {onExportManuscript && (
+                  {(onShareSpace || onExportManuscript) && (
                     <button
                       type="button"
                       onClick={() => {
                         triggerHaptic("light");
-                        onExportManuscript(activeSelected);
+                        if (onShareSpace) {
+                          onShareSpace(activeSelected);
+                        } else if (onExportManuscript) {
+                          onExportManuscript(activeSelected);
+                        }
                       }}
                       className="w-9 h-9 rounded-full inner-pseudo-glass text-[var(--text-primary)] flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer border border-[var(--glass-border)]"
-                      title="Export Folio Manuscript"
+                      title="Bagikan Notebook"
                     >
                       <Share2 className="w-3.5 h-3.5 stroke-[2]" />
                     </button>
@@ -1457,7 +1613,20 @@ export function BookshelfView({
               )}
 
               {/* Archive / Delete */}
-              <div className="pt-2">
+              <div className="pt-2 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={handleToggleArchiveActive}
+                  className="w-full p-3 rounded-2xl apple-card text-[var(--text-primary)] hover:opacity-90 active:scale-98 transition-all text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-xs border border-[var(--glass-border)]"
+                >
+                  <Archive className="w-3.5 h-3.5 stroke-[2]" />
+                  <span>
+                    {activeSelected.archived
+                      ? "Buka Arsip Notebook"
+                      : "Arsipkan Notebook"}
+                  </span>
+                </button>
+
                 <button
                   type="button"
                   onClick={handleDeleteActive}

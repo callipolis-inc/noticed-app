@@ -72,6 +72,11 @@ const ManuscriptExportModal = lazy(() =>
     default: m.ManuscriptExportModal,
   })),
 );
+const SpaceShareModal = lazy(() =>
+  import("@/components/spaces/SpaceShareModal").then((m) => ({
+    default: m.SpaceShareModal,
+  })),
+);
 import {
   triggerHaptic,
   setHapticsEnabled as setGlobalHapticsEnabled,
@@ -99,7 +104,7 @@ import {
 } from "@/lib/syncEngine";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
-import { isProUser, setProUser } from "@/lib/proManager";
+import { isProUser, setProUser, canUseFeature } from "@/lib/proManager";
 import {
   initPurchases,
   loginPurchasesUser,
@@ -313,6 +318,7 @@ export function App() {
   const [editingNote, setEditingNote] = useState<FieldNote | null>(null);
   const [photostripNote, setPhotostripNote] = useState<FieldNote | null>(null);
   const [annotatorNote, setAnnotatorNote] = useState<FieldNote | null>(null);
+  const [sharingSpace, setSharingSpace] = useState<Space | null>(null);
   const [exportingSpace, setExportingSpace] = useState<Space | null>(null);
   const [flyoutMessage, setFlyoutMessage] = useState<string | null>(null);
   const [flyoutAction, setFlyoutAction] = useState<{
@@ -1088,6 +1094,11 @@ export function App() {
     fontChoice?: FontChoice,
     foilColor?: string,
   ) => {
+    if (!canUseFeature("spaces_limit", spaces.length)) {
+      showFlyout("Batas maksimum 3 notebook untuk akun standar telah tercapai.", 3000);
+      return;
+    }
+
     const newSpace: Space = {
       id: generateId(),
       name,
@@ -1478,6 +1489,7 @@ export function App() {
                 setCurrentView("notebook");
               }}
               onExportManuscript={(s) => setExportingSpace(s)}
+              onShareSpace={(s) => setSharingSpace(s)}
               onCreateSpace={handleCreateSpace}
               onUpdateSpace={handleUpdateSpace}
               onDeleteSpace={handleDeleteSpace}
@@ -1888,6 +1900,21 @@ export function App() {
             note={photostripNote}
             space={activeSpace}
             defaultTheme={theme}
+          />
+        )}
+
+        {/* Space Sharing & Collaboration Modal */}
+        {Boolean(sharingSpace) && (
+          <SpaceShareModal
+            isOpen={Boolean(sharingSpace)}
+            onClose={() => setSharingSpace(null)}
+            space={sharingSpace}
+            notesCount={notesCountMap[sharingSpace?.id || ""] || 0}
+            onOpenPrintFolio={(s) => {
+              setSharingSpace(null);
+              setExportingSpace(s);
+            }}
+            onUpdateSpace={handleUpdateSpace}
           />
         )}
 
