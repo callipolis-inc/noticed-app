@@ -98,6 +98,7 @@ import {
 } from "@/lib/storage";
 import {
   supabase,
+  isSupabaseConfigured,
   getCurrentUser,
   onAuthStateChange,
   signOutUser,
@@ -1130,13 +1131,18 @@ export function App() {
   const currentNotebookFont: FontChoice =
     activeSpace?.fontChoice || "editorial";
 
+  const isCurrentSpaceOwner = Boolean(
+    activeSpace &&
+      (!activeSpace.isShared ||
+        (currentUserId && activeSpace.userId === currentUserId) ||
+        activeSpace.memberRole === "owner"),
+  );
+
   const isCurrentSpaceReadOnly = Boolean(
     activeSpace &&
       activeSpace.isShared &&
-      activeSpace.memberRole === "viewer" &&
-      activeSpace.userId &&
-      currentUserId &&
-      activeSpace.userId !== currentUserId,
+      !isCurrentSpaceOwner &&
+      activeSpace.memberRole === "viewer",
   );
 
   const handleRemoteNoteSaved = useCallback(
@@ -1297,6 +1303,41 @@ export function App() {
     queueCloudDeleteSpace(spaceId, spaceNotes);
     showFlyout("Notebook deleted", 2200);
   };
+
+  const handleLeaveSpace = useCallback(
+    async (spaceId: string) => {
+      triggerHaptic("heavy");
+      try {
+        if (isSupabaseConfigured) {
+          await supabase.rpc("leave_space", { p_space_id: spaceId });
+        }
+      } catch (err) {
+        console.warn("[App] Leave space RPC error:", err);
+      }
+
+      const remaining = spaces.filter((s) => s.id !== spaceId);
+      if (remaining.length === 0) {
+        setActiveSpaceId("");
+        setCurrentView("bookshelf");
+      } else if (activeSpaceId === spaceId) {
+        setActiveSpaceId(remaining[0].id);
+        setCurrentView("bookshelf");
+      }
+      setSpaces(remaining);
+      safeLocalStorageSet("sidenotes_spaces", JSON.stringify(remaining));
+      saveToAtelierDB("sidenotes_spaces", remaining);
+
+      setNotes((prev) => {
+        const next = prev.filter((n) => n.spaceId !== spaceId);
+        safeLocalStorageSet("sidenotes_notes", JSON.stringify(next));
+        saveToAtelierDB("sidenotes_notes", next);
+        return next;
+      });
+
+      showFlyout("Anda telah meninggalkan notebook", 2500);
+    },
+    [spaces, activeSpaceId, showFlyout],
+  );
 
   const handleSaveNote = (newNote: FieldNote) => {
     const nowIso = new Date().toISOString();
@@ -1783,6 +1824,7 @@ export function App() {
                               isHighlighted={note.id === highlightedNoteId}
                               isSharedSpace={activeSpace.isShared}
                               isReadingMode={isReadingMode}
+                              isReadOnly={isCurrentSpaceReadOnly}
                               isFirstInGroup={noteIdx === 0}
                               currentUserId={currentUserId}
                               currentUserName={userName}
@@ -2104,11 +2146,13 @@ export function App() {
             onClose={() => setSharingSpace(null)}
             space={sharingSpace}
             notesCount={notesCountMap[sharingSpace?.id || ""] || 0}
+            currentUserId={currentUserId}
             onOpenPrintFolio={(s) => {
               setSharingSpace(null);
               setExportingSpace(s);
             }}
             onUpdateSpace={handleUpdateSpace}
+            onLeaveSpace={handleLeaveSpace}
           />
         )}
 

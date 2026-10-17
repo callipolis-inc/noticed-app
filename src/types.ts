@@ -30,9 +30,21 @@ export interface Space {
   membersCount?: number;
   archived?: boolean;
   userId?: string;
-  memberRole?: 'editor' | 'viewer';
+  memberRole?: 'owner' | 'editor' | 'viewer';
+  defaultRole?: 'editor' | 'viewer';
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface SpaceMember {
+  id: string;
+  spaceId: string;
+  userId: string;
+  role: 'owner' | 'editor' | 'viewer';
+  createdAt: string;
+  updatedAt?: string;
+  displayName?: string;
+  avatarUrl?: string;
 }
 
 export interface VoiceMemo {

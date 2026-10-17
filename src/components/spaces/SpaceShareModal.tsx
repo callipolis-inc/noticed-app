@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import QRCode from "qrcode";
-import { Space } from "@/types";
+import { Space, SpaceMember } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   X,
   Share2,
@@ -16,6 +17,8 @@ import {
   QrCode,
   Edit3,
   Eye,
+  UserMinus,
+  LogOut,
 } from "lucide-react";
 
 interface SpaceShareModalProps {
@@ -23,8 +26,10 @@ interface SpaceShareModalProps {
   onClose: () => void;
   space: Space | null;
   notesCount: number;
+  currentUserId?: string | null;
   onOpenPrintFolio: (space: Space) => void;
   onUpdateSpace?: (space: Space) => void;
+  onLeaveSpace?: (spaceId: string) => void;
 }
 
 export function SpaceShareModal({
@@ -32,12 +37,20 @@ export function SpaceShareModal({
   onClose,
   space,
   notesCount,
+  currentUserId = null,
   onOpenPrintFolio,
   onUpdateSpace,
+  onLeaveSpace,
 }: SpaceShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [activeShareTab, setActiveShareTab] = useState<"link" | "qr">("link");
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [members, setMembers] = useState<SpaceMember[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  const isCurrentSpaceOwner = Boolean(
+    space && currentUserId && space.userId === currentUserId,
+  );
 
   const inviteCode =
     space?.inviteCode ||
@@ -63,7 +76,7 @@ export function SpaceShareModal({
 
   if (!isOpen || !space) return null;
 
-  const currentRole = space.memberRole || "editor";
+  const currentRole = space.defaultRole || space.memberRole || "editor";
 
   const handleCopyLink = async () => {
     triggerSuccessHaptic();
@@ -101,6 +114,67 @@ export function SpaceShareModal({
     handleCopyLink();
   };
 
+  const loadMembers = useCallback(async () => {
+    if (!space?.id || !isSupabaseConfigured) return;
+    setIsLoadingMembers(true);
+    try {
+      const { data, error } = await supabase.rpc("get_space_members", {
+        p_space_id: space.id,
+      });
+      if (!error && Array.isArray(data)) {
+        setMembers(
+          data.map((m: any) => ({
+            id: m.id,
+            spaceId: m.space_id,
+            userId: m.user_id,
+            role: m.role,
+            createdAt: m.created_at,
+            displayName: m.display_name,
+            avatarUrl: m.avatar_url,
+          })),
+        );
+      }
+    } catch (err) {
+      console.warn("[SpaceShareModal] Failed to fetch members:", err);
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  }, [space?.id]);
+
+  useEffect(() => {
+    if (isOpen && space?.isShared) {
+      loadMembers();
+    }
+  }, [isOpen, space?.isShared, loadMembers]);
+
+  const handleRevokeMember = async (
+    targetUserId: string,
+    targetName: string,
+  ) => {
+    triggerHaptic("heavy");
+    if (!space?.id) return;
+    if (!window.confirm(`Keluarkan ${targetName} dari notebook ini?`)) return;
+    try {
+      const { error } = await supabase.rpc("revoke_space_member", {
+        p_space_id: space.id,
+        p_target_user_id: targetUserId,
+      });
+      if (!error) {
+        triggerSuccessHaptic();
+        loadMembers();
+        if (onUpdateSpace) {
+          onUpdateSpace({
+            ...space,
+            membersCount: Math.max(1, (space.membersCount || 2) - 1),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("[SpaceShareModal] Revoke error:", err);
+    }
+  };
+
   const handleToggleCollaboration = () => {
     triggerHaptic("medium");
     if (!onUpdateSpace) return;
@@ -109,8 +183,8 @@ export function SpaceShareModal({
       ...space,
       isShared: nextShared,
       inviteCode: nextShared ? inviteCode : undefined,
-      memberRole: space.memberRole || "editor",
-      partnerName: `role:${space.memberRole || "editor"}`,
+      defaultRole: space.defaultRole || "editor",
+      partnerName: `role:${space.defaultRole || "editor"}`,
       updatedAt: new Date().toISOString(),
     });
   };
@@ -120,7 +194,7 @@ export function SpaceShareModal({
     if (!onUpdateSpace) return;
     onUpdateSpace({
       ...space,
-      memberRole: role,
+      defaultRole: role,
       partnerName: `role:${role}`,
       updatedAt: new Date().toISOString(),
     });
@@ -368,6 +442,83 @@ export function SpaceShareModal({
                       </div>
                     </div>
                   )}
+
+                  {/* Active Members List */}
+                  {members.length > 0 && (
+                    <div className="pt-2 border-t border-[var(--glass-border)]/40 space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-secondary)] px-0.5">
+                        <span className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-blue-500" />
+                          <span>Anggota Aktif ({members.length})</span>
+                        </span>
+                        {isLoadingMembers && (
+                          <span className="text-[10px] opacity-50">Menyinkronkan...</span>
+                        )}
+                      </div>
+
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        {members.map((m) => {
+                          const isMemberOwner = m.role === "owner";
+                          const isMe = Boolean(
+                            currentUserId && m.userId === currentUserId,
+                          );
+                          return (
+                            <div
+                              key={m.id}
+                              className="flex items-center justify-between p-2 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]/30 text-xs"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {m.avatarUrl ? (
+                                  <img
+                                    src={m.avatarUrl}
+                                    alt={m.displayName || "Member"}
+                                    className="w-6 h-6 rounded-full object-cover shrink-0 border border-[var(--glass-border)]"
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                    {(m.displayName || "A").charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <div className="text-[11px] font-medium text-[var(--text-primary)] truncate flex items-center gap-1">
+                                    <span>{m.displayName || "Scribe"}</span>
+                                    {isMe && (
+                                      <span className="text-[9px] opacity-60">
+                                        (Anda)
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[9px] text-[var(--text-tertiary)] uppercase font-mono">
+                                    {isMemberOwner
+                                      ? "Pemilik"
+                                      : m.role === "viewer"
+                                        ? "Hanya Baca"
+                                        : "Editor"}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {isCurrentSpaceOwner && !isMemberOwner && !isMe && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleRevokeMember(
+                                      m.userId,
+                                      m.displayName || "Anggota",
+                                    )
+                                  }
+                                  className="p-1.5 rounded-lg text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                  title="Keluarkan anggota dari notebook"
+                                >
+                                  <UserMinus className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-sans">
@@ -375,6 +526,30 @@ export function SpaceShareModal({
                 </p>
               )}
             </div>
+
+            {/* Leave Space Button (For Non-Owner Collaborators) */}
+            {!isCurrentSpaceOwner && space.isShared && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("heavy");
+                    if (
+                      window.confirm(
+                        `Yakin ingin meninggalkan notebook "${space.name}"?`,
+                      )
+                    ) {
+                      onLeaveSpace?.(space.id);
+                      onClose();
+                    }
+                  }}
+                  className="w-full py-2.5 px-3 rounded-2xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Tinggalkan Notebook Ini</span>
+                </button>
+              </div>
+            )}
 
             {/* Secondary Compact Section: Cetak & Ekspor PDF */}
             <div className="pt-1">

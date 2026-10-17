@@ -36,6 +36,7 @@ interface NoteEntryProps {
   isSharedSpace?: boolean;
   isHighlighted?: boolean;
   isReadingMode?: boolean;
+  isReadOnly?: boolean;
   isFirstInGroup?: boolean;
   defaultTextAlign?: TextAlign;
   defaultImagePosition?: ImagePosition;
@@ -60,6 +61,7 @@ export const NoteEntry = memo(function NoteEntry({
   isSharedSpace = false,
   isHighlighted = false,
   isReadingMode = false,
+  isReadOnly = false,
   currentUserId = null,
   currentUserName = "Author",
   defaultTextAlign = "left",
@@ -272,7 +274,7 @@ export const NoteEntry = memo(function NoteEntry({
                 `}
               >
                 {/* Paragraph Alignment Segmented Control */}
-                {onUpdateTextAlign && (
+                {!isReadOnly && onUpdateTextAlign && (
                   <div className="px-3 py-2 border-b border-[var(--glass-border)]/50 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">
                       Align
@@ -321,7 +323,7 @@ export const NoteEntry = memo(function NoteEntry({
                 )}
 
                 {/* Edit Notice */}
-                {onEditNote && (
+                {!isReadOnly && onEditNote && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -338,7 +340,7 @@ export const NoteEntry = memo(function NoteEntry({
                 )}
 
                 {/* Quick Annotator in menu */}
-                {onOpenQuickAnnotator && (
+                {!isReadOnly && onOpenQuickAnnotator && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -395,7 +397,7 @@ export const NoteEntry = memo(function NoteEntry({
                 )}
 
                 {/* Bookmark Toggle */}
-                {onPinToggle && (
+                {!isReadOnly && onPinToggle && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -414,7 +416,7 @@ export const NoteEntry = memo(function NoteEntry({
                 )}
 
                 {/* Archive Toggle */}
-                {onArchiveToggle && (
+                {!isReadOnly && onArchiveToggle && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -433,7 +435,7 @@ export const NoteEntry = memo(function NoteEntry({
                 )}
 
                 {/* Delete Destructive Action */}
-                {onDeleteNote && (
+                {!isReadOnly && onDeleteNote && (
                   <>
                     <div className="h-px bg-[var(--glass-border)]/50 my-1" />
                     <button
@@ -1227,7 +1229,7 @@ export const NoteEntry = memo(function NoteEntry({
                     <div
                       key={m.id || idx}
                       onClick={() => {
-                        if (!isReadingMode && onOpenQuickAnnotator) {
+                        if (!isReadingMode && !isReadOnly && onOpenQuickAnnotator) {
                           triggerHaptic("light");
                           onOpenQuickAnnotator(note);
                         }
@@ -1354,7 +1356,7 @@ export const NoteEntry = memo(function NoteEntry({
               })}
 
               {/* Add another footnote button on desktop hover */}
-              {!isReadingMode && onOpenQuickAnnotator && (
+              {!isReadingMode && !isReadOnly && onOpenQuickAnnotator && (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -1371,7 +1373,7 @@ export const NoteEntry = memo(function NoteEntry({
               )}
             </div>
           ) : /* Subtle trigger to add initial footnote on desktop hover */
-          !isReadingMode && onOpenQuickAnnotator ? (
+          !isReadingMode && !isReadOnly && onOpenQuickAnnotator ? (
             <div className="h-4 group/addmargin flex items-center">
               <button
                 type="button"

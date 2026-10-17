@@ -246,13 +246,23 @@ export function spaceToDb(space: Space, userId: string) {
     invite_code: space.inviteCode || null,
     partner_name: partnerNameWithRole,
     members_count: space.membersCount || 1,
+    default_role: space.defaultRole || "editor",
     archived: Boolean(space.archived),
     created_at: space.createdAt || new Date().toISOString(),
     updated_at: space.updatedAt || space.createdAt || new Date().toISOString(),
   };
 }
 
-export function dbToSpace(row: any): Space {
+export function dbToSpace(
+  row: any,
+  currentUserId?: string | null,
+  membershipRole?: "owner" | "editor" | "viewer",
+): Space {
+  const isOwner = Boolean(currentUserId && row.user_id === currentUserId);
+  const resolvedRole: "owner" | "editor" | "viewer" = isOwner
+    ? "owner"
+    : membershipRole || parseMemberRole(row);
+
   return {
     id: row.id,
     name: row.name,
@@ -267,9 +277,10 @@ export function dbToSpace(row: any): Space {
     inviteCode: row.invite_code || undefined,
     partnerName: row.partner_name || undefined,
     membersCount: row.members_count || 1,
+    defaultRole: row.default_role === "viewer" ? "viewer" : "editor",
     archived: Boolean(row.archived),
     userId: row.user_id || undefined,
-    memberRole: parseMemberRole(row),
+    memberRole: resolvedRole,
     createdAt: row.created_at,
     updatedAt: row.updated_at || row.created_at,
   };
@@ -401,10 +412,20 @@ export async function syncWithCloud(
       { onConflict: "id" },
     );
 
-    // 2. Pull Existing Remote Spaces & Remote Notes
+    // 2. Pull Existing Remote Spaces, Memberships & Remote Notes
     const { data: existingRemoteSpaces, error: initialPullSpacesError } =
       await supabase.from("spaces").select("*");
     if (initialPullSpacesError) throw initialPullSpacesError;
+
+    const { data: userMemberships } = await supabase
+      .from("space_members")
+      .select("space_id, role")
+      .eq("user_id", user.id);
+
+    const membershipRoleMap = new Map<string, "owner" | "editor" | "viewer">();
+    (userMemberships || []).forEach((m: any) => {
+      membershipRoleMap.set(m.space_id, m.role);
+    });
 
     const { data: existingRemoteNotes, error: initialPullNotesError } =
       await supabase
@@ -648,7 +669,10 @@ export async function syncWithCloud(
     // 6. Merge Spaces (Preserve local shelf ordering, apply newer cloud space edits)
     const cleanRemoteSpacesMap = new Map<string, Space>();
     cleanRemoteSpaces.forEach((row: any) => {
-      cleanRemoteSpacesMap.set(row.id, dbToSpace(row));
+      cleanRemoteSpacesMap.set(
+        row.id,
+        dbToSpace(row, user.id, membershipRoleMap.get(row.id)),
+      );
     });
 
     const mergedSpaces: Space[] = [];
@@ -672,9 +696,13 @@ export async function syncWithCloud(
 
     cleanRemoteSpacesMap.forEach((remoteSpace, id) => {
       if (!addedSpaceIds.has(id)) {
-        // Only merge un-added remote spaces if the user owns them (user_id === user.id).
-        // This prevents foreign shared spaces from randomly leaking into the bookshelf.
-        if (!remoteSpace.userId || remoteSpace.userId === user.id) {
+        // Merge remote space if user owns it or has an active membership in it.
+        // Zero-leak RLS already prevents foreign unauthorized spaces from being queried.
+        if (
+          !remoteSpace.userId ||
+          remoteSpace.userId === user.id ||
+          membershipRoleMap.has(id)
+        ) {
           mergedSpaces.push(remoteSpace);
           addedSpaceIds.add(id);
         }

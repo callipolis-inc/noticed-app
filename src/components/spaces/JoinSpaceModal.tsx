@@ -98,18 +98,17 @@ export function JoinSpaceModal({
           throw new Error("Koneksi Supabase belum terkonfigurasi. Pastikan koneksi internet stabil.");
         }
 
-        const { data, error } = await supabase
-          .from("spaces")
-          .select("*")
-          .or(`invite_code.eq.${code},id.eq.${code}`)
-          .eq("is_shared", true)
-          .maybeSingle();
+        const { data: rpcData, error: rpcError } = await supabase.rpc(
+          "preview_space_by_invite",
+          { p_invite_code: code },
+        );
 
-        if (error) {
-          throw error;
+        if (rpcError) {
+          throw rpcError;
         }
 
-        if (!data) {
+        const rawSpace = rpcData?.space;
+        if (!rawSpace) {
           setSearchError("Notebook tidak ditemukan atau izin berbagi belum diaktifkan oleh pemiliknya.");
           triggerHaptic("heavy");
           return;
@@ -117,7 +116,7 @@ export function JoinSpaceModal({
 
         // Check if already in existing spaces
         const alreadyJoined = existingSpaces.some(
-          (s) => s.id === data.id || (s.inviteCode && s.inviteCode.toUpperCase() === code),
+          (s) => s.id === rawSpace.id || (s.inviteCode && s.inviteCode.toUpperCase() === code),
         );
         if (alreadyJoined) {
           setSearchError("Notebook ini sudah ada di rak buku Anda.");
@@ -125,7 +124,10 @@ export function JoinSpaceModal({
           return;
         }
 
-        const resolvedSpace = dbToSpace(data);
+        const resolvedSpace = dbToSpace(rawSpace);
+        if (rpcData?.owner_name) {
+          resolvedSpace.partnerName = rpcData.owner_name;
+        }
         setFoundSpace(resolvedSpace);
         triggerSuccessHaptic();
       } catch (err: any) {
@@ -315,7 +317,20 @@ export function JoinSpaceModal({
     triggerHaptic("medium");
 
     try {
-      // 2. Fetch all field notes for this space
+      // 2. Call join_space_by_invite RPC to safely register membership in database
+      const { data: joinResult, error: joinError } = await supabase.rpc(
+        "join_space_by_invite",
+        { p_invite_code: foundSpace.inviteCode || foundSpace.id },
+      );
+
+      if (joinError) {
+        throw joinError;
+      }
+
+      const assignedRole = joinResult?.role || foundSpace.defaultRole || "editor";
+      const returnedSpace = joinResult?.space ? dbToSpace(joinResult.space) : foundSpace;
+
+      // 3. Fetch all field notes for this space (now permitted by RLS since user is in space_members!)
       const { data: notesData, error: notesError } = await supabase
         .from("field_notes")
         .select("*")
@@ -324,16 +339,17 @@ export function JoinSpaceModal({
         .order("created_at", { ascending: false });
 
       if (notesError) {
-        throw notesError;
+        console.warn("[JoinSpaceModal] Note fetch warning:", notesError);
       }
 
       const convertedNotes = (notesData || []).map((row) => dbToNote(row));
 
-      // 3. Mark space as joined collaborator with updated members_count
+      // 4. Mark space as joined collaborator with assigned role
       const spaceToJoin: Space = {
-        ...foundSpace,
+        ...returnedSpace,
         isShared: true,
-        membersCount: (foundSpace.membersCount || 1) + 1,
+        memberRole: assignedRole,
+        membersCount: returnedSpace.membersCount || (foundSpace.membersCount || 1) + 1,
         updatedAt: new Date().toISOString(),
       };
 
