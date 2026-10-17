@@ -110,6 +110,7 @@ import {
   queueCloudDeleteSpace,
   queueCloudDeleteMediaUrls,
   noteToDb,
+  DEFAULT_STARTER_SPACE,
   LEGACY_DUMMY_SPACE_IDS,
   isLegacyDummyNoteId,
 } from "@/lib/syncEngine";
@@ -149,20 +150,6 @@ import {
   Eye,
   Cloud,
 } from "lucide-react";
-
-// Default starter notebook for a fresh installation or factory reset
-const DEFAULT_STARTER_SPACE: Space = {
-  id: "space-2",
-  name: "Field Notes",
-  type: "personal",
-  description:
-    "Everyday fleeting thoughts, ordinary wonders & quiet noticing",
-  iconName: "compass",
-  coverStyle: "ultramarine",
-  fontChoice: "editorial",
-  isShared: false,
-  createdAt: new Date().toISOString(),
-};
 
 const INITIAL_SPACES: Space[] = [DEFAULT_STARTER_SPACE];
 const INITIAL_NOTES: FieldNote[] = [];
@@ -339,6 +326,10 @@ export function App() {
     return false;
   });
   const [editingNote, setEditingNote] = useState<FieldNote | null>(null);
+  const editingNoteRef = useRef<FieldNote | null>(editingNote);
+  useEffect(() => {
+    editingNoteRef.current = editingNote;
+  }, [editingNote]);
   const [photostripNote, setPhotostripNote] = useState<FieldNote | null>(null);
   const [annotatorNote, setAnnotatorNote] = useState<FieldNote | null>(null);
   const [sharingSpace, setSharingSpace] = useState<Space | null>(null);
@@ -540,6 +531,12 @@ export function App() {
     if (!isProUser()) {
       if (!silent) {
         showFlyout("Cloud sync requires Atelier Pro", 2500);
+      }
+      return;
+    }
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      if (!silent) {
+        showFlyout("Sedang offline — perubahan tersimpan di perangkat", 2500);
       }
       return;
     }
@@ -1203,12 +1200,38 @@ export function App() {
   const handleRemoteNoteSaved = useCallback(
     (remoteNote: FieldNote, isNew: boolean, authorName: string) => {
       triggerHaptic("light");
+      let shouldShowDefaultFlyout = true;
+
       setNotes((prevNotes) => {
         const existingIndex = prevNotes.findIndex(
           (n) => n.id === remoteNote.id,
         );
         let nextNotes: FieldNote[];
         if (existingIndex >= 0) {
+          const localNote = prevNotes[existingIndex];
+          const localTime = new Date(
+            localNote.updatedAt || localNote.createdAt || 0,
+          ).getTime();
+          const remoteTime = new Date(
+            remoteNote.updatedAt || remoteNote.createdAt || 0,
+          ).getTime();
+
+          // Realtime Clobbering Protection:
+          // If local has newer un-synced edits, preserve local version
+          if (localTime > remoteTime) {
+            shouldShowDefaultFlyout = false;
+            return prevNotes;
+          }
+
+          // If user is currently editing this note, notify without breaking active draft
+          if (editingNoteRef.current?.id === remoteNote.id) {
+            showFlyout(
+              `${authorName} baru saja memperbarui catatan ini di cloud`,
+              3500,
+            );
+            shouldShowDefaultFlyout = false;
+          }
+
           nextNotes = [...prevNotes];
           nextNotes[existingIndex] = remoteNote;
         } else {
@@ -1219,12 +1242,14 @@ export function App() {
         return nextNotes;
       });
 
-      showFlyout(
-        isNew
-          ? `${authorName} menambahkan catatan baru`
-          : `${authorName} memperbarui catatan`,
-        2800,
-      );
+      if (shouldShowDefaultFlyout) {
+        showFlyout(
+          isNew
+            ? `${authorName} menambahkan catatan baru`
+            : `${authorName} memperbarui catatan`,
+          2800,
+        );
+      }
     },
     [showFlyout],
   );

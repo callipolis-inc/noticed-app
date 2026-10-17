@@ -23,6 +23,20 @@ interface PendingDeletes {
   mediaUrls: string[];
 }
 
+// Default starter notebook for a fresh installation or factory reset
+export const DEFAULT_STARTER_SPACE: Space = {
+  id: "space-2",
+  name: "Field Notes",
+  type: "personal",
+  description:
+    "Everyday fleeting thoughts, ordinary wonders & quiet noticing",
+  iconName: "compass",
+  coverStyle: "ultramarine",
+  fontChoice: "editorial",
+  isShared: false,
+  createdAt: new Date().toISOString(),
+};
+
 const PENDING_DELETES_KEY = "sidenotes_pending_deletes";
 
 export const LEGACY_DUMMY_SPACE_IDS = new Set(["space-1", "space-3"]);
@@ -380,6 +394,13 @@ export async function syncWithCloud(
     const pendingDeletedSpaceIds = new Set(remainingPending.spaceIds);
     const pendingDeletedNoteIds = new Set(remainingPending.noteIds);
 
+    // Retrieve last successful sync timestamp for 3-way merge and tombstone detection
+    const lastSyncedAt =
+      typeof localStorage !== "undefined"
+        ? localStorage.getItem("sidenotes_last_synced_at")
+        : null;
+    const lastSyncTime = lastSyncedAt ? new Date(lastSyncedAt).getTime() : 0;
+
     // 1. Two-Way Profile Sync (Pull remote profile first, then merge & upsert)
     const { data: remoteProfile } = await supabase
       .from("profiles")
@@ -543,6 +564,15 @@ export async function syncWithCloud(
       }
       const remote = remoteSpacesLookup.get(s.id);
       if (!remote) {
+        const localSpaceTime = new Date(
+          s.updatedAt || s.createdAt || 0,
+        ).getTime();
+        // Ghost resurrection check:
+        // If space was already synced in a prior session, but no longer exists on remote,
+        // it was deleted on the cloud. Do NOT push back to cloud.
+        if (lastSyncTime > 0 && localSpaceTime <= lastSyncTime) {
+          return;
+        }
         spacesToPush.push(s);
       } else {
         const localTime = new Date(s.updatedAt || s.createdAt || 0).getTime();
@@ -619,7 +649,19 @@ export async function syncWithCloud(
       const remoteNote = remoteNotesMap.get(localNote.id);
 
       if (!remoteNote) {
-        // New note created locally -> push to cloud
+        const localNoteTime = new Date(
+          localNote.updatedAt || localNote.createdAt || 0,
+        ).getTime();
+
+        // Ghost resurrection check:
+        // If note was already synced in a prior session (updatedAt <= lastSyncTime),
+        // but no longer exists on remote, it was deleted on the cloud or by a collaborator.
+        if (lastSyncTime > 0 && localNoteTime <= lastSyncTime) {
+          // Prune locally: do not push to cloud and do not include in finalNotesMap
+          continue;
+        }
+
+        // New note created locally or edited offline after last sync -> push to cloud
         notesToPush.push(localNote);
         finalNotesMap.set(localNote.id, localNote);
       } else {
@@ -631,12 +673,19 @@ export async function syncWithCloud(
         ).getTime();
 
         if (localTime >= remoteTime) {
-          // Local is newer -> push to cloud
+          // Local is newer -> push to cloud (Local LWW wins)
           notesToPush.push(localNote);
           finalNotesMap.set(localNote.id, localNote);
         } else {
-          // Remote is strictly newer. Check if local edits diverged
-          if (isNoteContentDiverged(localNote, remoteNote)) {
+          // Remote is strictly newer.
+          // True 3-Way Merge: Only create conflict copy if BOTH sides modified since last sync.
+          const isLocallyModified =
+            lastSyncTime > 0 && localTime > lastSyncTime;
+
+          if (
+            isLocallyModified &&
+            isNoteContentDiverged(localNote, remoteNote)
+          ) {
             // Safe Forking: fork local changes to prevent data loss
             const conflictCopy: FieldNote = {
               ...localNote,
@@ -652,7 +701,7 @@ export async function syncWithCloud(
             // Canonical ID takes remote note
             finalNotesMap.set(remoteNote.id, remoteNote);
           } else {
-            // Clean LWW: Local note was an older unchanged cache; remote wins
+            // Clean LWW Fast-Forward: Local note was an older unmodified cache; remote wins cleanly
             finalNotesMap.set(remoteNote.id, remoteNote);
           }
         }
@@ -698,10 +747,23 @@ export async function syncWithCloud(
           remote.updatedAt || remote.createdAt || 0,
         ).getTime();
         mergedSpaces.push(remoteTime > localTime ? remote : localSpace);
+        addedSpaceIds.add(localSpace.id);
       } else {
+        // Space not present on remote.
+        // If it was a shared space owned by someone else, membership was revoked or space was deleted:
+        if (localSpace.userId && localSpace.userId !== user.id) {
+          return; // Prune zombie shared space
+        }
+        // If owned by current user, check if it was deleted on cloud:
+        const localSpaceTime = new Date(
+          localSpace.updatedAt || localSpace.createdAt || 0,
+        ).getTime();
+        if (lastSyncTime > 0 && localSpaceTime <= lastSyncTime) {
+          return; // Prune locally deleted space
+        }
         mergedSpaces.push(localSpace);
+        addedSpaceIds.add(localSpace.id);
       }
-      addedSpaceIds.add(localSpace.id);
     });
 
     cleanRemoteSpacesMap.forEach((remoteSpace, id) => {
@@ -718,6 +780,10 @@ export async function syncWithCloud(
         }
       }
     });
+
+    if (mergedSpaces.length === 0) {
+      mergedSpaces.push(DEFAULT_STARTER_SPACE);
+    }
 
     const mergedNotes = Array.from(finalNotesMap.values());
 
