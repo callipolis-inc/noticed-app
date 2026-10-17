@@ -70,12 +70,22 @@ function savePendingDeletes(pending: PendingDeletes) {
   );
 }
 
-function collectNoteMediaUrls(note: FieldNote): string[] {
+export function collectNoteMediaUrls(note?: FieldNote | null): string[] {
+  if (!note) return [];
   const urls: string[] = [];
   if (note.photos?.length) urls.push(...note.photos);
   if (note.videos?.length) urls.push(...note.videos);
   if (note.voiceMemo?.audioUrl) urls.push(note.voiceMemo.audioUrl);
   return urls.filter((u) => Boolean(u) && u.startsWith("http"));
+}
+
+export async function queueCloudDeleteMediaUrls(urls: string[]): Promise<void> {
+  const validUrls = urls.filter((u) => Boolean(u) && u.startsWith("http"));
+  if (validUrls.length === 0) return;
+  const pending = getPendingDeletes();
+  pending.mediaUrls.push(...validUrls);
+  savePendingDeletes(pending);
+  await flushPendingDeletes();
 }
 
 /**

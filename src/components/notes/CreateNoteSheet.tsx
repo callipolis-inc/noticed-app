@@ -28,6 +28,7 @@ import {
   appendTranscribedSegment,
 } from "@/lib/speechRecognition";
 import { AudioTrimmerModal } from "./AudioTrimmerModal";
+import { collectNoteMediaUrls } from "@/lib/syncEngine";
 import { DarkroomModal } from "./DarkroomModal";
 import { CreateNoteHeader } from "./create/CreateNoteHeader";
 import {
@@ -75,7 +76,7 @@ interface CreateNoteSheetProps {
   avatarPhoto?: string | null;
   currentUserId?: string | null;
   onSaveNote: (note: FieldNote) => void;
-  onUpdateNote?: (note: FieldNote) => void;
+  onUpdateNote?: (note: FieldNote, removedMediaUrls?: string[]) => void;
 }
 
 export function CreateNoteSheet({
@@ -561,7 +562,14 @@ export function CreateNoteSheet({
         },
       };
 
-      onUpdateNote(updatedNote);
+      // Collect orphan media files removed during this edit session
+      const oldMedia = collectNoteMediaUrls(editingNote);
+      const newMedia = collectNoteMediaUrls(updatedNote);
+      const removedMedia = oldMedia.filter((url) => !newMedia.includes(url));
+
+      if (onUpdateNote) {
+        onUpdateNote(updatedNote, removedMedia);
+      }
       onClose();
       return;
     }

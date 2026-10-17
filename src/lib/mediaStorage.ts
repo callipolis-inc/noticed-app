@@ -6,6 +6,7 @@
 
 import { supabase, isSupabaseConfigured, getCurrentUser } from "./supabase";
 import { compressImageFile } from "./storage";
+import { FieldNote } from "@/types";
 
 export interface VideoMetadata {
   duration: number;
@@ -281,6 +282,166 @@ export async function ensureRemoteMediaUrls(
   };
 
   return Promise.all(items.map((it) => uploadItem(it)));
+}
+
+/**
+ * Offloads all Base64 or Blob media in a FieldNote to Supabase Storage.
+ * Synchronizes photos, photosMeta URLs, videos, and voiceMemo.
+ * Returns the updated note and whether any media was uploaded.
+ */
+export async function offloadNoteBase64Media(note: FieldNote): Promise<{
+  note: FieldNote;
+  hasChanged: boolean;
+}> {
+  if (!isSupabaseConfigured || (typeof navigator !== "undefined" && !navigator.onLine)) {
+    return { note, hasChanged: false };
+  }
+
+  let hasChanged = false;
+  let newPhotos = note.photos ? [...note.photos] : [];
+  let newPhotosMeta = note.photosMeta ? [...note.photosMeta] : [];
+  let newVideos = note.videos ? [...note.videos] : [];
+  let newVoiceMemo = note.voiceMemo ? { ...note.voiceMemo } : undefined;
+
+  // 1. Offload Photos
+  if (newPhotos.length > 0) {
+    const uploadedPhotos = await ensureRemoteMediaUrls(newPhotos, "photos");
+    for (let i = 0; i < newPhotos.length; i++) {
+      if (uploadedPhotos[i] && uploadedPhotos[i] !== newPhotos[i]) {
+        hasChanged = true;
+        newPhotos[i] = uploadedPhotos[i];
+      }
+    }
+
+    // Synchronize photosMeta URLs
+    if (newPhotosMeta.length > 0) {
+      newPhotosMeta = newPhotosMeta.map((meta, idx) => {
+        const photoUrl = newPhotos[idx];
+        if (photoUrl && photoUrl.startsWith("http") && meta.url !== photoUrl) {
+          hasChanged = true;
+          return { ...meta, url: photoUrl };
+        }
+        return meta;
+      });
+    }
+  }
+
+  // 2. Offload Videos
+  if (newVideos.length > 0) {
+    const uploadedVideos = await ensureRemoteMediaUrls(newVideos, "videos");
+    for (let i = 0; i < newVideos.length; i++) {
+      if (uploadedVideos[i] && uploadedVideos[i] !== newVideos[i]) {
+        hasChanged = true;
+        newVideos[i] = uploadedVideos[i];
+      }
+    }
+  }
+
+  // 3. Offload Voice Memo
+  if (
+    newVoiceMemo?.audioUrl &&
+    (newVoiceMemo.audioUrl.startsWith("data:") || newVoiceMemo.audioUrl.startsWith("blob:"))
+  ) {
+    const uploadedAudio = await ensureRemoteMediaUrls([newVoiceMemo.audioUrl], "audio");
+    if (uploadedAudio[0] && uploadedAudio[0] !== newVoiceMemo.audioUrl) {
+      hasChanged = true;
+      newVoiceMemo = {
+        ...newVoiceMemo,
+        audioUrl: uploadedAudio[0],
+      };
+    }
+  }
+
+  if (!hasChanged) {
+    return { note, hasChanged: false };
+  }
+
+  const updatedNote: FieldNote = {
+    ...note,
+    photos: newPhotos.length > 0 ? newPhotos : undefined,
+    photosMeta: newPhotosMeta.length > 0 ? newPhotosMeta : undefined,
+    videos: newVideos.length > 0 ? newVideos : undefined,
+    voiceMemo: newVoiceMemo,
+    updatedAt: new Date().toISOString(),
+  };
+
+  return { note: updatedNote, hasChanged: true };
+}
+
+type MediaUploadListener = (isUploading: boolean, pendingCount: number) => void;
+const mediaUploadListeners = new Set<MediaUploadListener>();
+let activeUploadCount = 0;
+
+export function subscribeToMediaUploadState(listener: MediaUploadListener): () => void {
+  mediaUploadListeners.add(listener);
+  listener(activeUploadCount > 0, activeUploadCount);
+  return () => {
+    mediaUploadListeners.delete(listener);
+  };
+}
+
+function notifyMediaUploadState(isUploading: boolean, count: number) {
+  mediaUploadListeners.forEach((fn) => {
+    try {
+      fn(isUploading, count);
+    } catch (e) {
+      console.warn("[MediaStorage] Listener error:", e);
+    }
+  });
+}
+
+let isBackgroundWorkerRunning = false;
+
+/**
+ * Scans notes for any offline Base64 or Blob media, uploads them to Supabase Storage,
+ * and notifies onNoteUpdated for each successfully offloaded note.
+ */
+export async function processPendingMediaUploads(
+  notes: FieldNote[],
+  onNoteUpdated: (updatedNote: FieldNote) => void | Promise<void>
+): Promise<FieldNote[]> {
+  if (isBackgroundWorkerRunning) return notes;
+  if (!isSupabaseConfigured || (typeof navigator !== "undefined" && !navigator.onLine)) {
+    return notes;
+  }
+
+  const candidateNotes = notes.filter((n) => {
+    const hasPhotoBase64 = n.photos?.some((p) => p.startsWith("data:") || p.startsWith("blob:"));
+    const hasVideoBase64 = n.videos?.some((v) => v.startsWith("data:") || v.startsWith("blob:"));
+    const hasAudioBase64 = Boolean(
+      n.voiceMemo?.audioUrl &&
+        (n.voiceMemo.audioUrl.startsWith("data:") || n.voiceMemo.audioUrl.startsWith("blob:"))
+    );
+    return hasPhotoBase64 || hasVideoBase64 || hasAudioBase64;
+  });
+
+  if (candidateNotes.length === 0) return notes;
+
+  isBackgroundWorkerRunning = true;
+  activeUploadCount = candidateNotes.length;
+  notifyMediaUploadState(true, activeUploadCount);
+
+  let currentNotes = [...notes];
+
+  try {
+    for (const candidate of candidateNotes) {
+      const { note: updatedNote, hasChanged } = await offloadNoteBase64Media(candidate);
+      if (hasChanged) {
+        currentNotes = currentNotes.map((n) => (n.id === updatedNote.id ? updatedNote : n));
+        await onNoteUpdated(updatedNote);
+      }
+      activeUploadCount = Math.max(0, activeUploadCount - 1);
+      notifyMediaUploadState(activeUploadCount > 0, activeUploadCount);
+    }
+  } catch (err) {
+    console.warn("[MediaStorage] processPendingMediaUploads warning:", err);
+  } finally {
+    isBackgroundWorkerRunning = false;
+    activeUploadCount = 0;
+    notifyMediaUploadState(false, 0);
+  }
+
+  return currentNotes;
 }
 
 /**

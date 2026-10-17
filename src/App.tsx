@@ -108,9 +108,15 @@ import {
   syncWithCloud,
   queueCloudDeleteNote,
   queueCloudDeleteSpace,
+  queueCloudDeleteMediaUrls,
+  noteToDb,
   LEGACY_DUMMY_SPACE_IDS,
   isLegacyDummyNoteId,
 } from "@/lib/syncEngine";
+import {
+  subscribeToMediaUploadState,
+  processPendingMediaUploads,
+} from "@/lib/mediaStorage";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import {
@@ -141,6 +147,7 @@ import {
   ArrowUpDown,
   X,
   Eye,
+  Cloud,
 } from "lucide-react";
 
 // Default starter notebook for a fresh installation or factory reset
@@ -382,12 +389,20 @@ export function App() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isMediaUploading, setIsMediaUploading] = useState<boolean>(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("sidenotes_last_synced_at") || null;
     }
     return null;
   });
+
+  // Subscribe to background media upload worker state
+  useEffect(() => {
+    return subscribeToMediaUploadState((uploading) => {
+      setIsMediaUploading(uploading);
+    });
+  }, []);
 
   // Listen to Supabase session state & initialize RevenueCat purchases
   useEffect(() => {
@@ -629,6 +644,37 @@ export function App() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [userEmail, spaces, notes, userName, avatarPhoto]);
+
+  // Background Worker: offload offline Base64/Blob media to Supabase Storage whenever online
+  useEffect(() => {
+    if (!userEmail || !isHydrated) return;
+
+    const runBackgroundMediaUpload = () => {
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        processPendingMediaUploads(notes, async (updatedNote) => {
+          setNotes((prev) =>
+            prev.map((n) => (n.id === updatedNote.id ? updatedNote : n))
+          );
+          if (currentUserId) {
+            try {
+              const dbNote = noteToDb(updatedNote, currentUserId);
+              await supabase.from("field_notes").upsert(dbNote, { onConflict: "id" });
+            } catch (err) {
+              console.warn("[BackgroundMedia] Failed to push updated note to database:", err);
+            }
+          }
+        });
+      }
+    };
+
+    const timerId = window.setTimeout(runBackgroundMediaUpload, 1800);
+    window.addEventListener("online", runBackgroundMediaUpload);
+
+    return () => {
+      window.clearTimeout(timerId);
+      window.removeEventListener("online", runBackgroundMediaUpload);
+    };
+  }, [notes, userEmail, isHydrated, currentUserId]);
 
   const handleAuthSuccess = (email: string) => {
     setUserEmail(email);
@@ -1363,7 +1409,10 @@ export function App() {
     showFlyout("Notice added", 2500);
   };
 
-  const handleUpdateNote = (updatedNote: FieldNote) => {
+  const handleUpdateNote = (
+    updatedNote: FieldNote,
+    removedMediaUrls?: string[]
+  ) => {
     const noteToUpdate: FieldNote = {
       ...updatedNote,
       updatedAt: new Date().toISOString(),
@@ -1373,6 +1422,14 @@ export function App() {
     );
     setEditingNote(null);
     broadcastNoteSaved(noteToUpdate, false);
+
+    // Orphan media cleanup with 5-second undo protection
+    if (removedMediaUrls && removedMediaUrls.length > 0) {
+      window.setTimeout(() => {
+        queueCloudDeleteMediaUrls(removedMediaUrls);
+      }, 5000);
+    }
+
     showFlyout("Notice updated", 2200);
   };
 
@@ -1641,6 +1698,24 @@ export function App() {
         onClose={dismissFlyout}
       />
 
+      {/* Subtle Background Media Upload Status Pill */}
+      <AnimatePresence>
+        {isMediaUploading && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-4 right-4 z-50 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-900/85 dark:bg-stone-100/90 text-stone-100 dark:text-stone-900 backdrop-blur-md shadow-lg border border-white/10"
+          >
+            <Cloud className="w-3.5 h-3.5 animate-pulse text-amber-400 dark:text-amber-600" />
+            <span className="text-[11px] font-sans font-medium tracking-tight">
+              Mencadangkan media...
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Global tap-anywhere dismissal backdrop for active note context menu */}
       {activeMenuNoteId && (
         <div
@@ -1678,7 +1753,7 @@ export function App() {
               userName={userName}
               avatarPhoto={avatarPhoto}
               defaultShelfLayout={defaultShelfLayout}
-              isSyncing={isSyncing}
+              isSyncing={isSyncing || isMediaUploading}
               isCloudConnected={Boolean(userEmail)}
               onSelectSpace={(id) => {
                 setActiveSpaceId(id);
