@@ -106,6 +106,7 @@ export function ProfileSheet({
   // Account Deletion State (Apple 5.1.1(v) & Google Play Compliance)
   const [isDeleteAccountConfirmOpen, setIsDeleteAccountConfirmOpen] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
 
   // Password Change Sub-Modal State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -874,6 +875,7 @@ export function ProfileSheet({
                       type="button"
                       onClick={() => {
                         triggerHaptic("heavy");
+                        setDeleteConfirmInput("");
                         setIsDeleteAccountConfirmOpen(true);
                       }}
                       className="px-3.5 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 text-rose-500 border border-rose-500/25 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs"
@@ -1242,6 +1244,7 @@ export function ProfileSheet({
                   onClick={() => {
                     if (!isDeletingAccount) {
                       triggerHaptic("light");
+                      setDeleteConfirmInput("");
                       setIsDeleteAccountConfirmOpen(false);
                     }
                   }}
@@ -1267,12 +1270,31 @@ export function ProfileSheet({
                     </p>
                   </div>
 
+                  {/* Verification Input (Type DELETE to confirm) */}
+                  <div className="text-left space-y-1.5 pt-1">
+                    <label className="text-[11px] font-medium text-[var(--text-secondary)]">
+                      Type <span className="font-mono font-bold text-rose-500">DELETE</span> to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck="false"
+                      value={deleteConfirmInput}
+                      onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                      placeholder="DELETE"
+                      disabled={isDeletingAccount}
+                      className="w-full px-3 py-2 rounded-xl text-center font-mono font-bold text-xs uppercase tracking-wider bg-black/5 dark:bg-white/5 border border-rose-500/30 focus:border-rose-500 focus:outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 transition-colors"
+                    />
+                  </div>
+
                   <div className="pt-2 flex items-center gap-2">
                     <button
                       type="button"
                       disabled={isDeletingAccount}
                       onClick={() => {
                         triggerHaptic("light");
+                        setDeleteConfirmInput("");
                         setIsDeleteAccountConfirmOpen(false);
                       }}
                       className="flex-1 py-2 px-3 rounded-xl border border-[var(--glass-border)] text-xs font-medium text-[var(--text-primary)] inner-pseudo-glass active:scale-95 transition-all cursor-pointer disabled:opacity-50"
@@ -1281,18 +1303,19 @@ export function ProfileSheet({
                     </button>
                     <button
                       type="button"
-                      disabled={isDeletingAccount}
+                      disabled={isDeletingAccount || deleteConfirmInput.trim().toUpperCase() !== "DELETE"}
                       onClick={async () => {
                         triggerHaptic("heavy");
                         setIsDeletingAccount(true);
                         try {
                           await onDeleteAccount?.();
+                          setDeleteConfirmInput("");
                           setIsDeleteAccountConfirmOpen(false);
                         } finally {
                           setIsDeletingAccount(false);
                         }
                       }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                     >
                       {isDeletingAccount ? (
                         <>

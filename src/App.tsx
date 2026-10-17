@@ -701,6 +701,13 @@ export function App() {
       console.error("[Noticed] Error deleting account:", err);
     }
 
+    // Reset Purchases / RevenueCat identity
+    try {
+      await logoutPurchasesUser();
+    } catch (rcErr) {
+      console.warn("[Noticed] RevenueCat logout error on account delete:", rcErr);
+    }
+
     // Reset local state to starter defaults
     setUserEmail(null);
     setUserName("Author");
@@ -720,6 +727,8 @@ export function App() {
     localStorage.removeItem("sidenotes_is_pro");
     localStorage.removeItem("sidenotes_user_email");
     localStorage.removeItem("sidenotes_pending_mutations");
+    localStorage.removeItem("sidenotes_pending_deletes");
+    localStorage.removeItem("sidenotes_last_synced_at");
     await clearAtelierDB();
 
     setIsProfileOpen(false);
