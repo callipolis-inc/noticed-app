@@ -20,6 +20,16 @@ import {
 import { useProStatus } from "@/lib/proManager";
 import { AtelierProModal } from "@/components/ui/AtelierProModal";
 
+interface AndroidPrintBridgeInterface {
+  print: (documentName: string) => void;
+}
+
+declare global {
+  interface Window {
+    AndroidPrintBridge?: AndroidPrintBridgeInterface;
+  }
+}
+
 interface ManuscriptExportModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -101,6 +111,14 @@ export function ManuscriptExportModal({
 
   const handlePrint = () => {
     triggerSuccessHaptic();
+    if (typeof window !== "undefined" && window.AndroidPrintBridge?.print) {
+      try {
+        window.AndroidPrintBridge.print(space.name || "Folio Manuscript");
+        return;
+      } catch (err) {
+        console.warn("AndroidPrintBridge failed, falling back to window.print", err);
+      }
+    }
     window.print();
   };
 
@@ -224,7 +242,7 @@ export function ManuscriptExportModal({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 32, scale: 0.96 }}
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-4xl h-[94dvh] sm:h-[90dvh] rounded-t-3xl sm:rounded-3xl apple-card shadow-2xl border border-[var(--glass-border)] flex flex-col overflow-hidden z-10"
+          className="relative w-full max-w-4xl h-[94dvh] sm:h-[90dvh] rounded-t-3xl sm:rounded-3xl apple-card shadow-2xl border border-[var(--glass-border)] flex flex-col overflow-hidden z-10 manuscript-modal-window"
         >
           {/* Top Control Bar */}
           <header className="px-4 sm:px-6 py-3.5 border-b border-[var(--glass-border)] bg-[var(--bg-elevated)]/90 backdrop-blur-md flex items-center justify-between shrink-0 manuscript-modal-controls z-20">
@@ -432,7 +450,7 @@ export function ManuscriptExportModal({
           </AnimatePresence>
 
           {/* Interactive Folio Book Stage (Scrollable on screen, printable to native PDF) */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-10 bg-[#e7e4dc] dark:bg-[#0c0c0e] flex flex-col items-center no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-10 bg-[#e7e4dc] dark:bg-[#0c0c0e] flex flex-col items-center no-scrollbar manuscript-scroll-container">
             {/* Free Tier Preview Banner */}
             {isTruncatedForFree && (
               <div className="w-full max-w-[760px] mb-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs print:hidden shadow-xs">
@@ -578,7 +596,7 @@ export function ManuscriptExportModal({
                 {groupedPassages.map((group) => (
                   <article
                     key={group.dateKey}
-                    className="space-y-8 manuscript-avoid-break pt-2"
+                    className="space-y-8 pt-2"
                   >
                     {/* Date Section Header */}
                     <div className="border-b border-stone-300 pb-2 flex items-baseline justify-between">
