@@ -205,6 +205,9 @@ export function SettingsSheet({
 
           {/* Top Floating Liquid Glass Island */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-sheet-title"
             initial={{ y: -24, opacity: 0, scale: 0.96 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -16, opacity: 0, scale: 0.96 }}
@@ -226,7 +229,10 @@ export function SettingsSheet({
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--glass-border)]/40 shrink-0 relative z-10">
-              <span className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">
+              <span
+                id="settings-sheet-title"
+                className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]"
+              >
                 Settings
               </span>
 
@@ -236,7 +242,8 @@ export function SettingsSheet({
                   triggerHaptic("light");
                   onClose();
                 }}
-                className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs"
+                aria-label="Tutup Pengaturan"
+                className="relative w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs before:absolute before:-inset-2 before:content-['']"
                 title="Close"
               >
                 <X className="w-3.5 h-3.5 stroke-[2.2]" />

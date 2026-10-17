@@ -140,8 +140,8 @@ export function InlineVideoPlayer({
   };
 
   // Tap video to toggle play/pause
-  const togglePlay = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const togglePlay = useCallback((e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation();
     const video = videoRef.current;
     if (!video) return;
 
@@ -187,14 +187,24 @@ export function InlineVideoPlayer({
   return (
     <div
       ref={containerRef}
+      role="button"
+      tabIndex={0}
+      aria-label={isPlaying ? "Jeda video" : "Putar video"}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={togglePlay}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          togglePlay();
+        }
+      }}
       className={`
         relative overflow-hidden rounded-2xl select-none cursor-pointer group
         bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]
         shadow-[0_4px_16px_-4px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.4)]
         dark:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1)]
+        focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]
         ${aspectRatio} ${className}
       `}
     >
@@ -244,12 +254,14 @@ export function InlineVideoPlayer({
         <button
           type="button"
           onClick={toggleMute}
+          aria-label={isMuted ? "Bunyikan video (Unmute)" : "Bisukan video (Mute)"}
           title={isMuted ? "Unmute" : "Mute"}
           className="
-            px-3 py-1.5 min-h-[30px] rounded-full dynamic-island-shell
+            relative px-3 py-1.5 min-h-[34px] rounded-full dynamic-island-shell
             flex items-center gap-1.5 text-[11px] font-sans font-medium text-[var(--text-primary)]
             shadow-[0_2px_10px_rgba(0,0,0,0.22)] border border-[var(--glass-border)]
             hover:scale-105 active:scale-95 transition-transform cursor-pointer
+            before:absolute before:-inset-2 before:content-['']
           "
         >
           {isMuted ? (

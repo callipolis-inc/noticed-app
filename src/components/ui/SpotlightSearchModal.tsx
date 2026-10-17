@@ -251,6 +251,9 @@ export function SpotlightSearchModal({
 
           {/* Top Floating Spotlight Island */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Pencarian Spotlight"
             initial={{ y: -24, opacity: 0, scale: 0.96 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -16, opacity: 0, scale: 0.96 }}
@@ -283,6 +286,11 @@ export function SpotlightSearchModal({
                     setQuery(e.target.value);
                     setSelectedIndex(0);
                   }}
+                  aria-label={
+                    activeSpaceId && currentSpace
+                      ? `Cari catatan di dalam notebook ${currentSpace.name}`
+                      : "Cari seluruh catatan, marginalia, dan audio"
+                  }
                   placeholder={
                     activeSpaceId && currentSpace
                       ? `Search in ${currentSpace.name}...`
@@ -298,7 +306,8 @@ export function SpotlightSearchModal({
                       setQuery("");
                       inputRef.current?.focus();
                     }}
-                    className="w-5 h-5 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
+                    aria-label="Hapus kata kunci pencarian"
+                    className="relative w-5 h-5 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-['']"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -307,7 +316,8 @@ export function SpotlightSearchModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs shrink-0"
+                  aria-label="Tutup pencarian"
+                  className="relative w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs shrink-0 before:absolute before:-inset-2 before:content-['']"
                   title="Close"
                 >
                   <X className="w-3.5 h-3.5 stroke-[2.2]" />

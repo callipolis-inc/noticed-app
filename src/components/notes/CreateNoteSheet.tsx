@@ -819,6 +819,9 @@ export function CreateNoteSheet({
 
           {/* Top Floating High-Density Liquid Glass Modal */}
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={editingNote ? "Edit Catatan" : "Tulis Catatan Baru"}
             initial={{ y: -24, opacity: 0, scale: 0.96 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -16, opacity: 0, scale: 0.96 }}
@@ -1390,7 +1393,8 @@ export function CreateNoteSheet({
                     <button
                       type="button"
                       onClick={handleTriggerPhotoSelect}
-                      className="w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0"
+                      aria-label="Unggah foto dari galeri"
+                      className="relative w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0 before:absolute before:-inset-1.5 before:content-['']"
                       title="Add photos"
                     >
                       <ImageIcon className="w-4 h-4 stroke-[1.85]" />
@@ -1399,7 +1403,8 @@ export function CreateNoteSheet({
                     <button
                       type="button"
                       onClick={handleTriggerCameraSelect}
-                      className="w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0"
+                      aria-label="Ambil foto dengan kamera"
+                      className="relative w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer shrink-0 before:absolute before:-inset-1.5 before:content-['']"
                       title="Take photo"
                     >
                       <Camera className="w-4 h-4 stroke-[1.85]" />
@@ -1409,7 +1414,8 @@ export function CreateNoteSheet({
                       type="button"
                       onClick={handleTriggerVideoSelect}
                       disabled={isVideoProcessing}
-                      className="w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                      aria-label="Unggah rekaman video"
+                      className="relative w-8.5 h-8.5 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 active:scale-90 transition-all cursor-pointer disabled:opacity-50 shrink-0 before:absolute before:-inset-1.5 before:content-['']"
                       title="Add video"
                     >
                       <Video className="w-4 h-4 stroke-[1.85]" />
@@ -1421,7 +1427,8 @@ export function CreateNoteSheet({
                         triggerHaptic("light");
                         setShowAudioMenu((prev) => !prev);
                       }}
-                      className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center active:scale-90 transition-all cursor-pointer shrink-0 ${
+                      aria-label="Menu audio dan rekaman suara"
+                      className={`relative w-8.5 h-8.5 rounded-xl flex items-center justify-center active:scale-90 transition-all cursor-pointer shrink-0 before:absolute before:-inset-1.5 before:content-[''] ${
                         showAudioMenu
                           ? "bg-[var(--text-primary)] text-[var(--accent-ink)]"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
@@ -1439,7 +1446,8 @@ export function CreateNoteSheet({
                         triggerHaptic("light");
                         setIsEditingLocation(!isEditingLocation);
                       }}
-                      className={`w-8.5 h-8.5 rounded-xl flex items-center justify-center active:scale-90 transition-all cursor-pointer shrink-0 relative ${
+                      aria-label={locationName ? `Lokasi saat ini: ${locationName}. Ketuk untuk mengubah.` : "Tambahkan metadata lokasi"}
+                      className={`relative w-8.5 h-8.5 rounded-xl flex items-center justify-center active:scale-90 transition-all cursor-pointer shrink-0 before:absolute before:-inset-1.5 before:content-[''] ${
                         locationName
                           ? "text-[var(--text-primary)] font-semibold bg-[var(--text-primary)]/10"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
@@ -1470,7 +1478,9 @@ export function CreateNoteSheet({
                           return next;
                         });
                       }}
-                      className={`h-8.5 px-2.5 rounded-xl text-xs font-serif transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                      aria-label="Tambahkan catatan samping atau marginalia"
+                      aria-pressed={Boolean(isMarginaliaOpen || marginaliaText)}
+                      className={`relative h-8.5 px-2.5 rounded-xl text-xs font-serif transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 before:absolute before:-inset-1 before:content-[''] ${
                         isMarginaliaOpen || marginaliaText
                           ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold shadow-2xs"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
@@ -1489,7 +1499,9 @@ export function CreateNoteSheet({
                         triggerHaptic("light");
                         setIsFormattingOpen((prev) => !prev);
                       }}
-                      className={`formatting-btn h-8.5 px-2.5 rounded-xl text-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                      aria-label="Buka bilah format tipografi"
+                      aria-pressed={isFormattingOpen}
+                      className={`relative formatting-btn h-8.5 px-2.5 rounded-xl text-xs transition-all active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 before:absolute before:-inset-1 before:content-[''] ${
                         isFormattingOpen
                           ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-bold shadow-2xs"
                           : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"

@@ -166,8 +166,8 @@ export function TactileAudioPlayer({
     }
   }, [audioUrl, playbackSpeed, isScrubbing, currentTime, effectiveDuration]);
 
-  const togglePlay = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const togglePlay = async (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.stopPropagation();
     if (!audioUrl) return;
 
     if (collapseTimeoutRef.current) {
@@ -274,6 +274,22 @@ export function TactileAudioPlayer({
     }
   };
 
+  const handleSeekDelta = useCallback(
+    (deltaSeconds: number) => {
+      initAudioIfNeeded();
+      const nextTime = Math.max(
+        0,
+        Math.min(effectiveDuration, currentTime + deltaSeconds)
+      );
+      setCurrentTime(nextTime);
+      if (audioRef.current) {
+        audioRef.current.currentTime = nextTime;
+      }
+      triggerHaptic("light");
+    },
+    [currentTime, effectiveDuration, initAudioIfNeeded]
+  );
+
   const currentProgressRatio = Math.min(
     1,
     Math.max(0, currentTime / effectiveDuration)
@@ -293,12 +309,21 @@ export function TactileAudioPlayer({
              ============================================================ */
           <motion.div
             key="collapsed"
+            role="button"
+            tabIndex={0}
+            aria-label="Putar rekaman suara memo"
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.16 }}
             onClick={togglePlay}
-            className="inline-flex items-center gap-2.5 py-1 px-3 rounded-full border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.035] hover:bg-[var(--text-primary)]/[0.06] active:scale-97 transition-all cursor-pointer shadow-2xs group"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                togglePlay(e);
+              }
+            }}
+            className="inline-flex items-center gap-2.5 py-1 px-3 rounded-full border border-[var(--glass-border)] bg-[var(--text-primary)]/[0.035] hover:bg-[var(--text-primary)]/[0.06] active:scale-97 transition-all cursor-pointer shadow-2xs group focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)]"
             title="Play voice memo"
           >
             {/* Matte Ink Button */}
@@ -342,7 +367,8 @@ export function TactileAudioPlayer({
                 <button
                   type="button"
                   onClick={togglePlay}
-                  className="w-7 h-7 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] flex items-center justify-center active:scale-95 transition-transform cursor-pointer shadow-xs shrink-0"
+                  aria-label={isPlaying ? "Jeda pemutaran audio" : "Lanjutkan pemutaran audio"}
+                  className="relative w-7 h-7 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] flex items-center justify-center active:scale-95 transition-transform cursor-pointer shadow-xs shrink-0 before:absolute before:-inset-2 before:content-['']"
                   title={isPlaying ? "Pause" : "Play"}
                 >
                   {isPlaying ? (
@@ -356,7 +382,8 @@ export function TactileAudioPlayer({
                 <button
                   type="button"
                   onClick={handleRestart}
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
+                  aria-label="Putar ulang audio dari awal"
+                  className="relative w-6 h-6 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-['']"
                   title="Restart to beginning"
                 >
                   <RotateCcw className="w-3 h-3 stroke-[2]" />
@@ -382,7 +409,8 @@ export function TactileAudioPlayer({
                 <button
                   type="button"
                   onClick={handleCycleSpeed}
-                  className="px-2 py-0.5 rounded-full border border-[var(--glass-border)] bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.1] active:scale-95 transition-all text-[10px] font-mono font-semibold text-[var(--text-primary)] cursor-pointer tracking-tight"
+                  aria-label={`Kecepatan putar ${playbackSpeed} kali`}
+                  className="relative px-2 py-0.5 rounded-full border border-[var(--glass-border)] bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.1] active:scale-95 transition-all text-[10px] font-mono font-semibold text-[var(--text-primary)] cursor-pointer tracking-tight before:absolute before:-inset-1.5 before:content-['']"
                   title="Cycle playback speed"
                 >
                   {playbackSpeed}×
@@ -396,7 +424,8 @@ export function TactileAudioPlayer({
                     triggerHaptic("light");
                     setIsExpanded(false);
                   }}
-                  className="px-2 py-0.5 rounded-full text-[10.5px] font-serif text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-95 transition-colors cursor-pointer"
+                  aria-label="Tutup pemutar audio"
+                  className="relative px-2 py-0.5 min-h-[30px] flex items-center rounded-full text-[10.5px] font-serif text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-95 transition-colors cursor-pointer before:absolute before:-inset-1 before:content-['']"
                   title="Collapse player"
                 >
                   Close
@@ -407,11 +436,27 @@ export function TactileAudioPlayer({
             {/* Bottom Row: Tactile Interactive Waveform Scrubber */}
             <div
               ref={scrubberTrackRef}
+              role="slider"
+              tabIndex={0}
+              aria-label="Posisi pemutaran audio"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(effectiveDuration)}
+              aria-valuenow={Math.round(currentTime)}
+              aria-valuetext={`${formatDuration(currentTime)} dari ${formatDuration(effectiveDuration)}`}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowLeft") {
+                  e.preventDefault();
+                  handleSeekDelta(-5);
+                } else if (e.key === "ArrowRight") {
+                  e.preventDefault();
+                  handleSeekDelta(5);
+                }
+              }}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
               onPointerCancel={handlePointerUp}
-              className="relative w-full h-8 px-1 flex items-center justify-between gap-[3px] cursor-pointer touch-none group/scrub"
+              className="relative w-full h-8 px-1 flex items-center justify-between gap-[3px] cursor-pointer touch-none group/scrub focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--text-primary)] rounded-lg"
               title="Drag or tap to seek"
             >
               {waveformBars.map((heightPercent, idx) => {

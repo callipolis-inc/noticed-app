@@ -197,7 +197,7 @@ export const NoteEntry = memo(function NoteEntry({
                 ? "Edit footnote or sidenote"
                 : "Add footnote or sidenote"
             }
-            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--text-primary)] opacity-40 hover:opacity-100 inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle shrink-0"
+            className="inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--text-primary)] opacity-40 hover:opacity-100 inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle shrink-0 relative before:absolute before:-inset-2 before:content-['']"
             title={
               hasMarginalia
                 ? "Edit footnote / sidenote"
@@ -222,7 +222,7 @@ export const NoteEntry = memo(function NoteEntry({
             toggleMenu(!showMenu);
           }}
           aria-label="More notice options"
-          className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--text-primary)] inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle shrink-0 ${
+          className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-[var(--text-primary)] inner-pseudo-glass active:scale-90 transition-all cursor-pointer align-middle shrink-0 relative before:absolute before:-inset-2 before:content-[''] ${
             showMenu
               ? "opacity-100 bg-[var(--text-primary)]/10"
               : "opacity-40 hover:opacity-100"
@@ -307,7 +307,8 @@ export const NoteEntry = memo(function NoteEntry({
                               triggerHaptic("light");
                               onUpdateTextAlign(note.id, opt.id);
                             }}
-                            className={`p-1 rounded-full transition-all cursor-pointer ${
+                            aria-label={`Rata ${opt.label}`}
+                            className={`relative p-1 rounded-full transition-all cursor-pointer before:absolute before:-inset-1.5 before:content-[''] ${
                               isActive
                                 ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)]"
                                 : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"

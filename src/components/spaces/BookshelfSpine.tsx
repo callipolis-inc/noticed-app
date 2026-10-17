@@ -298,7 +298,7 @@ export function SpineMotifGlyph({
 
 export const BookshelfSpine = memo(function BookshelfSpine({
   space,
-  noteCount: _noteCount,
+  noteCount,
   isSelected,
   onSelect,
   onOpen,
@@ -345,8 +345,18 @@ export const BookshelfSpine = memo(function BookshelfSpine({
 
   return (
     <motion.div
+      role="button"
+      tabIndex={0}
+      aria-label={`${space.name}, ${noteCount} catatan${isSelected ? ", terpilih" : ""}`}
+      aria-pressed={isSelected}
       onClick={handleClick}
-      className="relative cursor-pointer select-none mx-1 sm:mx-1.5 flex flex-col items-center shrink-0"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      className="relative cursor-pointer select-none mx-1 sm:mx-1.5 flex flex-col items-center shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] rounded-sm"
       style={{
         width: `${spineWidth}px`,
         height: `${spineHeight}px`,

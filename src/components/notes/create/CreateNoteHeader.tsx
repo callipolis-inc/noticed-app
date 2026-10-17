@@ -56,7 +56,8 @@ export function CreateNoteHeader({
           triggerHaptic("light");
           onClose();
         }}
-        className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs shrink-0"
+        aria-label="Batalkan dan tutup editor catatan"
+        className="relative w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs shrink-0 before:absolute before:-inset-2 before:content-['']"
         title="Cancel"
       >
         <X className="w-3.5 h-3.5 stroke-[2.2]" />
@@ -72,7 +73,8 @@ export function CreateNoteHeader({
               triggerHaptic("light");
               setShowSpacePicker((prev) => !prev);
             }}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--text-primary)] hover:opacity-80 transition-opacity cursor-pointer group"
+            aria-label={`Pilih notebook, saat ini ${currentSpace?.name || "Field Notes"}`}
+            className="inline-flex items-center gap-1 min-h-[36px] text-xs font-semibold text-[var(--text-primary)] hover:opacity-80 transition-opacity cursor-pointer group"
           >
             <span className="truncate max-w-[110px] sm:max-w-[140px]">
               {currentSpace?.name || "Field Notes"}
@@ -170,7 +172,8 @@ export function CreateNoteHeader({
           type="button"
           onClick={onSave}
           disabled={!canSave}
-          className="px-3.5 py-1.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center gap-1 disabled:opacity-30 active:scale-95 transition-transform cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.12)] shrink-0"
+          aria-label={isEditing ? "Simpan perubahan catatan" : "Terbitkan catatan baru ke timeline"}
+          className="relative px-3.5 py-1.5 min-h-[36px] rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center gap-1 disabled:opacity-30 active:scale-95 transition-transform cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.12)] shrink-0 before:absolute before:-inset-1 before:content-['']"
           title={isEditing ? "Save changes" : "Notice into timeline"}
         >
           <span>{isEditing ? "Save" : "Notice"}</span>

@@ -2045,6 +2045,7 @@ export function App() {
                             setActiveMenuNoteId(null);
                             setCurrentView("bookshelf");
                           }}
+                          aria-label="Kembali ke Rak Buku"
                           className="w-11 h-11 rounded-full dynamic-island-shell flex items-center justify-center text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-transform shadow-[0_12px_28px_-6px_rgba(0,0,0,0.22)] cursor-pointer border border-[var(--glass-border)]"
                           title="Bookshelf"
                         >
@@ -2067,6 +2068,7 @@ export function App() {
                             setActiveMenuNoteId(null);
                             setIsCreateOpen(true);
                           }}
+                          aria-label={isCurrentSpaceReadOnly ? "Notebook hanya baca" : "Tulis catatan baru"}
                           className={`
                             h-11 flex items-center gap-2 px-6 rounded-full
                             dynamic-island-shell text-[var(--text-primary)]
@@ -2094,6 +2096,7 @@ export function App() {
                             triggerHaptic("light");
                             setIsTopFlyoutOpen(true);
                           }}
+                          aria-label="Buka menu alat notebook"
                           className="w-11 h-11 rounded-full dynamic-island-shell flex items-center justify-center text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-transform shadow-[0_12px_28px_-6px_rgba(0,0,0,0.22)] cursor-pointer border border-[var(--glass-border)]"
                           title="Menu"
                         >
@@ -2124,7 +2127,8 @@ export function App() {
                             setIsTopFlyoutOpen(false);
                             setIsSearchOpen(true);
                           }}
-                          className="w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs"
+                          aria-label="Cari catatan (Cmd+K)"
+                          className="relative w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs before:absolute before:-inset-1.5 before:content-['']"
                           title="Search (Cmd+K)"
                         >
                           <Search className="w-3.5 h-3.5 stroke-[2]" />
@@ -2138,7 +2142,8 @@ export function App() {
                             setIsTopFlyoutOpen(false);
                             setIsIndexOpen(true);
                           }}
-                          className="w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs"
+                          aria-label="Buka indeks catatan"
+                          className="relative w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs before:absolute before:-inset-1.5 before:content-['']"
                           title="Index"
                         >
                           <ListTree className="w-3.5 h-3.5 stroke-[2]" />
@@ -2153,7 +2158,8 @@ export function App() {
                             setIsReadingMode(true);
                             showFlyout("Zen Mode · Press Esc to exit", 2500);
                           }}
-                          className="w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs"
+                          aria-label="Masuk ke Mode Zen (fokus baca)"
+                          className="relative w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs before:absolute before:-inset-1.5 before:content-['']"
                           title="Zen Mode"
                         >
                           <BookOpen className="w-3.5 h-3.5 stroke-[2]" />
@@ -2163,7 +2169,12 @@ export function App() {
                         <button
                           type="button"
                           onClick={handleToggleSortOrder}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform cursor-pointer ${
+                          aria-label={
+                            streamSortOrder === "newest"
+                              ? "Urutkan catatan terlama dahulu"
+                              : "Urutkan catatan terbaru dahulu"
+                          }
+                          className={`relative w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-1.5 before:content-[''] ${
                             streamSortOrder === "oldest"
                               ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-semibold shadow-xs"
                               : "inner-pseudo-glass text-[var(--text-secondary)] hover:text-[var(--text-primary)] shadow-xs"
@@ -2185,7 +2196,8 @@ export function App() {
                             setIsTopFlyoutOpen(false);
                             setIsThemeSelectorOpen(true);
                           }}
-                          className="w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs"
+                          aria-label="Pilih tema tampilan"
+                          className="relative w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs before:absolute before:-inset-1.5 before:content-['']"
                           title="Themes"
                         >
                           <Palette className="w-3.5 h-3.5 stroke-[2]" />
@@ -2200,7 +2212,8 @@ export function App() {
                             triggerHaptic("light");
                             setIsTopFlyoutOpen(false);
                           }}
-                          className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
+                          aria-label="Tutup menu alat"
+                          className="relative w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-['']"
                           title="Close"
                         >
                           <X className="w-3.5 h-3.5 stroke-[2.2]" />
@@ -2226,8 +2239,9 @@ export function App() {
                     setIsReadingMode(false);
                     showFlyout("Exited Zen Mode", 2000);
                   }}
+                  aria-label="Keluar dari Mode Zen (Esc)"
                   className="
-                    pointer-events-auto flex items-center gap-1.5 px-4 py-2 rounded-full
+                    pointer-events-auto min-h-[44px] flex items-center gap-1.5 px-4 py-2 rounded-full
                     dynamic-island-shell text-[var(--text-secondary)] hover:text-[var(--text-primary)]
                     transition-all text-xs active:scale-95 shadow-[0_12px_28px_-6px_rgba(0,0,0,0.22)] cursor-pointer border border-[var(--glass-border)]
                   "

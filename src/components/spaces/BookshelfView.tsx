@@ -547,6 +547,7 @@ export function BookshelfView({
             triggerHaptic("light");
             onOpenProfile?.();
           }}
+          aria-label={`Profil ${userName}`}
           className="flex items-center gap-2 py-1 pl-1 pr-3.5 h-9 rounded-full dynamic-island-shell cursor-pointer hover:opacity-95 active:scale-95 transition-all shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)] min-w-0"
           title="Profile"
         >
@@ -595,7 +596,9 @@ export function BookshelfView({
                 triggerHaptic("light");
                 setShelfLayout("spines");
               }}
-              className={`w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              aria-label="Tampilan Punggung Buku"
+              aria-pressed={shelfLayout === "spines"}
+              className={`relative w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
                 shelfLayout === "spines"
                   ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)]"
                   : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
@@ -610,7 +613,9 @@ export function BookshelfView({
                 triggerHaptic("light");
                 setShelfLayout("covers");
               }}
-              className={`w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              aria-label="Tampilan Sampul 3D"
+              aria-pressed={shelfLayout === "covers"}
+              className={`relative w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
                 shelfLayout === "covers"
                   ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)]"
                   : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
@@ -630,7 +635,8 @@ export function BookshelfView({
                 triggerHaptic("light");
                 onOpenSettings();
               }}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
+              aria-label="Pengaturan Aplikasi"
+              className="relative w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-['']"
               title="Settings"
             >
               <Settings className="w-3.5 h-3.5 stroke-[1.85]" />
@@ -646,7 +652,8 @@ export function BookshelfView({
                 triggerHaptic("light");
                 onOpenJoinSpace();
               }}
-              className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs border border-[var(--glass-border)]/60"
+              aria-label="Gabung Notebook dengan Kode atau QR"
+              className="relative w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs border border-[var(--glass-border)]/60 before:absolute before:-inset-2 before:content-['']"
               title="Gabung Notebook (Kode / Scan QR)"
             >
               <UserPlus className="w-3.5 h-3.5 stroke-[2]" />
@@ -665,7 +672,8 @@ export function BookshelfView({
               triggerHaptic("light");
               setIsCreating(true);
             }}
-            className="w-7 h-7 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] flex items-center justify-center active:scale-90 hover:opacity-90 transition-transform shadow-xs cursor-pointer"
+            aria-label="Buat Notebook Baru"
+            className="relative w-7 h-7 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] flex items-center justify-center active:scale-90 hover:opacity-90 transition-transform shadow-xs cursor-pointer before:absolute before:-inset-2 before:content-['']"
             title="New Notebook"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -878,7 +886,8 @@ export function BookshelfView({
                   <button
                     type="button"
                     onClick={handleStartEdit}
-                    className="h-9 px-4 rounded-full inner-pseudo-glass text-[var(--text-primary)] text-xs font-semibold flex items-center gap-1.5 shadow-xs active:scale-95 transition-transform cursor-pointer"
+                    aria-label={`Edit ${activeSelected.name}`}
+                    className="min-h-[44px] px-4 rounded-full inner-pseudo-glass text-[var(--text-primary)] text-xs font-semibold flex items-center gap-1.5 shadow-xs active:scale-95 transition-transform cursor-pointer"
                     title="Edit Notebook"
                   >
                     <Pencil className="w-3.5 h-3.5 stroke-[2]" />
@@ -896,7 +905,8 @@ export function BookshelfView({
                           onExportManuscript(activeSelected);
                         }
                       }}
-                      className="w-9 h-9 rounded-full inner-pseudo-glass text-[var(--text-primary)] flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer border border-[var(--glass-border)]"
+                      aria-label={`Bagikan ${activeSelected.name}`}
+                      className="min-w-[44px] min-h-[44px] rounded-full inner-pseudo-glass text-[var(--text-primary)] flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer border border-[var(--glass-border)]"
                       title="Bagikan Notebook"
                     >
                       <Share2 className="w-3.5 h-3.5 stroke-[2]" />
@@ -907,7 +917,8 @@ export function BookshelfView({
                     type="button"
                     disabled={isOpening}
                     onClick={handleOpenActive}
-                    className="h-9 px-5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+                    aria-label={`Buka ${activeSelected.name}`}
+                    className="min-h-[44px] px-5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
                   >
                     <span>{isOpening ? "Opening..." : "Open Notebook"}</span>
                     <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -948,6 +959,10 @@ export function BookshelfView({
                       if (el) itemRefs.current.set(space.id, el);
                       else itemRefs.current.delete(space.id);
                     }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${space.name}, ${count} catatan${isSelected ? ", terpilih" : ""}`}
+                    aria-pressed={isSelected}
                     onClick={() => {
                       const now = Date.now();
                       const isDoubleTap =
@@ -963,7 +978,17 @@ export function BookshelfView({
                         triggerHaptic("light");
                       }
                     }}
-                    className="snap-center shrink-0 cursor-pointer select-none transition-transform duration-300 ease-out flex flex-col items-center"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        if (isSelected) {
+                          handleOpenActive();
+                        } else {
+                          handleSelectBook(space.id);
+                        }
+                      }
+                    }}
+                    className="snap-center shrink-0 cursor-pointer select-none transition-transform duration-300 ease-out flex flex-col items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--text-primary)] rounded-xl"
                     style={{
                       width: "164px",
                       transform: isSelected
@@ -1183,7 +1208,8 @@ export function BookshelfView({
                   <button
                     type="button"
                     onClick={handleStartEdit}
-                    className="h-9 px-4 rounded-full inner-pseudo-glass text-[var(--text-primary)] text-xs font-semibold flex items-center gap-1.5 shadow-xs active:scale-95 transition-transform cursor-pointer"
+                    aria-label={`Edit ${activeSelected.name}`}
+                    className="min-h-[44px] px-4 rounded-full inner-pseudo-glass text-[var(--text-primary)] text-xs font-semibold flex items-center gap-1.5 shadow-xs active:scale-95 transition-transform cursor-pointer"
                     title="Edit Notebook"
                   >
                     <Pencil className="w-3.5 h-3.5 stroke-[2]" />
@@ -1201,7 +1227,8 @@ export function BookshelfView({
                           onExportManuscript(activeSelected);
                         }
                       }}
-                      className="w-9 h-9 rounded-full inner-pseudo-glass text-[var(--text-primary)] flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer border border-[var(--glass-border)]"
+                      aria-label={`Bagikan ${activeSelected.name}`}
+                      className="min-w-[44px] min-h-[44px] rounded-full inner-pseudo-glass text-[var(--text-primary)] flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer border border-[var(--glass-border)]"
                       title="Bagikan Notebook"
                     >
                       <Share2 className="w-3.5 h-3.5 stroke-[2]" />
@@ -1212,7 +1239,8 @@ export function BookshelfView({
                     type="button"
                     disabled={isOpening}
                     onClick={handleOpenActive}
-                    className="h-9 px-5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
+                    aria-label={`Buka ${activeSelected.name}`}
+                    className="min-h-[44px] px-5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:opacity-90 active:scale-95 transition-all disabled:opacity-60 cursor-pointer"
                   >
                     <span>{isOpening ? "Opening..." : "Open Notebook"}</span>
                     <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />

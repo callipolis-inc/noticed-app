@@ -26,6 +26,10 @@ export function DynamicFlyout({
           exit={{ opacity: 0, y: -16, scale: 0.95 }}
           transition={{ type: "spring", stiffness: 400, damping: 28 }}
           onClick={onClose}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          aria-label={message || "Pemberitahuan"}
           className="fixed left-4 right-4 max-w-sm mx-auto z-[9999] pointer-events-auto cursor-pointer"
           style={{
             top: "max(calc(env(safe-area-inset-top, 0px) + 14px), 24px)",
@@ -64,7 +68,8 @@ export function DynamicFlyout({
                   triggerHaptic("medium");
                   onAction();
                 }}
-                className="px-2.5 py-1 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-[11px] font-sans font-semibold tracking-wide flex items-center gap-1 shrink-0 active:scale-95 transition-transform cursor-pointer shadow-xs"
+                aria-label={actionLabel}
+                className="px-2.5 py-1 min-h-[32px] rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-[11px] font-sans font-semibold tracking-wide flex items-center gap-1 shrink-0 active:scale-95 transition-transform cursor-pointer shadow-xs relative before:absolute before:-inset-1.5 before:content-['']"
               >
                 <RotateCcw className="w-3 h-3 stroke-[2.2]" />
                 <span>{actionLabel}</span>
