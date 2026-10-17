@@ -203,6 +203,20 @@ export function AudioTrimmerModal({
     };
   }, [audioBuffer, isPlaying, previewTime, startTime, endTime, stopAudioPlayback]);
 
+  // Stop preview playback and cancel animation frames when app is backgrounded
+  useEffect(() => {
+    const handlePause = () => {
+      stopAudioPlayback();
+    };
+
+    window.addEventListener("noticed:app-background", handlePause);
+    window.addEventListener("noticed:media-pause", handlePause);
+    return () => {
+      window.removeEventListener("noticed:app-background", handlePause);
+      window.removeEventListener("noticed:media-pause", handlePause);
+    };
+  }, [stopAudioPlayback]);
+
   // Handle pointer scrub calculations
   const calculateTimeFromX = useCallback(
     (clientX: number): number => {

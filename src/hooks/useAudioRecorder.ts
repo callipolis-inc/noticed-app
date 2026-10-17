@@ -124,6 +124,20 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
     }
   }, [onAutoTranscribeStart, stopRecording]);
 
+  // Auto-finalize and safeguard in-flight audio recordings when app is backgrounded or minimized
+  useEffect(() => {
+    const handleBackground = () => {
+      if (isRecording) {
+        stopRecording();
+      }
+    };
+
+    window.addEventListener("noticed:app-background", handleBackground);
+    return () => {
+      window.removeEventListener("noticed:app-background", handleBackground);
+    };
+  }, [isRecording, stopRecording]);
+
   useEffect(() => {
     return () => {
       cancelRecording();

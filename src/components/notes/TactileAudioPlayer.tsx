@@ -97,6 +97,23 @@ export function TactileAudioPlayer({
     };
   }, [sourceId]);
 
+  // Pause playback when app is backgrounded to conserve battery
+  useEffect(() => {
+    const handlePausePlayback = () => {
+      if (audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+      }
+      setIsPlaying(false);
+    };
+
+    window.addEventListener("noticed:app-background", handlePausePlayback);
+    window.addEventListener("noticed:media-pause", handlePausePlayback);
+    return () => {
+      window.removeEventListener("noticed:app-background", handlePausePlayback);
+      window.removeEventListener("noticed:media-pause", handlePausePlayback);
+    };
+  }, []);
+
   // Zero-idle memory: release audio element buffer when collapsed
   useEffect(() => {
     if (!isExpanded && audioRef.current && !isPlaying) {

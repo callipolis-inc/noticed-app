@@ -41,6 +41,24 @@ export function InlineVideoPlayer({
     return () => window.removeEventListener("noticed:media-play", handleOtherMediaPlay);
   }, []);
 
+  // Pause video when app enters background to release GPU decoder and conserve battery
+  useEffect(() => {
+    const handlePause = () => {
+      const video = videoRef.current;
+      if (video && !video.paused) {
+        video.pause();
+        setIsPlaying(false);
+      }
+    };
+
+    window.addEventListener("noticed:app-background", handlePause);
+    window.addEventListener("noticed:media-pause", handlePause);
+    return () => {
+      window.removeEventListener("noticed:app-background", handlePause);
+      window.removeEventListener("noticed:media-pause", handlePause);
+    };
+  }, []);
+
   // Hardware Decoder Guard: only load media stream when near viewport
   const [isNearViewport, setIsNearViewport] = useState(false);
 

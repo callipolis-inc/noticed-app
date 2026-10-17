@@ -83,6 +83,7 @@ const JoinSpaceModal = lazy(() =>
   })),
 );
 import { AtelierProModal } from "@/components/ui/AtelierProModal";
+import { AppPrivacyShield } from "@/components/ui/AppPrivacyShield";
 import { useSpaceRealtime } from "@/hooks/useSpaceRealtime";
 import {
   triggerHaptic,
@@ -391,6 +392,7 @@ export function App() {
     }
     return null;
   });
+  const [isAppConcealed, setIsAppConcealed] = useState(false);
 
   // Subscribe to background media upload worker state
   useEffect(() => {
@@ -625,24 +627,59 @@ export function App() {
     };
   }, [spaces, notes, userName, avatarPhoto, userEmail, isHydrated]);
 
-  // Trigger silent sync when device reconnects online or returns to foreground
+  // App Lifecycle, Backgrounding, Battery Conservation & Multitasking Privacy Shield
   useEffect(() => {
+    const onForeground = () => {
+      setIsAppConcealed(false);
+      supabase.auth.getSession().catch(() => {});
+      if (userEmail) {
+        handleCloudSync({ silent: true });
+      }
+    };
+
+    const onBackground = () => {
+      setIsAppConcealed(true);
+      window.dispatchEvent(new CustomEvent("noticed:app-background"));
+      if (autoSyncTimerRef.current) {
+        window.clearTimeout(autoSyncTimerRef.current);
+        autoSyncTimerRef.current = null;
+      }
+    };
+
     const handleOnline = () => {
       if (userEmail) {
         handleCloudSync({ silent: true });
       }
     };
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && userEmail) {
-        handleCloudSync({ silent: true });
+      if (document.visibilityState === "visible") {
+        onForeground();
+      } else if (document.visibilityState === "hidden") {
+        onBackground();
       }
     };
 
     window.addEventListener("online", handleOnline);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    let removeAppState: (() => void) | undefined;
+    if (Capacitor.isNativePlatform()) {
+      CapApp.addListener("appStateChange", ({ isActive }) => {
+        if (isActive) {
+          onForeground();
+        } else {
+          onBackground();
+        }
+      }).then((handle) => {
+        removeAppState = () => handle.remove();
+      });
+    }
+
     return () => {
       window.removeEventListener("online", handleOnline);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      removeAppState?.();
     };
   }, [userEmail, spaces, notes, userName, avatarPhoto]);
 
@@ -2419,6 +2456,9 @@ export function App() {
             onSelectNote={handleSelectSearchNote}
           />
         )}
+
+        {/* Multitasking Privacy Shield for OS App Switcher */}
+        <AppPrivacyShield isConcealed={isAppConcealed} />
       </Suspense>
     </div>
   );
