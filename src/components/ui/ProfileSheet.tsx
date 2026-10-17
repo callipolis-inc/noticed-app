@@ -1107,7 +1107,7 @@ export function ProfileSheet({
                         return (
                           <div
                             key={note.id}
-                            className="p-3 rounded-2xl apple-card space-y-2 border border-[var(--glass-border)]/60 shadow-xs"
+                            className="cv-auto-feed p-3 rounded-2xl apple-card space-y-2 border border-[var(--glass-border)]/60 shadow-xs"
                           >
                             {/* Card Top: Source Book Badge & Relative Date */}
                             <div className="flex items-center justify-between text-[10px] uppercase font-mono text-[var(--text-tertiary)] font-semibold">

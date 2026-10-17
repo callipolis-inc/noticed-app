@@ -176,6 +176,11 @@ export function SpotlightSearchModal({
       );
   }, [notes, query, category, timeframe, activeSpaceId, spacesMap]);
 
+  const visibleNotes = useMemo(
+    () => filteredNotes.slice(0, 60),
+    [filteredNotes],
+  );
+
   // Keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
@@ -187,15 +192,15 @@ export function SpotlightSearchModal({
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedIndex((prev) =>
-          prev < filteredNotes.length - 1 ? prev + 1 : prev,
+          prev < visibleNotes.length - 1 ? prev + 1 : prev,
         );
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        if (filteredNotes[selectedIndex]) {
-          const target = filteredNotes[selectedIndex];
+        if (visibleNotes[selectedIndex]) {
+          const target = visibleNotes[selectedIndex];
           triggerHaptic("medium");
           onSelectNote(target.spaceId, target.id);
         }
@@ -204,7 +209,7 @@ export function SpotlightSearchModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, filteredNotes, selectedIndex, onClose, onSelectNote]);
+  }, [isOpen, visibleNotes, selectedIndex, onClose, onSelectNote]);
 
   const highlightMatch = (text: string, searchStr: string) => {
     if (!searchStr.trim()) return text;
@@ -390,62 +395,65 @@ export function SpotlightSearchModal({
                   </span>
                 </div>
               ) : (
-                filteredNotes.map((note, idx) => {
-                  const space = spacesMap.get(note.spaceId);
-                  const isSelected = idx === selectedIndex;
-                  const hasPhotos = Boolean(
-                    note.photos && note.photos.length > 0,
-                  );
-                  const hasVideos = Boolean(
-                    note.videos && note.videos.length > 0,
-                  );
+                (() => {
                   const trimmedQuery = query.trim().toLowerCase();
-                  const matchedMarginaliaItem = trimmedQuery
-                    ? note.marginaliaItems?.find(
-                        (m) =>
-                          m.content.toLowerCase().includes(trimmedQuery) ||
-                          (m.citation &&
-                            m.citation.toLowerCase().includes(trimmedQuery)),
-                      )
-                    : undefined;
-                  const matchedHighlightMarginalia = trimmedQuery
-                    ? note.highlights?.find(
-                        (h) =>
-                          h.marginalia &&
-                          h.marginalia.toLowerCase().includes(trimmedQuery),
-                      )?.marginalia
-                    : undefined;
-                  const primaryMarginaliaText =
-                    matchedMarginaliaItem?.content ||
-                    matchedHighlightMarginalia ||
-                    note.marginalia ||
-                    note.marginaliaItems?.[0]?.content ||
-                    note.highlights?.find((h) => Boolean(h.marginalia))
-                      ?.marginalia ||
-                    "";
-                  const primaryCitationText =
-                    matchedMarginaliaItem?.citation ||
-                    note.quoteSource ||
-                    note.marginaliaItems?.[0]?.citation;
-                  const hasMarginalia = Boolean(primaryMarginaliaText);
-
                   return (
-                    <div
-                      key={note.id}
-                      onMouseEnter={() => setSelectedIndex(idx)}
-                      onClick={() => {
-                        triggerHaptic("medium");
-                        onSelectNote(note.spaceId, note.id);
-                      }}
-                      className={`
-                        p-3 rounded-2xl cursor-pointer transition-all duration-150 select-none border
-                        ${
-                          isSelected
-                            ? "apple-card shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_10px_24px_-4px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] border-[var(--glass-border)]"
-                            : "border-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-                        }
-                      `}
-                    >
+                    <>
+                      {visibleNotes.map((note, idx) => {
+                    const space = spacesMap.get(note.spaceId);
+                    const isSelected = idx === selectedIndex;
+                    const hasPhotos = Boolean(
+                      note.photos && note.photos.length > 0,
+                    );
+                    const hasVideos = Boolean(
+                      note.videos && note.videos.length > 0,
+                    );
+                    const matchedMarginaliaItem = trimmedQuery
+                      ? note.marginaliaItems?.find(
+                          (m) =>
+                            m.content.toLowerCase().includes(trimmedQuery) ||
+                            (m.citation &&
+                              m.citation.toLowerCase().includes(trimmedQuery)),
+                        )
+                      : undefined;
+                    const matchedHighlightMarginalia = trimmedQuery
+                      ? note.highlights?.find(
+                          (h) =>
+                            h.marginalia &&
+                            h.marginalia.toLowerCase().includes(trimmedQuery),
+                        )?.marginalia
+                      : undefined;
+                    const primaryMarginaliaText =
+                      matchedMarginaliaItem?.content ||
+                      matchedHighlightMarginalia ||
+                      note.marginalia ||
+                      note.marginaliaItems?.[0]?.content ||
+                      note.highlights?.find((h) => Boolean(h.marginalia))
+                        ?.marginalia ||
+                      "";
+                    const primaryCitationText =
+                      matchedMarginaliaItem?.citation ||
+                      note.quoteSource ||
+                      note.marginaliaItems?.[0]?.citation;
+                    const hasMarginalia = Boolean(primaryMarginaliaText);
+
+                    return (
+                      <div
+                        key={note.id}
+                        onMouseEnter={() => setSelectedIndex(idx)}
+                        onClick={() => {
+                          triggerHaptic("medium");
+                          onSelectNote(note.spaceId, note.id);
+                        }}
+                        className={`
+                          cv-auto-feed p-3 rounded-2xl cursor-pointer transition-all duration-150 select-none border
+                          ${
+                            isSelected
+                              ? "apple-card shadow-[0_8px_20px_-4px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_10px_24px_-4px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] border-[var(--glass-border)]"
+                              : "border-transparent hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
+                          }
+                        `}
+                      >
                       {/* Note Metadata */}
                       <div className="flex items-center justify-between text-[10.5px] uppercase tracking-wider mb-1 text-[var(--text-tertiary)] font-semibold">
                         <div className="flex items-center gap-1.5 truncate max-w-[240px]">
@@ -510,9 +518,17 @@ export function SpotlightSearchModal({
                         </div>
                       )}
                     </div>
-                  );
-                })
-              )}
+                    );
+                  })}
+                  {filteredNotes.length > 60 && (
+                    <p className="text-[10px] text-center text-[var(--text-tertiary)] py-2">
+                      Showing top 60 matches — refine search terms for specific notes
+                    </p>
+                  )}
+                </>
+              );
+            })()
+          )}
             </div>
 
             {/* Footer Navigation Info */}

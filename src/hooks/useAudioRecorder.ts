@@ -60,6 +60,9 @@ export function useAudioRecorder(options: UseAudioRecorderOptions = {}) {
         } catch (storageErr) {
           console.warn("[useAudioRecorder] processAudioBlob warning:", storageErr);
         }
+        if (persistedUrl && persistedUrl !== audio.url && audio.url.startsWith("blob:")) {
+          URL.revokeObjectURL(audio.url);
+        }
         const savedAudio: RecordedAudio = {
           ...audio,
           url: persistedUrl || audio.url,

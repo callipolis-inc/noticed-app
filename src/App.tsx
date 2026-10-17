@@ -228,6 +228,10 @@ export function App() {
 
   const [spaces, setSpaces] = useState<Space[]>(initialSanitized.spaces);
   const [notes, setNotes] = useState<FieldNote[]>(initialSanitized.notes);
+  const notesRef = useRef(notes);
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
   const [isHydrated, setIsHydrated] = useState(false);
 
   const [activeSpaceId, setActiveSpaceId] = useState<string>(() => {
@@ -1613,9 +1617,10 @@ export function App() {
       triggerHaptic("medium");
       commitPendingDelete();
 
-      const idx = notes.findIndex((n) => n.id === noteId);
+      const currentNotes = notesRef.current;
+      const idx = currentNotes.findIndex((n) => n.id === noteId);
       if (idx === -1) return;
-      const targetNote = notes[idx];
+      const targetNote = currentNotes[idx];
 
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
       broadcastNoteDeleted(noteId);
@@ -1651,7 +1656,7 @@ export function App() {
         },
       });
     },
-    [notes, commitPendingDelete, showFlyout, broadcastNoteDeleted, broadcastNoteSaved],
+    [commitPendingDelete, showFlyout, broadcastNoteDeleted, broadcastNoteSaved],
   );
 
   const handleSelectFont = (font: FontChoice) => {

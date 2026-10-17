@@ -453,6 +453,13 @@ export function CreateNoteSheet({
         url: persistedUrl || trimmed.url,
         durationSeconds: trimmed.duration,
       });
+      if (
+        persistedUrl &&
+        persistedUrl !== trimmed.url &&
+        trimmed.url.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(trimmed.url);
+      }
       triggerSuccessHaptic();
     } catch (err) {
       console.error("Failed to persist trimmed audio:", err);

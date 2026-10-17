@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, memo } from "react";
 import { motion } from "framer-motion";
 import { Space, CoverStyle } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
@@ -296,7 +296,7 @@ export function SpineMotifGlyph({
   }
 }
 
-export function BookshelfSpine({
+export const BookshelfSpine = memo(function BookshelfSpine({
   space,
   noteCount: _noteCount,
   isSelected,
@@ -515,4 +515,4 @@ export function BookshelfSpine({
       )}
     </motion.div>
   );
-}
+});
