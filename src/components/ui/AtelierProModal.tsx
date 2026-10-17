@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,7 +16,12 @@ import {
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { useProStatus, ProFeature } from "@/lib/proManager";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
-import { purchaseAtelierPlan, restoreAtelierPurchases } from "@/lib/purchases";
+import {
+  purchaseAtelierPlan,
+  restoreAtelierPurchases,
+  getAtelierOfferings,
+} from "@/lib/purchases";
+import { PurchasesOffering } from "@revenuecat/purchases-capacitor";
 import { LegalModal, LegalTab } from "./LegalModal";
 
 interface AtelierProModalProps {
@@ -73,12 +78,55 @@ export function AtelierProModal({
 
   const isPro = useProStatus();
   const [selectedPlan, setSelectedPlan] = useState<PricingPlanId>("lifetime");
+  const [storeOffering, setStoreOffering] = useState<PurchasesOffering | null>(null);
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>("terms");
   const [isProcessing, setIsProcessing] = useState(false);
   const [purchaseStatusMsg, setPurchaseStatusMsg] = useState<string | null>(
     null,
   );
+
+  useEffect(() => {
+    let isMounted = true;
+    getAtelierOfferings()
+      .then((offering) => {
+        if (isMounted && offering?.availablePackages?.length) {
+          setStoreOffering(offering);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const localizedPlans = useMemo(() => {
+    if (!storeOffering || !storeOffering.availablePackages.length) {
+      return PRICING_PLANS;
+    }
+
+    return PRICING_PLANS.map((plan) => {
+      const pkg = storeOffering.availablePackages.find((p) => {
+        const id = p.identifier.toLowerCase();
+        const type = String(p.packageType || "").toLowerCase();
+        if (plan.id === "monthly") return id.includes("monthly") || type.includes("monthly");
+        if (plan.id === "annual") return id.includes("annual") || type.includes("annual");
+        if (plan.id === "lifetime") return id.includes("lifetime") || type.includes("lifetime");
+        return false;
+      });
+
+      if (pkg?.product?.priceString) {
+        return {
+          ...plan,
+          price: pkg.product.priceString,
+        };
+      }
+      return plan;
+    });
+  }, [storeOffering]);
+
+  const activePlanObj =
+    localizedPlans.find((p) => p.id === selectedPlan) || localizedPlans[0];
 
   if (!isOpen) return null;
 
@@ -268,7 +316,7 @@ export function AtelierProModal({
                 Pilih Paket Keanggotaan
               </div>
 
-              {PRICING_PLANS.map((plan) => {
+              {localizedPlans.map((plan) => {
                 const isSelected = selectedPlan === plan.id;
                 return (
                   <button
@@ -373,6 +421,19 @@ export function AtelierProModal({
               </div>
             )}
 
+            {/* Apple Guideline 3.1.2 Auto-Renewal Disclosure */}
+            <div className="px-1 text-center">
+              {selectedPlan === "lifetime" ? (
+                <p className="text-[10px] text-[var(--text-tertiary)] leading-tight">
+                  Pembelian satu kali. Akses keanggotaan Atelier Pro permanen tanpa biaya langganan berulang.
+                </p>
+              ) : (
+                <p className="text-[9.5px] text-[var(--text-tertiary)] leading-normal">
+                  Pembayaran dibebankan ke akun Apple ID / Google Play Anda saat konfirmasi pembelian. Langganan otomatis diperpanjang seharga {activePlanObj.price} {activePlanObj.period} kecuali dibatalkan setidaknya 24 jam sebelum akhir periode berjalan. Kelola atau batalkan langganan kapan saja di Pengaturan Akun App Store.
+                </p>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={handleUnlockPro}
@@ -391,10 +452,10 @@ export function AtelierProModal({
                     {isPro
                       ? "Atelier Pro Pass Active"
                       : selectedPlan === "lifetime"
-                        ? "Unlock All-Time Pass · Rp 499.000"
+                        ? `Unlock All-Time Pass · ${activePlanObj.price}`
                         : selectedPlan === "annual"
-                          ? "Subscribe Annual · Rp 299.000 / thn"
-                          : "Subscribe Monthly · Rp 39.000 / bln"}
+                          ? `Subscribe Annual · ${activePlanObj.price} / thn`
+                          : `Subscribe Monthly · ${activePlanObj.price} / bln`}
                   </span>
                 </>
               )}
@@ -412,8 +473,8 @@ export function AtelierProModal({
               Lanjutkan dengan Edisi Standar
             </button>
 
-            {/* Legal Footnote for Store Compliance */}
-            <div className="pt-0.5 text-center text-[10px] text-[var(--text-tertiary)] flex items-center justify-center gap-2 flex-wrap">
+            {/* Legal Footnote for Store Compliance (Apple Guideline 3.1.2) */}
+            <div className="pt-0.5 text-center text-[10px] text-[var(--text-tertiary)] flex items-center justify-center gap-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={handleRestorePurchases}
@@ -446,6 +507,15 @@ export function AtelierProModal({
               >
                 Privacy Policy
               </button>
+              <span>·</span>
+              <a
+                href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
+              >
+                Apple Standard EULA
+              </a>
             </div>
           </div>
 

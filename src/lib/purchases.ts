@@ -202,7 +202,7 @@ export async function restoreAtelierPurchases(): Promise<PurchaseResult> {
       isPro: current,
       message: current
         ? "Status keanggotaan Atelier Pro aktif."
-        : "Tidak ditemukan pembelian sebelumnya pada perangkat ini.",
+        : "Tidak ditemukan pembelian sebelumnya pada akun perangkat ini.",
     };
   }
 
@@ -217,7 +217,7 @@ export async function restoreAtelierPurchases(): Promise<PurchaseResult> {
       isPro,
       message: isPro
         ? "Pembelian berhasil dipulihkan. Atelier Pro aktif."
-        : "Tidak ditemukan transaksi aktif pada akun App Store / Google Play ini.",
+        : "Tidak ditemukan transaksi aktif pada akun store ini. Pastikan Anda masuk dengan akun yang sama saat pembelian pertama.",
     };
   } catch (err: unknown) {
     console.error("[Purchases] Restore failed:", err);

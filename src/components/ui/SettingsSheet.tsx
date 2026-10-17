@@ -15,8 +15,10 @@ import {
   Sparkles,
   Type,
   HardDrive,
+  RotateCw,
 } from "lucide-react";
-import { useProStatus, setProUser } from "@/lib/proManager";
+import { useProStatus } from "@/lib/proManager";
+import { restoreAtelierPurchases } from "@/lib/purchases";
 import { AtelierProModal } from "./AtelierProModal";
 import { LegalModal, LegalTab } from "./LegalModal";
 import {
@@ -82,6 +84,33 @@ export function SettingsSheet({
   const [storageData, setStorageData] = useState<StorageBreakdown | null>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizeMessage, setOptimizeMessage] = useState<string | null>(null);
+
+  // In-App Purchase Restore State
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreFeedback, setRestoreFeedback] = useState<string | null>(null);
+
+  const handleRestoreFromSettings = async () => {
+    setIsRestoring(true);
+    setRestoreFeedback(null);
+    triggerHaptic("medium");
+
+    try {
+      const res = await restoreAtelierPurchases();
+      if (res.isPro) {
+        triggerSuccessHaptic();
+      } else {
+        triggerHaptic("light");
+      }
+      setRestoreFeedback(res.message || "Pemeriksaan riwayat transaksi selesai.");
+      setTimeout(() => setRestoreFeedback(null), 4500);
+    } catch {
+      triggerHaptic("heavy");
+      setRestoreFeedback("Gagal menghubungi layanan store untuk memulihkan pembelian.");
+      setTimeout(() => setRestoreFeedback(null), 4500);
+    } finally {
+      setIsRestoring(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -415,7 +444,7 @@ export function SettingsSheet({
                 </span>
 
                 <div className="rounded-2xl apple-card divide-y divide-[var(--glass-border)]/50 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
-                  {/* Atelier Pro Switch Row */}
+                  {/* Atelier Pro Membership Status & Upgrade Row */}
                   <div className="p-3.5 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] text-[var(--text-primary)]">
@@ -433,33 +462,31 @@ export function SettingsSheet({
                           </span>
                         </div>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
-                          Unlimited volumes, cloud sync & multimedia
+                          {isPro
+                            ? "All volumes, cloud sync & multimedia unlocked"
+                            : "Unlimited volumes, cloud sync & multimedia"}
                         </div>
                       </div>
                     </div>
 
-                    {/* Pro Toggle Switch (For testing & future monetization) */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic("medium");
-                        setProUser(!isPro);
-                      }}
-                      className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] ${
-                        isPro
-                          ? "bg-[var(--text-primary)]"
-                          : "bg-neutral-300 dark:bg-neutral-700"
-                      }`}
-                      role="switch"
-                      aria-checked={isPro}
-                      title="Toggle Atelier Pro membership status"
-                    >
-                      <div
-                        className={`w-5 h-5 rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,0.2),0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 ${
-                          isPro ? "translate-x-5" : "translate-x-0"
-                        }`}
-                      />
-                    </button>
+                    {!isPro ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("medium");
+                          setIsProModalOpen(true);
+                        }}
+                        className="px-3 py-1.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-[11px] font-semibold flex items-center gap-1.5 active:scale-95 transition-transform cursor-pointer shadow-xs"
+                      >
+                        <Sparkles className="w-3 h-3 stroke-[2.2]" />
+                        <span>Upgrade</span>
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] text-[10.5px] font-semibold">
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                        <span>Unlocked</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Feature Showcase Link */}
@@ -478,6 +505,40 @@ export function SettingsSheet({
                       View Privileges
                     </button>
                   </div>
+
+                  {/* Restore In-App Purchases Row */}
+                  <div className="p-3 flex items-center justify-between">
+                    <div className="pl-8">
+                      <div className="text-[11px] font-medium text-[var(--text-primary)]">
+                        Restore Purchases
+                      </div>
+                      <div className="text-[9.5px] text-[var(--text-tertiary)]">
+                        Pulihkan keanggotaan dari akun App Store / Google Play
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isRestoring}
+                      onClick={handleRestoreFromSettings}
+                      className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[10.5px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer disabled:opacity-50 flex items-center gap-1 shrink-0"
+                    >
+                      {isRestoring ? (
+                        <>
+                          <RotateCw className="w-3 h-3 animate-spin" />
+                          <span>Restoring...</span>
+                        </>
+                      ) : (
+                        <span>Restore</span>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Restore Feedback Banner */}
+                  {restoreFeedback && (
+                    <div className="p-2.5 bg-[var(--text-primary)]/5 text-[10.5px] font-sans text-center text-[var(--text-secondary)] leading-tight">
+                      {restoreFeedback}
+                    </div>
+                  )}
                 </div>
               </div>
 
