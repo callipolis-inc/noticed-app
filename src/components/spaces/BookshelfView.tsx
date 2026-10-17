@@ -14,6 +14,7 @@ import { getTimeGreeting } from "@/lib/greetings";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useProStatus, FREE_MAX_SPACES, type ProFeature } from "@/lib/proManager";
 import { AtelierProModal } from "@/components/ui/AtelierProModal";
+import { AppLanguage, useAppLanguage } from "@/lib/i18n";
 import {
   ArrowRight,
   ArrowLeft,
@@ -40,6 +41,7 @@ export interface BookshelfViewProps {
   userName?: string;
   avatarPhoto?: string | null;
   defaultShelfLayout?: "spines" | "covers";
+  currentLanguage?: AppLanguage;
   onSelectSpace: (spaceId: string) => void;
   onBackToNotebook?: () => void;
   onExportManuscript?: (space: Space) => void;
@@ -239,6 +241,7 @@ export function BookshelfView({
   userName = "Author",
   avatarPhoto,
   defaultShelfLayout = "spines",
+  currentLanguage,
   onSelectSpace,
   onExportManuscript,
   onShareSpace,
@@ -254,12 +257,17 @@ export function BookshelfView({
   isSyncing = false,
   isCloudConnected = false,
 }: BookshelfViewProps) {
+  const [systemLang, , t] = useAppLanguage();
+  const currentLang = currentLanguage || systemLang;
   const currentAvatar =
     avatarPhoto ??
     (typeof window !== "undefined"
       ? localStorage.getItem("sidenotes_avatar_photo")
       : null);
-  const timeGreeting = useMemo(() => getTimeGreeting(), []);
+  const timeGreeting = useMemo(
+    () => getTimeGreeting(new Date(), currentLang),
+    [currentLang],
+  );
   const [selectedId, setSelectedId] = useState<string>(activeSpaceId);
   const [isOpening, setIsOpening] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -578,7 +586,7 @@ export function BookshelfView({
           <div className="flex items-center text-left min-w-0 py-0.5">
             <span className="text-xs font-semibold leading-snug text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[115px] sm:max-w-[200px]">
               {isSyncing
-                ? `Syncing · ${userName}`
+                ? `${t.greetings.syncing} · ${userName}`
                 : `${timeGreeting}, ${userName}`}
             </span>
           </div>
@@ -596,14 +604,14 @@ export function BookshelfView({
                 triggerHaptic("light");
                 setShelfLayout("spines");
               }}
-              aria-label="Tampilan Punggung Buku"
+              aria-label={t.bookshelf.spinesLayout}
               aria-pressed={shelfLayout === "spines"}
               className={`relative w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
                 shelfLayout === "spines"
                   ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)]"
                   : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
               }`}
-              title="Spines View"
+              title={t.bookshelf.spinesLayout}
             >
               <Columns3 className="w-3.5 h-3.5 stroke-[2]" />
             </button>
@@ -613,14 +621,14 @@ export function BookshelfView({
                 triggerHaptic("light");
                 setShelfLayout("covers");
               }}
-              aria-label="Tampilan Sampul 3D"
+              aria-label={t.bookshelf.coversLayout}
               aria-pressed={shelfLayout === "covers"}
               className={`relative w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
                 shelfLayout === "covers"
                   ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)]"
                   : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
               }`}
-              title="Covers View"
+              title={t.bookshelf.coversLayout}
             >
               <LayoutGrid className="w-3.5 h-3.5 stroke-[2]" />
             </button>
@@ -635,9 +643,9 @@ export function BookshelfView({
                 triggerHaptic("light");
                 onOpenSettings();
               }}
-              aria-label="Pengaturan Aplikasi"
+              aria-label={t.settings.title}
               className="relative w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-['']"
-              title="Settings"
+              title={t.settings.title}
             >
               <Settings className="w-3.5 h-3.5 stroke-[1.85]" />
             </button>
@@ -700,7 +708,7 @@ export function BookshelfView({
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              <span>Aktif</span>
+              <span>{t.bookshelf.activeTab}</span>
               <span className="text-[10px] opacity-75 font-mono">
                 {activeSpaces.length}
               </span>
@@ -721,7 +729,7 @@ export function BookshelfView({
               }`}
             >
               <Archive className="w-3 h-3 stroke-[1.8]" />
-              <span>Diarsipkan</span>
+              <span>{t.bookshelf.archivedTab}</span>
               <span className="text-[10px] opacity-75 font-mono">
                 {archivedSpaces.length}
               </span>
@@ -739,11 +747,10 @@ export function BookshelfView({
             </div>
             <div className="space-y-1.5">
               <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
-                Your Bookshelf is Empty
+                {t.bookshelf.emptyShelfTitle}
               </h2>
               <p className="text-xs text-[var(--text-secondary)] italic max-w-xs mx-auto leading-relaxed">
-                Bind your first volume to begin capturing quiet observations,
-                photographs, and marginalia.
+                {t.bookshelf.emptyShelfDesc}
               </p>
             </div>
             <button
@@ -755,7 +762,7 @@ export function BookshelfView({
               className="h-9 px-5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.18)] hover:opacity-90 active:scale-95 transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Bind Your First Volume</span>
+              <span>{t.bookshelf.bindFirstVolume}</span>
             </button>
           </div>
         ) : visibleSpaces.length === 0 ? (
@@ -770,13 +777,15 @@ export function BookshelfView({
             <div className="space-y-1">
               <h3 className="font-serif font-bold text-base text-[var(--text-primary)]">
                 {shelfTab === "archived"
-                  ? "Belum Ada Notebook Diarsipkan"
-                  : "Semua Notebook Diarsipkan"}
+                  ? t.bookshelf.emptyArchivedTitle
+                  : t.bookshelf.emptyShelfTitle}
               </h3>
               <p className="text-xs text-[var(--text-secondary)] italic max-w-xs mx-auto leading-relaxed">
                 {shelfTab === "archived"
-                  ? "Anda dapat mengarsipkan notebook dari menu Edit Notebook untuk merapikan rak baca Anda."
-                  : `Semua ${spaces.length} volume tersimpan di tab Arsip.`}
+                  ? t.bookshelf.emptyArchivedDesc
+                  : (currentLang === "id"
+                      ? `Semua ${spaces.length} volume tersimpan di tab Arsip.`
+                      : `All ${spaces.length} volumes are stored in the Archived tab.`)}
               </p>
             </div>
             <button
@@ -788,8 +797,8 @@ export function BookshelfView({
               className="h-8 px-4 rounded-full inner-pseudo-glass text-xs font-semibold text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer"
             >
               {shelfTab === "archived"
-                ? "Kembali ke Rak Aktif"
-                : "Lihat Notebook Diarsipkan"}
+                ? (currentLang === "id" ? "Kembali ke Rak Aktif" : "Back to Active Shelf")
+                : (currentLang === "id" ? "Lihat Notebook Diarsipkan" : "View Archived Volumes")}
             </button>
           </div>
         ) : shelfLayout === "spines" ? (

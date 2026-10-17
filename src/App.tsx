@@ -91,6 +91,7 @@ import {
   setHapticsEnabled as setGlobalHapticsEnabled,
 } from "@/lib/haptics";
 import { generateId, getDateGroupKey } from "@/lib/utils";
+import { useAppLanguage } from "@/lib/i18n";
 import {
   loadFromAtelierDB,
   saveToAtelierDB,
@@ -175,6 +176,8 @@ function sanitizeLegacyDummyData(
 }
 
 export function App() {
+  const [language, setLanguage] = useAppLanguage();
+
   const [theme, setTheme] = useState<ThemePalette>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(
@@ -1735,7 +1738,7 @@ export function App() {
     });
 
     for (const note of sorted) {
-      const key = getDateGroupKey(note.createdAt);
+      const key = getDateGroupKey(note.createdAt, language);
       if (!map.has(key)) {
         map.set(key, []);
         groups.push({ dateKey: key, notes: map.get(key)! });
@@ -1754,7 +1757,7 @@ export function App() {
     }
 
     return groups;
-  }, [notebookNotes, streamSortOrder]);
+  }, [notebookNotes, streamSortOrder, language]);
 
   const notebookFontClass =
     currentNotebookFont === "sans"
@@ -1829,6 +1832,7 @@ export function App() {
               userName={userName}
               avatarPhoto={avatarPhoto}
               defaultShelfLayout={defaultShelfLayout}
+              currentLanguage={language}
               isSyncing={isSyncing || isMediaUploading}
               isCloudConnected={Boolean(userEmail)}
               onSelectSpace={(id) => {
@@ -1933,7 +1937,9 @@ export function App() {
               {groupedNotes.length === 0 ? (
                 <div className="py-24 text-center space-y-3">
                   <p className="text-sm text-[var(--text-tertiary)] italic">
-                    A blank page awaits your notice.
+                    {language === "id"
+                      ? "Halaman kosong menanti pengamatan Anda."
+                      : "A blank page awaits your notice."}
                   </p>
                   {!isCurrentSpaceReadOnly && (
                     <button
@@ -1944,7 +1950,7 @@ export function App() {
                       }}
                       className="px-5 py-2.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold cursor-pointer active:scale-95 transition-transform shadow-[0_2px_8px_rgba(0,0,0,0.12)]"
                     >
-                      Notice something
+                      {language === "id" ? "Tulis sesuatu" : "Notice something"}
                     </button>
                   )}
                 </div>
@@ -1979,6 +1985,7 @@ export function App() {
                               isFirstInGroup={noteIdx === 0}
                               currentUserId={currentUserId}
                               currentUserName={userName}
+                              currentLanguage={language}
                               defaultTextAlign={defaultTextAlign}
                               defaultImagePosition={imagePosition}
                               defaultLineSpacing={lineSpacing}
@@ -2045,9 +2052,9 @@ export function App() {
                             setActiveMenuNoteId(null);
                             setCurrentView("bookshelf");
                           }}
-                          aria-label="Kembali ke Rak Buku"
+                          aria-label={language === "id" ? "Kembali ke Rak Buku" : "Back to Bookshelf"}
                           className="w-11 h-11 rounded-full dynamic-island-shell flex items-center justify-center text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-transform shadow-[0_12px_28px_-6px_rgba(0,0,0,0.22)] cursor-pointer border border-[var(--glass-border)]"
-                          title="Bookshelf"
+                          title={language === "id" ? "Rak Buku" : "Bookshelf"}
                         >
                           <ArrowLeft className="w-4 h-4 stroke-[2]" />
                         </button>
@@ -2059,7 +2066,9 @@ export function App() {
                             if (isCurrentSpaceReadOnly) {
                               triggerHaptic("medium");
                               showFlyout(
-                                "Notebook ini dalam mode hanya-baca oleh pemiliknya.",
+                                language === "id"
+                                  ? "Notebook ini dalam mode hanya-baca oleh pemiliknya."
+                                  : "This notebook is in read-only mode by the owner.",
                                 2500,
                               );
                               return;
@@ -2068,7 +2077,7 @@ export function App() {
                             setActiveMenuNoteId(null);
                             setIsCreateOpen(true);
                           }}
-                          aria-label={isCurrentSpaceReadOnly ? "Notebook hanya baca" : "Tulis catatan baru"}
+                          aria-label={isCurrentSpaceReadOnly ? (language === "id" ? "Notebook hanya baca" : "Read-only notebook") : (language === "id" ? "Tulis catatan baru" : "Compose new note")}
                           className={`
                             h-11 flex items-center gap-2 px-6 rounded-full
                             dynamic-island-shell text-[var(--text-primary)]
@@ -2078,7 +2087,7 @@ export function App() {
                             transition-all active:scale-95 hover:opacity-95 cursor-pointer relative
                             ${isCurrentSpaceReadOnly ? "opacity-75" : ""}
                           `}
-                          title={isCurrentSpaceReadOnly ? "Mode Hanya Baca" : "Compose Entry"}
+                          title={isCurrentSpaceReadOnly ? (language === "id" ? "Mode Hanya Baca" : "Read-Only Mode") : (language === "id" ? "Tulis Catatan" : "Compose Entry")}
                         >
                           <div className="dynamic-island-specular-rim" />
                           {isCurrentSpaceReadOnly ? (
@@ -2086,7 +2095,7 @@ export function App() {
                           ) : (
                             <PenLine className="w-4 h-4 stroke-[2]" />
                           )}
-                          <span>{isCurrentSpaceReadOnly ? "hanya baca" : "noticing"}</span>
+                          <span>{isCurrentSpaceReadOnly ? (language === "id" ? "hanya baca" : "read only") : "noticing"}</span>
                         </button>
 
                         {/* Tools Trigger */}
@@ -2451,6 +2460,8 @@ export function App() {
             onSelectFontSize={handleSelectFontSize}
             spaces={spaces}
             notes={notes}
+            currentLanguage={language}
+            onSelectLanguage={setLanguage}
             onStorageOptimized={(msg) => {
               showFlyout(msg, 3000);
             }}

@@ -11,6 +11,7 @@ import {
 } from "@/types";
 import { formatTimeOnly } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
+import { AppLanguage } from "@/lib/i18n";
 import { TextHighlighter, toSuperscriptNumber } from "./TextHighlighter";
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
 import { TactileAudioPlayer } from "./TactileAudioPlayer";
@@ -52,6 +53,7 @@ interface NoteEntryProps {
   onOpenQuickAnnotator?: (note: FieldNote) => void;
   currentUserId?: string | null;
   currentUserName?: string;
+  currentLanguage?: AppLanguage;
   onUpdateHighlights?: (noteId: string, highlights: TextHighlight[]) => void;
   onUpdateTextAlign?: (noteId: string, align: TextAlign) => void;
 }
@@ -64,6 +66,7 @@ export const NoteEntry = memo(function NoteEntry({
   isReadOnly = false,
   currentUserId = null,
   currentUserName = "Author",
+  currentLanguage,
   defaultTextAlign = "left",
   defaultImagePosition = "bottom",
   defaultLineSpacing = "editorial",
@@ -127,15 +130,18 @@ export const NoteEntry = memo(function NoteEntry({
     marginaliaList.length > 0 || linkedHighlightNotes.length > 0;
   const hasPhotos = Boolean(note.photos && note.photos.length > 0);
   const hasVideos = Boolean(note.videos && note.videos.length > 0);
-  const formattedTime = formatTimeOnly(note.createdAt).toUpperCase();
+  const formattedTime = formatTimeOnly(
+    note.createdAt,
+    currentLanguage,
+  ).toUpperCase();
   const isCurrentUserAuthor = Boolean(
     note.author?.userId && currentUserId
       ? note.author.userId === currentUserId
       : !note.author?.name || note.author?.name === currentUserName,
   );
   const authorLabel = isCurrentUserAuthor
-    ? "YOU"
-    : (note.author?.name || "PARTNER").toUpperCase();
+    ? (currentLanguage === "id" ? "ANDA" : "YOU")
+    : (note.author?.name || (currentLanguage === "id" ? "TEMAN" : "PARTNER")).toUpperCase();
   const authorAvatar = !isCurrentUserAuthor
     ? note.author?.avatarUrl || note.author?.avatar
     : null;

@@ -16,6 +16,7 @@ import {
   Type,
   HardDrive,
   RotateCw,
+  Globe,
 } from "lucide-react";
 import { useProStatus } from "@/lib/proManager";
 import { restoreAtelierPurchases } from "@/lib/purchases";
@@ -27,6 +28,7 @@ import {
   formatBytes,
   StorageBreakdown,
 } from "@/lib/storageManager";
+import { AppLanguage, useAppLanguage } from "@/lib/i18n";
 
 interface SettingsSheetProps {
   isOpen: boolean;
@@ -44,6 +46,8 @@ interface SettingsSheetProps {
   spaces?: Space[];
   notes?: FieldNote[];
   onStorageOptimized?: (message: string) => void;
+  currentLanguage?: AppLanguage;
+  onSelectLanguage?: (lang: AppLanguage) => void;
 }
 
 const FONT_SIZE_PRESETS = [
@@ -69,8 +73,21 @@ export function SettingsSheet({
   spaces = [],
   notes = [],
   onStorageOptimized,
+  currentLanguage,
+  onSelectLanguage,
 }: SettingsSheetProps) {
   useLockBodyScroll(isOpen);
+
+  const [systemLang, setSystemLang, t] = useAppLanguage();
+  const currentAppLang = currentLanguage || systemLang;
+
+  const handleSelectLang = (newLang: AppLanguage) => {
+    if (onSelectLanguage) {
+      onSelectLanguage(newLang);
+    } else {
+      setSystemLang(newLang);
+    }
+  };
 
   // Danger Zone Confirmation Modal
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
@@ -101,11 +118,20 @@ export function SettingsSheet({
       } else {
         triggerHaptic("light");
       }
-      setRestoreFeedback(res.message || "Pemeriksaan riwayat transaksi selesai.");
+      setRestoreFeedback(
+        res.message ||
+          (currentAppLang === "id"
+            ? "Pemeriksaan riwayat transaksi selesai."
+            : "Transaction history check completed."),
+      );
       setTimeout(() => setRestoreFeedback(null), 4500);
     } catch {
       triggerHaptic("heavy");
-      setRestoreFeedback("Gagal menghubungi layanan store untuk memulihkan pembelian.");
+      setRestoreFeedback(
+        currentAppLang === "id"
+          ? "Gagal menghubungi layanan store untuk memulihkan pembelian."
+          : "Failed to connect to store services to restore purchases.",
+      );
       setTimeout(() => setRestoreFeedback(null), 4500);
     } finally {
       setIsRestoring(false);
@@ -140,12 +166,19 @@ export function SettingsSheet({
       triggerSuccessHaptic();
       const updated = await calculateStorageBreakdown(notes, spaces);
       setStorageData(updated);
-      const msg = `Reclaimed ${formatBytes(res.reclaimedBytes)} of space`;
+      const msg =
+        currentAppLang === "id"
+          ? `Berhasil mengosongkan ${formatBytes(res.reclaimedBytes)} ruang`
+          : `Reclaimed ${formatBytes(res.reclaimedBytes)} of space`;
       setOptimizeMessage(msg);
       onStorageOptimized?.(msg);
       setTimeout(() => setOptimizeMessage(null), 3500);
     } catch {
-      setOptimizeMessage("Storage optimized");
+      setOptimizeMessage(
+        currentAppLang === "id"
+          ? "Penyimpanan dioptimalkan"
+          : "Storage optimized",
+      );
       setTimeout(() => setOptimizeMessage(null), 2500);
     } finally {
       setIsOptimizing(false);
@@ -233,7 +266,7 @@ export function SettingsSheet({
                 id="settings-sheet-title"
                 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]"
               >
-                Settings
+                {t.settings.title}
               </span>
 
               <button
@@ -242,9 +275,9 @@ export function SettingsSheet({
                   triggerHaptic("light");
                   onClose();
                 }}
-                aria-label="Tutup Pengaturan"
+                aria-label={t.settings.close}
                 className="relative w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs before:absolute before:-inset-2 before:content-['']"
-                title="Close"
+                title={t.settings.close}
               >
                 <X className="w-3.5 h-3.5 stroke-[2.2]" />
               </button>
@@ -252,10 +285,10 @@ export function SettingsSheet({
 
             {/* Body */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar relative z-10">
-              {/* Group 1: Appearance */}
+              {/* Group 1: Appearance & Language */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-medium tracking-wide text-[var(--text-tertiary)] px-2">
-                  Appearance
+                  {t.settings.appearance}
                 </span>
 
                 <div className="rounded-2xl apple-card divide-y divide-[var(--glass-border)]/50 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
@@ -277,7 +310,7 @@ export function SettingsSheet({
                       </div>
                       <div className="flex items-baseline gap-1.5 min-w-0">
                         <span className="text-xs font-semibold text-[var(--text-primary)] whitespace-nowrap">
-                          Theme
+                          {t.settings.theme}
                         </span>
                         <span className="text-[10px] text-[var(--text-tertiary)] truncate">
                           {currentThemeLabel}
@@ -336,10 +369,10 @@ export function SettingsSheet({
                         <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
                           <BookOpen className="w-3.5 h-3.5 opacity-80" />
                         </div>
-                        <span>Shelf Layout</span>
+                        <span>{t.settings.shelfLayout}</span>
                       </div>
                       <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
-                        Default display
+                        {t.settings.defaultDisplay}
                       </div>
                     </div>
 
@@ -357,7 +390,7 @@ export function SettingsSheet({
                             : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                         }`}
                       >
-                        Spines
+                        {t.settings.spines}
                       </button>
                       <button
                         type="button"
@@ -371,7 +404,58 @@ export function SettingsSheet({
                             : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                         }`}
                       >
-                        Covers
+                        {t.settings.covers}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Language Preference Row */}
+                  <div className="p-3.5 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                          <Globe className="w-3.5 h-3.5 opacity-80" />
+                        </div>
+                        <span>{t.settings.language}</span>
+                      </div>
+                      <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
+                        {t.settings.languageDesc}
+                      </div>
+                    </div>
+
+                    {/* Tactile Segmented Control */}
+                    <div className="p-1 rounded-full bg-black/5 dark:bg-white/5 border border-[var(--glass-border)] shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          handleSelectLang("id");
+                        }}
+                        aria-label="Bahasa Indonesia"
+                        aria-pressed={currentAppLang === "id"}
+                        className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer ${
+                          currentAppLang === "id"
+                            ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_8px_-1px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
+                            : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                        }`}
+                      >
+                        ID
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          handleSelectLang("en");
+                        }}
+                        aria-label="English Language"
+                        aria-pressed={currentAppLang === "en"}
+                        className={`px-3 py-1 rounded-full text-[11px] font-medium transition-all duration-200 cursor-pointer ${
+                          currentAppLang === "en"
+                            ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_8px_-1px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
+                            : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                        }`}
+                      >
+                        EN
                       </button>
                     </div>
                   </div>
@@ -385,7 +469,7 @@ export function SettingsSheet({
                             <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
                               <Type className="w-3.5 h-3.5 opacity-80" />
                             </div>
-                            <span>Text Size</span>
+                            <span>{t.settings.textSize}</span>
                           </div>
                           <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
                             {activeSizeLabel} · {scalePercent}% ({fontSize}px)
@@ -447,7 +531,7 @@ export function SettingsSheet({
               {/* Group 2: Membership & Privileges */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-medium tracking-wide text-[var(--text-tertiary)] px-2">
-                  Membership
+                  {t.settings.membership}
                 </span>
 
                 <div className="rounded-2xl apple-card divide-y divide-[var(--glass-border)]/50 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
@@ -459,19 +543,19 @@ export function SettingsSheet({
                       </div>
                       <div>
                         <div className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
-                          <span>Atelier Pro</span>
+                          <span>{t.settings.atelierPro}</span>
                           <span className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-mono uppercase font-semibold ${
                             isPro
                               ? "bg-[var(--text-primary)] text-[var(--accent-ink)]"
                               : "inner-pseudo-glass text-[var(--text-tertiary)]"
                           }`}>
-                            {isPro ? "Active" : "Standard"}
+                            {isPro ? t.settings.statusActive : t.settings.statusStandard}
                           </span>
                         </div>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
                           {isPro
-                            ? "All volumes, cloud sync & multimedia unlocked"
-                            : "Unlimited volumes, cloud sync & multimedia"}
+                            ? t.settings.proActiveDesc
+                            : t.settings.proStandardDesc}
                         </div>
                       </div>
                     </div>
@@ -486,12 +570,12 @@ export function SettingsSheet({
                         className="px-3 py-1.5 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-[11px] font-semibold flex items-center gap-1.5 active:scale-95 transition-transform cursor-pointer shadow-xs"
                       >
                         <Sparkles className="w-3 h-3 stroke-[2.2]" />
-                        <span>Upgrade</span>
+                        <span>{t.settings.upgrade}</span>
                       </button>
                     ) : (
                       <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] text-[10.5px] font-semibold">
                         <Check className="w-3 h-3 stroke-[2.5]" />
-                        <span>Unlocked</span>
+                        <span>{t.settings.unlocked}</span>
                       </div>
                     )}
                   </div>
@@ -499,7 +583,7 @@ export function SettingsSheet({
                   {/* Feature Showcase Link */}
                   <div className="p-3 flex items-center justify-between">
                     <span className="text-[11px] text-[var(--text-secondary)] pl-8">
-                      Privilege details
+                      {t.settings.privilegeDetails}
                     </span>
                     <button
                       type="button"
@@ -509,7 +593,7 @@ export function SettingsSheet({
                       }}
                       className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[10.5px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer"
                     >
-                      View Privileges
+                      {t.settings.viewPrivileges}
                     </button>
                   </div>
 
@@ -517,10 +601,10 @@ export function SettingsSheet({
                   <div className="p-3 flex items-center justify-between">
                     <div className="pl-8">
                       <div className="text-[11px] font-medium text-[var(--text-primary)]">
-                        Restore Purchases
+                        {t.settings.restorePurchases}
                       </div>
                       <div className="text-[9.5px] text-[var(--text-tertiary)]">
-                        Pulihkan keanggotaan dari akun App Store / Google Play
+                        {t.settings.restorePurchasesDesc}
                       </div>
                     </div>
                     <button
@@ -532,10 +616,10 @@ export function SettingsSheet({
                       {isRestoring ? (
                         <>
                           <RotateCw className="w-3 h-3 animate-spin" />
-                          <span>Restoring...</span>
+                          <span>{t.settings.restoring}</span>
                         </>
                       ) : (
-                        <span>Restore</span>
+                        <span>{t.settings.restoreButton}</span>
                       )}
                     </button>
                   </div>
@@ -552,7 +636,7 @@ export function SettingsSheet({
               {/* Group 3: Feedback & Haptics */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-medium tracking-wide text-[var(--text-tertiary)] px-2">
-                  Feedback
+                  {t.settings.feedback}
                 </span>
 
                 <div className="rounded-2xl apple-card divide-y divide-[var(--glass-border)]/50 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
@@ -564,10 +648,10 @@ export function SettingsSheet({
                       </div>
                       <div>
                         <div className="text-xs font-semibold text-[var(--text-primary)]">
-                          Haptics
+                          {t.settings.haptics}
                         </div>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
-                          Tactile impulse feedback
+                          {t.settings.hapticsDesc}
                         </div>
                       </div>
                     </div>
@@ -599,14 +683,14 @@ export function SettingsSheet({
                   {hapticsEnabled && (
                     <div className="p-3.5 flex items-center justify-between">
                       <span className="text-xs text-[var(--text-secondary)] pl-8">
-                        Test vibration
+                        {t.settings.testVibration}
                       </span>
                       <button
                         type="button"
                         onClick={() => triggerSuccessHaptic()}
                         className="px-3 py-1 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]"
                       >
-                        Pulse
+                        {t.settings.pulse}
                       </button>
                     </div>
                   )}
@@ -616,7 +700,7 @@ export function SettingsSheet({
               {/* Group 4: Storage & Space Health */}
               <div className="space-y-1.5">
                 <span className="text-[11px] font-medium tracking-wide text-[var(--text-tertiary)] px-2">
-                  Storage & Device Space
+                  {t.settings.storage}
                 </span>
 
                 <div className="p-3.5 rounded-2xl apple-card space-y-3 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
@@ -628,12 +712,12 @@ export function SettingsSheet({
                       </div>
                       <div>
                         <div className="text-xs font-semibold text-[var(--text-primary)]">
-                          Device Storage
+                          {t.settings.deviceStorage}
                         </div>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
                           {storageData
-                            ? `${formatBytes(storageData.totalAppBytes)} used across ${notes.length} notices`
-                            : "Calculating space footprint..."}
+                            ? `${formatBytes(storageData.totalAppBytes)} ${t.settings.usedAcrossNotices} ${notes.length} ${t.settings.notices}`
+                            : t.settings.calculatingSpace}
                         </div>
                       </div>
                     </div>
@@ -728,7 +812,7 @@ export function SettingsSheet({
                   {/* Optimize & Purge Action */}
                   <div className="pt-1 flex items-center justify-between gap-2 border-t border-[var(--glass-border)]/40">
                     <span className="text-[10.5px] text-[var(--text-tertiary)] truncate">
-                      {optimizeMessage || "Clean dangling cache & compact DB"}
+                      {optimizeMessage || t.settings.cleanDangling}
                     </span>
                     <button
                       type="button"
@@ -737,7 +821,7 @@ export function SettingsSheet({
                       className="px-3 py-1.5 rounded-full inner-pseudo-glass text-[11px] font-semibold text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0 disabled:opacity-50"
                     >
                       <Sparkles className="w-3 h-3 stroke-[2] text-[var(--text-primary)]" />
-                      <span>{isOptimizing ? "Compacting..." : "Optimize Space"}</span>
+                      <span>{isOptimizing ? t.settings.compactingSpace : t.settings.optimizeSpace}</span>
                     </button>
                   </div>
                 </div>
@@ -754,7 +838,7 @@ export function SettingsSheet({
                   className="w-full p-3.5 rounded-2xl apple-card text-rose-500 hover:text-rose-600 active:scale-98 transition-all text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-[0_6px_20px_-4px_rgba(244,63,94,0.1),inset_0_1px_0_rgba(255,255,255,0.85)] border border-rose-500/15"
                 >
                   <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
-                  <span>Reset All Data</span>
+                  <span>{t.settings.resetAllData}</span>
                 </button>
 
                 <div className="flex flex-col items-center justify-center pt-2 gap-1.5 opacity-80">
@@ -781,7 +865,7 @@ export function SettingsSheet({
                       }}
                       className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
                     >
-                      Privacy Policy
+                      {t.settings.privacyPolicy}
                     </button>
                     <span>·</span>
                     <button
@@ -793,7 +877,7 @@ export function SettingsSheet({
                       }}
                       className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
                     >
-                      Terms of Service
+                      {t.settings.termsOfService}
                     </button>
                   </div>
                 </div>
@@ -826,14 +910,10 @@ export function SettingsSheet({
                       <AlertTriangle className="w-4 h-4" />
                     </div>
                     <h4 className="text-sm font-semibold text-[var(--text-primary)]">
-                      Reset All Data?
+                      {t.settings.resetConfirmTitle}
                     </h4>
                     <p className="text-[11px] text-[var(--text-tertiary)]">
-                      All volumes and notes will be lost. Type{" "}
-                      <strong className="text-[var(--text-primary)]">
-                        RESET
-                      </strong>{" "}
-                      to proceed.
+                      {t.settings.resetConfirmDesc}
                     </p>
                   </div>
 
@@ -855,7 +935,7 @@ export function SettingsSheet({
                       }}
                       className="flex-1 py-1.5 rounded-xl inner-pseudo-glass text-xs font-medium text-[var(--text-secondary)] active:scale-95 transition-transform cursor-pointer shadow-xs"
                     >
-                      Cancel
+                      {t.settings.cancel}
                     </button>
                     <button
                       type="button"
@@ -867,7 +947,7 @@ export function SettingsSheet({
                           : "bg-[var(--text-primary)]/10 text-[var(--text-tertiary)] cursor-not-allowed"
                       }`}
                     >
-                      Confirm
+                      {t.settings.confirm}
                     </button>
                   </div>
                 </motion.div>
