@@ -49,6 +49,8 @@ interface NoteEntryProps {
   onEditNote?: (note: FieldNote) => void;
   onOpenPhotostrip?: (note: FieldNote) => void;
   onOpenQuickAnnotator?: (note: FieldNote) => void;
+  currentUserId?: string | null;
+  currentUserName?: string;
   onUpdateHighlights?: (noteId: string, highlights: TextHighlight[]) => void;
   onUpdateTextAlign?: (noteId: string, align: TextAlign) => void;
 }
@@ -58,6 +60,8 @@ export const NoteEntry = memo(function NoteEntry({
   isSharedSpace = false,
   isHighlighted = false,
   isReadingMode = false,
+  currentUserId = null,
+  currentUserName = "Author",
   defaultTextAlign = "left",
   defaultImagePosition = "bottom",
   defaultLineSpacing = "editorial",
@@ -122,9 +126,17 @@ export const NoteEntry = memo(function NoteEntry({
   const hasPhotos = Boolean(note.photos && note.photos.length > 0);
   const hasVideos = Boolean(note.videos && note.videos.length > 0);
   const formattedTime = formatTimeOnly(note.createdAt).toUpperCase();
-  const authorLabel = note.author?.name
-    ? note.author.name.toUpperCase()
-    : "YOU";
+  const isCurrentUserAuthor = Boolean(
+    note.author?.userId && currentUserId
+      ? note.author.userId === currentUserId
+      : !note.author?.name || note.author?.name === currentUserName,
+  );
+  const authorLabel = isCurrentUserAuthor
+    ? "YOU"
+    : (note.author?.name || "PARTNER").toUpperCase();
+  const authorAvatar = !isCurrentUserAuthor
+    ? note.author?.avatarUrl || note.author?.avatar
+    : null;
 
   const effectiveAlign: TextAlign =
     note.textAlign || defaultTextAlign || "left";
@@ -819,9 +831,28 @@ export const NoteEntry = memo(function NoteEntry({
                   </span>
                 )}
                 {isSharedSpace && (
-                  <span className="opacity-90 font-medium tracking-wide">
-                    {" "}
-                    · {authorLabel}
+                  <span className="inline-flex items-center gap-1 font-medium tracking-wide">
+                    <span className="opacity-40">·</span>
+                    {authorAvatar ? (
+                      <img
+                        src={authorAvatar}
+                        alt={authorLabel}
+                        className="w-3.5 h-3.5 rounded-full object-cover inline border border-[var(--glass-border)]"
+                      />
+                    ) : !isCurrentUserAuthor ? (
+                      <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-500 dark:text-blue-400 text-[8px] font-bold flex items-center justify-center inline-flex leading-none">
+                        {authorLabel.charAt(0)}
+                      </span>
+                    ) : null}
+                    <span
+                      className={
+                        isCurrentUserAuthor
+                          ? "opacity-65"
+                          : "text-blue-500 dark:text-blue-400 font-semibold"
+                      }
+                    >
+                      {authorLabel}
+                    </span>
                   </span>
                 )}{" "}
                 —
@@ -871,9 +902,28 @@ export const NoteEntry = memo(function NoteEntry({
                   </span>
                 )}
                 {isSharedSpace && (
-                  <span className="opacity-90 font-medium tracking-wide">
-                    {" "}
-                    · {authorLabel}
+                  <span className="inline-flex items-center gap-1 font-medium tracking-wide">
+                    <span className="opacity-40">·</span>
+                    {authorAvatar ? (
+                      <img
+                        src={authorAvatar}
+                        alt={authorLabel}
+                        className="w-3.5 h-3.5 rounded-full object-cover inline border border-[var(--glass-border)]"
+                      />
+                    ) : !isCurrentUserAuthor ? (
+                      <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-500 dark:text-blue-400 text-[8px] font-bold flex items-center justify-center inline-flex leading-none">
+                        {authorLabel.charAt(0)}
+                      </span>
+                    ) : null}
+                    <span
+                      className={
+                        isCurrentUserAuthor
+                          ? "opacity-65"
+                          : "text-blue-500 dark:text-blue-400 font-semibold"
+                      }
+                    >
+                      {authorLabel}
+                    </span>
                   </span>
                 )}
               </span>

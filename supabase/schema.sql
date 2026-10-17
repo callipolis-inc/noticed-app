@@ -278,3 +278,27 @@ create policy "Noticed Media Authenticated Delete"
     and auth.role() = 'authenticated'
     and (storage.foldername(name))[2] = (select auth.uid()::text)
   );
+
+-- ============================================================================
+-- 8. SUPABASE REALTIME (WEBSOCKET LIVE CHANGES)
+-- Enables PostgreSQL replication to WebSockets for live collaborative updates
+-- ============================================================================
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'field_notes'
+    ) then
+      alter publication supabase_realtime add table public.field_notes;
+    end if;
+
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'spaces'
+    ) then
+      alter publication supabase_realtime add table public.spaces;
+    end if;
+  end if;
+end;
+$$;

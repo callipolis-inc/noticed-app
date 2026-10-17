@@ -71,6 +71,9 @@ interface CreateNoteSheetProps {
   defaultImagePosition?: ImagePosition;
   editingNote?: FieldNote | null;
   notesCountMap?: Record<string, number>;
+  userName?: string;
+  avatarPhoto?: string | null;
+  currentUserId?: string | null;
   onSaveNote: (note: FieldNote) => void;
   onUpdateNote?: (note: FieldNote) => void;
 }
@@ -85,6 +88,9 @@ export function CreateNoteSheet({
   defaultImagePosition = "bottom",
   editingNote = null,
   notesCountMap,
+  userName = "Author",
+  avatarPhoto = null,
+  currentUserId = null,
   onSaveNote,
   onUpdateNote,
 }: CreateNoteSheetProps) {
@@ -548,6 +554,11 @@ export function CreateNoteSheet({
           : undefined,
         imagePosition,
         createdAt: finalCreatedAt,
+        author: editingNote.author || {
+          name: userName || "Author",
+          avatarUrl: avatarPhoto || undefined,
+          userId: currentUserId || undefined,
+        },
       };
 
       onUpdateNote(updatedNote);
@@ -586,6 +597,11 @@ export function CreateNoteSheet({
         : undefined,
       imagePosition,
       createdAt: finalCreatedAt,
+      author: {
+        name: userName || "Author",
+        avatarUrl: avatarPhoto || undefined,
+        userId: currentUserId || undefined,
+      },
     };
 
     onSaveNote(newNote);

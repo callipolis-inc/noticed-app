@@ -83,6 +83,7 @@ const JoinSpaceModal = lazy(() =>
   })),
 );
 import { AtelierProModal } from "@/components/ui/AtelierProModal";
+import { useSpaceRealtime } from "@/hooks/useSpaceRealtime";
 import {
   triggerHaptic,
   triggerSuccessHaptic,
@@ -1138,6 +1139,61 @@ export function App() {
       activeSpace.userId !== currentUserId,
   );
 
+  const handleRemoteNoteSaved = useCallback(
+    (remoteNote: FieldNote, isNew: boolean, authorName: string) => {
+      triggerHaptic("light");
+      setNotes((prevNotes) => {
+        const existingIndex = prevNotes.findIndex(
+          (n) => n.id === remoteNote.id,
+        );
+        let nextNotes: FieldNote[];
+        if (existingIndex >= 0) {
+          nextNotes = [...prevNotes];
+          nextNotes[existingIndex] = remoteNote;
+        } else {
+          nextNotes = [remoteNote, ...prevNotes];
+        }
+        safeLocalStorageSet("sidenotes_notes", JSON.stringify(nextNotes));
+        saveToAtelierDB("sidenotes_notes", nextNotes);
+        return nextNotes;
+      });
+
+      showFlyout(
+        isNew
+          ? `${authorName} menambahkan catatan baru`
+          : `${authorName} memperbarui catatan`,
+        2800,
+      );
+    },
+    [showFlyout],
+  );
+
+  const handleRemoteNoteDeleted = useCallback(
+    (noteId: string, authorName?: string) => {
+      triggerHaptic("medium");
+      setNotes((prevNotes) => {
+        const nextNotes = prevNotes.filter((n) => n.id !== noteId);
+        safeLocalStorageSet("sidenotes_notes", JSON.stringify(nextNotes));
+        saveToAtelierDB("sidenotes_notes", nextNotes);
+        return nextNotes;
+      });
+
+      if (authorName) {
+        showFlyout(`${authorName} menghapus catatan`, 2800);
+      }
+    },
+    [showFlyout],
+  );
+
+  const { broadcastNoteSaved, broadcastNoteDeleted } = useSpaceRealtime({
+    spaceId: activeSpace?.id || null,
+    isShared: Boolean(activeSpace?.isShared),
+    currentUserId,
+    currentUserName: userName,
+    onRemoteNoteSaved: handleRemoteNoteSaved,
+    onRemoteNoteDeleted: handleRemoteNoteDeleted,
+  });
+
   useEffect(() => {
     if (spaces.length === 0 && currentView === "notebook") {
       setCurrentView("bookshelf");
@@ -1262,6 +1318,7 @@ export function App() {
       updatedAt: nowIso,
     };
     setNotes((prev) => [noteToSave, ...prev]);
+    broadcastNoteSaved(noteToSave, true);
     showFlyout("Notice added", 2500);
   };
 
@@ -1274,6 +1331,7 @@ export function App() {
       prev.map((n) => (n.id === updatedNote.id ? noteToUpdate : n)),
     );
     setEditingNote(null);
+    broadcastNoteSaved(noteToUpdate, false);
     showFlyout("Notice updated", 2200);
   };
 
@@ -1428,6 +1486,7 @@ export function App() {
       const targetNote = notes[idx];
 
       setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      broadcastNoteDeleted(noteId);
 
       const timerId = window.setTimeout(() => {
         queueCloudDeleteNote(targetNote);
@@ -1454,12 +1513,13 @@ export function App() {
               next.splice(Math.min(restoreIdx, next.length), 0, restored);
               return next;
             });
+            broadcastNoteSaved(restored, true);
             showFlyout("Notice restored", 2200);
           }
         },
       });
     },
-    [notes, commitPendingDelete, showFlyout],
+    [notes, commitPendingDelete, showFlyout, broadcastNoteDeleted, broadcastNoteSaved],
   );
 
   const handleSelectFont = (font: FontChoice) => {
@@ -1724,6 +1784,8 @@ export function App() {
                               isSharedSpace={activeSpace.isShared}
                               isReadingMode={isReadingMode}
                               isFirstInGroup={noteIdx === 0}
+                              currentUserId={currentUserId}
+                              currentUserName={userName}
                               defaultTextAlign={defaultTextAlign}
                               defaultImagePosition={imagePosition}
                               defaultLineSpacing={lineSpacing}
@@ -2016,6 +2078,9 @@ export function App() {
             defaultImagePosition={imagePosition}
             editingNote={editingNote}
             notesCountMap={notesCountMap}
+            userName={userName}
+            avatarPhoto={avatarPhoto}
+            currentUserId={currentUserId}
             onSaveNote={handleSaveNote}
             onUpdateNote={handleUpdateNote}
           />

@@ -104,6 +104,8 @@ export interface FieldNote {
   author?: {
     name: string;
     avatar?: string;
+    avatarUrl?: string;
+    userId?: string;
   };
 }
 
