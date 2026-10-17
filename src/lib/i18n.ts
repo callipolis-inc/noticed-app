@@ -126,6 +126,22 @@ export interface TranslationDictionary {
     privacyPolicy: string;
     termsOfService: string;
   };
+  reminders: {
+    sectionTitle: string;
+    sectionSubtitle: string;
+    morningPrompt: string;
+    morningPromptDesc: string;
+    eveningPrompt: string;
+    eveningPromptDesc: string;
+    morningTime: string;
+    eveningTime: string;
+    permissionDeniedTitle: string;
+    permissionDeniedDesc: string;
+    morningDefaultTitle: string;
+    morningDefaultBody: string;
+    eveningDefaultTitle: string;
+    eveningDefaultBody: string;
+  };
   common: {
     cancel: string;
     save: string;
@@ -236,6 +252,22 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       privacyPolicy: "Kebijakan Privasi",
       termsOfService: "Ketentuan Layanan",
     },
+    reminders: {
+      sectionTitle: "Pengingat & Kebiasaan",
+      sectionSubtitle: "Pengingat hening untuk merawat rutinitas menulis",
+      morningPrompt: "Intensi Pagi",
+      morningPromptDesc: "Pertanyaan reflektif untuk memulai hari dengan penuh kesadaran",
+      eveningPrompt: "Refleksi Malam",
+      eveningPromptDesc: "Momen hening untuk mengendapkan hal-hal bermakna hari ini",
+      morningTime: "Waktu Pagi",
+      eveningTime: "Waktu Malam",
+      permissionDeniedTitle: "Izin Notifikasi Ditolak",
+      permissionDeniedDesc: "Aktifkan izin notifikasi di Pengaturan Sistem perangkat untuk menerima pengingat hening ini.",
+      morningDefaultTitle: "Niat Hari Ini",
+      morningDefaultBody: "Apa satu hal bermakna yang ingin kamu perhatikan hari ini?",
+      eveningDefaultTitle: "Refleksi Hening",
+      eveningDefaultBody: "Apa momen kecil atau rasa syukur yang hadir hari ini?",
+    },
     common: {
       cancel: "Batal",
       save: "Simpan",
@@ -343,6 +375,22 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       confirm: "Confirm",
       privacyPolicy: "Privacy Policy",
       termsOfService: "Terms of Service",
+    },
+    reminders: {
+      sectionTitle: "Habits & Reminders",
+      sectionSubtitle: "Quiet prompts to nurture your daily writing practice",
+      morningPrompt: "Morning Intention",
+      morningPromptDesc: "Reflective question to begin your day with mindfulness",
+      eveningPrompt: "Evening Reflection",
+      eveningPromptDesc: "Quiet moment to distill meaningful thoughts from today",
+      morningTime: "Morning Time",
+      eveningTime: "Evening Time",
+      permissionDeniedTitle: "Notification Permission Denied",
+      permissionDeniedDesc: "Please enable notification permissions in device settings to receive quiet reminders.",
+      morningDefaultTitle: "Today's Intention",
+      morningDefaultBody: "What is one meaningful thing you wish to notice today?",
+      eveningDefaultTitle: "Evening Reflection",
+      eveningDefaultBody: "What small moment or gratitude was present today?",
     },
     common: {
       cancel: "Cancel",

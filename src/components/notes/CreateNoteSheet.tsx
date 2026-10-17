@@ -75,6 +75,8 @@ interface CreateNoteSheetProps {
   userName?: string;
   avatarPhoto?: string | null;
   currentUserId?: string | null;
+  initialTitle?: string;
+  initialContent?: string;
   onSaveNote: (note: FieldNote) => void;
   onUpdateNote?: (note: FieldNote, removedMediaUrls?: string[]) => void;
 }
@@ -92,13 +94,15 @@ export function CreateNoteSheet({
   userName = "Author",
   avatarPhoto = null,
   currentUserId = null,
+  initialTitle = "",
+  initialContent = "",
   onSaveNote,
   onUpdateNote,
 }: CreateNoteSheetProps) {
   useLockBodyScroll(isOpen);
 
-  const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
+  const [content, setContent] = useState(initialContent || "");
+  const [title, setTitle] = useState(initialTitle || "");
   const [textAlign, setTextAlign] = useState<TextAlign>(defaultTextAlign);
   const [fontChoice, setFontChoice] = useState<FontChoice>(() => {
     if (editingNote?.fontChoice) return editingNote.fontChoice;
@@ -246,11 +250,11 @@ export function CreateNoteSheet({
         editorRef.current.innerHTML = markdownToHtml(editingNote.content || "");
       }
     } else {
-      setContent("");
+      setContent(initialContent || "");
       if (editorRef.current) {
-        editorRef.current.innerHTML = "";
+        editorRef.current.innerHTML = initialContent ? markdownToHtml(initialContent) : "";
       }
-      setTitle("");
+      setTitle(initialTitle || "");
       setTextAlign(defaultTextAlign);
       const s = spaces.find((sp) => sp.id === defaultSpaceId);
       setFontChoice(s?.fontChoice || defaultFontChoice || "editorial");

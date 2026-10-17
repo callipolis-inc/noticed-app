@@ -17,6 +17,9 @@ import {
   HardDrive,
   RotateCw,
   Globe,
+  Sun,
+  Moon,
+  Clock,
 } from "lucide-react";
 import { useProStatus } from "@/lib/proManager";
 import { restoreAtelierPurchases } from "@/lib/purchases";
@@ -29,6 +32,13 @@ import {
   StorageBreakdown,
 } from "@/lib/storageManager";
 import { AppLanguage, useAppLanguage } from "@/lib/i18n";
+import {
+  HabitNotificationSettings,
+  getSavedHabitSettings,
+  saveHabitSettings,
+  syncHabitNotifications,
+  requestNotificationPermission,
+} from "@/lib/notifications";
 
 interface SettingsSheetProps {
   isOpen: boolean;
@@ -105,6 +115,44 @@ export function SettingsSheet({
   // In-App Purchase Restore State
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreFeedback, setRestoreFeedback] = useState<string | null>(null);
+
+  // Habit Notifications State
+  const [habitSettings, setHabitSettings] = useState<HabitNotificationSettings>(() => getSavedHabitSettings());
+  const [permissionDeniedAlert, setPermissionDeniedAlert] = useState(false);
+
+  const handleTogglePrompt = async (type: "morning" | "evening", enabled: boolean) => {
+    triggerHaptic("medium");
+    setPermissionDeniedAlert(false);
+
+    if (enabled) {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        triggerHaptic("heavy");
+        setPermissionDeniedAlert(true);
+        return;
+      }
+    }
+
+    const updated: HabitNotificationSettings = {
+      ...habitSettings,
+      [type === "morning" ? "morningEnabled" : "eveningEnabled"]: enabled,
+    };
+    setHabitSettings(updated);
+    saveHabitSettings(updated);
+    await syncHabitNotifications(updated, currentAppLang);
+    triggerSuccessHaptic();
+  };
+
+  const handleTimeChange = async (type: "morning" | "evening", timeStr: string) => {
+    if (!timeStr) return;
+    const updated: HabitNotificationSettings = {
+      ...habitSettings,
+      [type === "morning" ? "morningTime" : "eveningTime"]: timeStr,
+    };
+    setHabitSettings(updated);
+    saveHabitSettings(updated);
+    await syncHabitNotifications(updated, currentAppLang);
+  };
 
   const handleRestoreFromSettings = async () => {
     setIsRestoring(true);
@@ -695,6 +743,131 @@ export function SettingsSheet({
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Group: Habits & Scheduled Reminders */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-medium tracking-wide text-[var(--text-tertiary)] px-2">
+                  {t.reminders.sectionTitle}
+                </span>
+
+                <div className="rounded-2xl apple-card divide-y divide-[var(--glass-border)]/50 overflow-hidden shadow-[0_8px_24px_-6px_rgba(0,0,0,0.06),0_2px_8px_-2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.85)] dark:shadow-[0_12px_28px_-6px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)]">
+                  {/* Morning Prompt Row */}
+                  <div className="p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                          <Sun className="w-3.5 h-3.5 opacity-80" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-[var(--text-primary)]">
+                            {t.reminders.morningPrompt}
+                          </div>
+                          <div className="text-[10px] text-[var(--text-tertiary)]">
+                            {t.reminders.morningPromptDesc}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* iOS Switch */}
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePrompt("morning", !habitSettings.morningEnabled)}
+                        className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] ${
+                          habitSettings.morningEnabled
+                            ? "bg-[var(--text-primary)]"
+                            : "bg-neutral-300 dark:bg-neutral-700"
+                        }`}
+                        role="switch"
+                        aria-checked={habitSettings.morningEnabled}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,0.2),0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 ${
+                            habitSettings.morningEnabled ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {habitSettings.morningEnabled && (
+                      <div className="pt-2 pl-8 flex items-center justify-between border-t border-[var(--glass-border)]/30">
+                        <span className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5">
+                          <Clock className="w-3 h-3 opacity-60" />
+                          {t.reminders.morningTime}
+                        </span>
+                        <input
+                          type="time"
+                          value={habitSettings.morningTime}
+                          onChange={(e) => handleTimeChange("morning", e.target.value)}
+                          className="px-2.5 py-1 rounded-lg inner-pseudo-glass text-xs font-mono font-medium text-[var(--text-primary)] border border-[var(--glass-border)] bg-transparent focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Evening Prompt Row */}
+                  <div className="p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                          <Moon className="w-3.5 h-3.5 opacity-80" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-[var(--text-primary)]">
+                            {t.reminders.eveningPrompt}
+                          </div>
+                          <div className="text-[10px] text-[var(--text-tertiary)]">
+                            {t.reminders.eveningPromptDesc}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* iOS Switch */}
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePrompt("evening", !habitSettings.eveningEnabled)}
+                        className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] ${
+                          habitSettings.eveningEnabled
+                            ? "bg-[var(--text-primary)]"
+                            : "bg-neutral-300 dark:bg-neutral-700"
+                        }`}
+                        role="switch"
+                        aria-checked={habitSettings.eveningEnabled}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,0.2),0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 ${
+                            habitSettings.eveningEnabled ? "translate-x-5" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {habitSettings.eveningEnabled && (
+                      <div className="pt-2 pl-8 flex items-center justify-between border-t border-[var(--glass-border)]/30">
+                        <span className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5">
+                          <Clock className="w-3 h-3 opacity-60" />
+                          {t.reminders.eveningTime}
+                        </span>
+                        <input
+                          type="time"
+                          value={habitSettings.eveningTime}
+                          onChange={(e) => handleTimeChange("evening", e.target.value)}
+                          className="px-2.5 py-1 rounded-lg inner-pseudo-glass text-xs font-mono font-medium text-[var(--text-primary)] border border-[var(--glass-border)] bg-transparent focus:outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {permissionDeniedAlert && (
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-semibold">{t.reminders.permissionDeniedTitle}</div>
+                      <div className="text-[11px] opacity-90">{t.reminders.permissionDeniedDesc}</div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Group 4: Storage & Space Health */}

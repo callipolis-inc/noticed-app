@@ -93,6 +93,12 @@ import {
 import { generateId, getDateGroupKey } from "@/lib/utils";
 import { useAppLanguage } from "@/lib/i18n";
 import {
+  registerNotificationTapListener,
+  syncHabitNotifications,
+  getSavedHabitSettings,
+  HabitPrompt,
+} from "@/lib/notifications";
+import {
   loadFromAtelierDB,
   saveToAtelierDB,
   clearAtelierDB,
@@ -333,6 +339,21 @@ export function App() {
     }
     return false;
   });
+  const [habitPromptDraft, setHabitPromptDraft] = useState<HabitPrompt | null>(null);
+
+  useEffect(() => {
+    const unregister = registerNotificationTapListener((prompt) => {
+      setHabitPromptDraft(prompt);
+      setEditingNote(null);
+      setIsCreateOpen(true);
+    });
+    return unregister;
+  }, []);
+
+  useEffect(() => {
+    syncHabitNotifications(getSavedHabitSettings(), language);
+  }, [language]);
+
   const [editingNote, setEditingNote] = useState<FieldNote | null>(null);
   const editingNoteRef = useRef<FieldNote | null>(editingNote);
   useEffect(() => {
@@ -2286,7 +2307,10 @@ export function App() {
             onClose={() => {
               setIsCreateOpen(false);
               setEditingNote(null);
+              setHabitPromptDraft(null);
             }}
+            initialTitle={habitPromptDraft?.title || ""}
+            initialContent={habitPromptDraft?.content || ""}
             spaces={spaces}
             defaultSpaceId={activeSpace.id}
             defaultTextAlign={defaultTextAlign}
@@ -2297,7 +2321,10 @@ export function App() {
             userName={userName}
             avatarPhoto={avatarPhoto}
             currentUserId={currentUserId}
-            onSaveNote={handleSaveNote}
+            onSaveNote={(savedNote) => {
+              setHabitPromptDraft(null);
+              handleSaveNote(savedNote);
+            }}
             onUpdateNote={handleUpdateNote}
           />
         )}
