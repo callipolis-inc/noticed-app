@@ -1,0 +1,262 @@
+name: Deploy to TestFlight / App Store Connect
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Custom Build Number (CURRENT_PROJECT_VERSION). Leave blank for auto-increment via run_number'
+        required: false
+        type: string
+        default: ''
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: deploy-appstore-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-ios:
+    name: Build & Upload iOS to TestFlight
+    runs-on: macos-15
+
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://ienbkpjldpzaewzewxfz.supabase.co' }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllbmJrcGpsZHB6YWV3emV3eGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTExMDY2MTgsImV4cCI6MjEwNjY4MjYxOH0.gDj4PReSQrI50LfM8tAZbbzAOsxVrvi8sIuLT7GqP_Q' }}
+      VITE_REVENUECAT_APPLE_KEY: ${{ secrets.VITE_REVENUECAT_APPLE_KEY || '' }}
+      VITE_REVENUECAT_GOOGLE_KEY: ${{ secrets.VITE_REVENUECAT_GOOGLE_KEY || '' }}
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Select Xcode 16 & iOS Toolchain
+        run: |
+          XCODE_APP=$(ls -d /Applications/Xcode_16*.app /Applications/Xcode*.app 2>/dev/null | head -n 1)
+          if [ -n "$XCODE_APP" ]; then
+            echo "Selecting $XCODE_APP"
+            sudo xcode-select -switch "$XCODE_APP/Contents/Developer"
+          fi
+          xcodebuild -version
+
+      - name: Install Project Dependencies
+        run: |
+          npm ci || npm install
+
+      - name: Build Web Application Bundle
+        run: |
+          npm run build
+
+      - name: Synchronize Capacitor iOS Platform
+        run: |
+          npx cap sync ios
+
+      - name: Configure Version & Build Number
+        run: |
+          BUILD_NUM="${{ github.event.inputs.build_number }}"
+          if [ -z "$BUILD_NUM" ]; then
+            BUILD_NUM="${{ github.run_number }}"
+          fi
+          echo "RESOLVED_BUILD_NUMBER=$BUILD_NUM" >> $GITHUB_ENV
+          echo "Setting iOS CURRENT_PROJECT_VERSION to: $BUILD_NUM"
+
+          node -e "
+            const fs = require('fs');
+            const file = 'ios/App/App.xcodeproj/project.pbxproj';
+            let pbx = fs.readFileSync(file, 'utf8');
+            pbx = pbx.replace(/CURRENT_PROJECT_VERSION = \d+;/g, 'CURRENT_PROJECT_VERSION = ' + process.env.RESOLVED_BUILD_NUMBER + ';');
+            fs.writeFileSync(file, pbx);
+          "
+
+      - name: Install Apple Distribution Certificate in Temporary Keychain
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD || 'Accrual2026Secret' }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/build_certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASS=$(uuidgen)
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+
+          # Decode base64 certificate
+          echo -n "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+          # Create and configure temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+
+          # Import P12 certificate with OpenSSL legacy fallback for cross-platform compatibility
+          if ! security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"; then
+            echo "Direct security import failed. Attempting OpenSSL legacy re-export..."
+            openssl pkcs12 -legacy -in "$CERT_PATH" -nodes -passin "pass:$APPLE_CERTIFICATE_PASSWORD" | \
+            openssl pkcs12 -export -out "$RUNNER_TEMP/reexported.p12" -passout "pass:$APPLE_CERTIFICATE_PASSWORD"
+            security import "$RUNNER_TEMP/reexported.p12" -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          fi
+
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASS" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Install Provisioning Profile
+        env:
+          APPLE_PROVISION_PROFILE_BASE64: ${{ secrets.APPLE_PROVISION_PROFILE_BASE64 }}
+        run: |
+          PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_DIR"
+
+          RAW_PROFILE="$RUNNER_TEMP/profile.mobileprovision"
+          echo -n "$APPLE_PROVISION_PROFILE_BASE64" | base64 --decode > "$RAW_PROFILE"
+
+          # Extract UUID and Profile Name
+          PROFILE_UUID=$(security cms -D -i "$RAW_PROFILE" | plutil -extract UUID raw -)
+          PROFILE_NAME=$(security cms -D -i "$RAW_PROFILE" | plutil -extract Name raw -)
+
+          echo "Detected Profile UUID: $PROFILE_UUID"
+          echo "Detected Profile Name: $PROFILE_NAME"
+
+          cp "$RAW_PROFILE" "$PROFILES_DIR/$PROFILE_UUID.mobileprovision"
+
+          echo "PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
+          echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
+
+      - name: Lock Xcode Manual Signing to App Target (Protect Swift Packages)
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || 'VU4PP3SY5B' }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const file = 'ios/App/App.xcodeproj/project.pbxproj';
+            let pbx = fs.readFileSync(file, 'utf8');
+            const profName = process.env.PROFILE_NAME;
+            const teamId = process.env.APPLE_TEAM_ID || 'VU4PP3SY5B';
+
+            // Inject explicit manual signing strictly into App target Release configuration (504EC3181FED79650016851F)
+            // This prevents xcodebuild from applying provisioning profiles globally to SPM package targets.
+            pbx = pbx.replace(
+              /(504EC3181FED79650016851F \/\* Release \*\/ = \{[\s\S]*?buildSettings = \{)/,
+              '\$1\n\t\t\t\tCODE_SIGN_IDENTITY = \"Apple Distribution\";\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tDEVELOPMENT_TEAM = ' + teamId + ';\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = \"' + profName + '\";'
+            );
+
+            fs.writeFileSync(file, pbx);
+            console.log('Successfully locked App target signing to Profile:', profName);
+          "
+
+      - name: Archive Xcode Project
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/App.xcarchive \
+            -allowProvisioningUpdates=NO \
+            2>&1 | tee xcodebuild-archive.log || {
+              echo "=========================================="
+              echo "          ARCHIVE FAILURE LOG             "
+              echo "=========================================="
+              grep -E -C 3 "(error:|fatal error:|BUILD FAILED|\*\* ARCHIVE FAILED \*\*)" xcodebuild-archive.log || tail -n 100 xcodebuild-archive.log
+              exit 1
+            }
+
+      - name: Export IPA for App Store Connect
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || 'VU4PP3SY5B' }}
+        run: |
+          cat <<EOF > ExportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>${APPLE_TEAM_ID}</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>signingCertificate</key>
+              <string>Apple Distribution</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.syntheticae.noticed</key>
+                  <string>${PROFILE_NAME}</string>
+              </dict>
+              <key>destination</key>
+              <string>export</string>
+              <key>manageAppVersionAndBuildNumber</key>
+              <false/>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive \
+            -exportPath build \
+            -exportOptionsPlist ExportOptions.plist
+
+          ls -lh build/*.ipa
+
+      - name: Write App Store Connect API Key (.p8)
+        env:
+          APPSTORE_API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_BASE64 }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || 'X4SX9VQZ44' }}
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          node -e "
+            const fs = require('fs');
+            const b64 = process.env.APPSTORE_API_KEY_BASE64;
+            const buf = Buffer.from(b64, 'base64');
+            const keyId = process.env.APPSTORE_API_KEY_ID;
+            const outPath = process.env.HOME + '/.appstoreconnect/private_keys/AuthKey_' + keyId + '.p8';
+            fs.writeFileSync(outPath, buf);
+            console.log('Wrote API Key to:', outPath);
+          "
+
+      - name: Upload IPA to TestFlight / App Store Connect
+        env:
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || 'X4SX9VQZ44' }}
+          APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID || 'c32ee50b-c9f8-4532-898e-4c793cac57f6' }}
+        run: |
+          IPA_PATH=$(find build -name "*.ipa" | head -n 1)
+          if [ -z "$IPA_PATH" ]; then
+            echo "Error: No IPA generated in build/"
+            exit 1
+          fi
+
+          echo "Found IPA at: $IPA_PATH"
+          echo "Uploading package to App Store Connect via altool..."
+
+          xcrun altool --upload-package "$IPA_PATH" \
+            --type ios \
+            --apiKey "$APPSTORE_API_KEY_ID" \
+            --apiIssuer "$APPSTORE_API_ISSUER_ID"
+
+      - name: Upload Build Artifacts & Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appstore-build-artifacts
+          path: |
+            build/*.ipa
+            xcodebuild-archive.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Cleanup Keychain and API Keys
+        if: always()
+        run: |
+          if [ -n "$KEYCHAIN_PATH" ] && [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
+          rm -rf ~/.appstoreconnect/private_keys || true
+          rm -rf "$RUNNER_TEMP"/*.p12 "$RUNNER_TEMP"/*.mobileprovision || true
