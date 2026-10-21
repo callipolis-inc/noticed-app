@@ -6,24 +6,29 @@ import { formatTimeOnly, formatNoteDate } from "@/lib/utils";
 import { triggerHaptic } from "@/lib/haptics";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { toSuperscriptNumber } from "./TextHighlighter";
-import { X, Pin, BookOpen, Quote, ArrowUpRight, ListTree } from "lucide-react";
+import { X, Pin, BookOpen, Quote, ArrowUpRight, ListTree, Archive } from "lucide-react";
 
 interface NotebookIndexSheetProps {
   isOpen: boolean;
   onClose: () => void;
   space: Space;
   groupedNotes: { dateKey: string; notes: FieldNote[] }[];
+  archivedNotes?: FieldNote[];
   onSelectNote: (noteId: string) => void;
+  onUnarchiveNote?: (noteId: string) => void;
+  onDeleteNote?: (noteId: string) => void;
 }
 
-type IndexTab = "all" | "chronicle" | "bookmarks" | "footnotes";
+type IndexTab = "all" | "chronicle" | "bookmarks" | "footnotes" | "archived";
 
 export function NotebookIndexSheet({
   isOpen,
   onClose,
   space,
   groupedNotes,
+  archivedNotes = [],
   onSelectNote,
+  onUnarchiveNote,
 }: NotebookIndexSheetProps) {
   useLockBodyScroll(isOpen);
 
@@ -222,9 +227,26 @@ export function NotebookIndexSheet({
                     Notes ({footnoteIndex.length})
                   </button>
                 )}
+                {archivedNotes.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setActiveTab("archived");
+                    }}
+                    className={`flex-1 apple-segmented-btn text-center !py-1 !px-2 flex items-center justify-center gap-1 ${
+                      activeTab === "archived"
+                        ? "apple-segmented-btn-active font-semibold"
+                        : ""
+                    }`}
+                  >
+                    <Archive className="w-2.5 h-2.5 opacity-70" />
+                    <span>Archived ({archivedNotes.length})</span>
+                  </button>
+                )}
               </div>
 
-              {allNotes.length === 0 ? (
+              {allNotes.length === 0 && archivedNotes.length === 0 ? (
                 <div className="py-16 text-center space-y-1">
                   <p className="font-serif italic text-sm text-[var(--text-tertiary)]">
                     No passages recorded in this volume yet.
@@ -392,6 +414,56 @@ export function NotebookIndexSheet({
                       )}
                     </section>
                   )}
+
+                  {/* SECTION IV: ARCHIVED PASSAGES */}
+                  {(activeTab === "all" || activeTab === "archived") &&
+                    archivedNotes.length > 0 && (
+                      <section className="space-y-1.5 pt-1">
+                        <div className="flex items-center gap-1.5 text-[10.5px] font-mono uppercase tracking-[0.18em] text-[var(--text-tertiary)] px-1 font-semibold">
+                          <Archive className="w-3 h-3 stroke-[2] opacity-70" />
+                          <span>Archived Notices ({archivedNotes.length})</span>
+                        </div>
+
+                        <div className="rounded-2xl apple-card divide-y divide-[var(--glass-border)]/50 overflow-hidden shadow-[0_8px_20px_-6px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.85)]">
+                          {archivedNotes.map((note) => {
+                            const label =
+                              note.title ||
+                              (note.content
+                                ? note.content.split("\n")[0].slice(0, 64)
+                                : "Photographic plate");
+                            return (
+                              <div
+                                key={`arch-${note.id}`}
+                                className="w-full p-3 flex items-center justify-between gap-3 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-serif text-[13.5px] font-medium text-[var(--text-primary)] truncate">
+                                    {label}
+                                  </div>
+                                  <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] mt-0.5">
+                                    {formatNoteDate(note.createdAt)} ·{" "}
+                                    {formatTimeOnly(note.createdAt)}
+                                  </div>
+                                </div>
+                                {onUnarchiveNote && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      triggerHaptic("medium");
+                                      onUnarchiveNote(note.id);
+                                    }}
+                                    className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[11px] font-semibold text-[var(--text-primary)] active:scale-95 transition-transform shrink-0 shadow-xs cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
+                                    title="Restore to active stream"
+                                  >
+                                    Restore
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    )}
                 </div>
               )}
             </div>

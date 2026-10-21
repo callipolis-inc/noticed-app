@@ -32,6 +32,7 @@ import {
   Share2,
   Archive,
   UserPlus,
+  MoreHorizontal,
 } from "lucide-react";
 
 export interface BookshelfViewProps {
@@ -277,6 +278,23 @@ export function BookshelfView({
   );
   const [shelfTab, setShelfTab] = useState<"active" | "archived">("active");
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isMoreMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [isMoreMenuOpen]);
 
   const activeSpaces = useMemo(
     () => spaces.filter((s) => !s.archived),
@@ -592,82 +610,29 @@ export function BookshelfView({
           </div>
         </button>
 
-        {/* Right Actions Pod */}
-        <div className="flex items-center p-1 rounded-full dynamic-island-shell shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)] gap-0.5 sm:gap-1 shrink-0">
+        {/* Right Actions Pod - Pure Apple Zen */}
+        <div ref={moreMenuRef} className="relative flex items-center p-1 rounded-full dynamic-island-shell shadow-[0_8px_20px_-6px_rgba(0,0,0,0.1)] border border-[var(--glass-border)] gap-1 shrink-0">
           <div className="dynamic-island-specular-rim" />
 
-          {/* Segmented Layout Switcher */}
-          <div className="apple-segmented-track !p-0.5">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("light");
-                setShelfLayout("spines");
-              }}
-              aria-label={t.bookshelf.spinesLayout}
-              aria-pressed={shelfLayout === "spines"}
-              className={`relative w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
-                shelfLayout === "spines"
-                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)]"
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-              }`}
-              title={t.bookshelf.spinesLayout}
-            >
-              <Columns3 className="w-3.5 h-3.5 stroke-[2]" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("light");
-                setShelfLayout("covers");
-              }}
-              aria-label={t.bookshelf.coversLayout}
-              aria-pressed={shelfLayout === "covers"}
-              className={`relative w-6.5 h-6.5 rounded-full flex items-center justify-center transition-all cursor-pointer before:absolute before:-inset-2 before:content-[''] ${
-                shelfLayout === "covers"
-                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)]"
-                  : "text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-              }`}
-              title={t.bookshelf.coversLayout}
-            >
-              <LayoutGrid className="w-3.5 h-3.5 stroke-[2]" />
-            </button>
-          </div>
+          {/* More / Library Menu Trigger (•••) */}
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic("light");
+              setIsMoreMenuOpen(!isMoreMenuOpen);
+            }}
+            aria-label="Library Menu"
+            aria-expanded={isMoreMenuOpen}
+            className="relative w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-['']"
+            title="Library Menu"
+          >
+            <MoreHorizontal className="w-4 h-4 stroke-[2]" />
+            {archivedSpaces.length > 0 && shelfTab === "active" && (
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-500 ring-1 ring-[var(--bg-base)]" />
+            )}
+          </button>
 
-          <div className="w-[1px] h-3.5 bg-[var(--glass-border)] opacity-60" />
-
-          {onOpenSettings && (
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("light");
-                onOpenSettings();
-              }}
-              aria-label={t.settings.title}
-              className="relative w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-['']"
-              title={t.settings.title}
-            >
-              <Settings className="w-3.5 h-3.5 stroke-[1.85]" />
-            </button>
-          )}
-
-          <div className="w-[1px] h-3.5 bg-[var(--glass-border)] opacity-60" />
-
-          {onOpenJoinSpace && (
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("light");
-                onOpenJoinSpace();
-              }}
-              aria-label="Gabung Notebook dengan Kode atau QR"
-              className="relative w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs border border-[var(--glass-border)]/60 before:absolute before:-inset-2 before:content-['']"
-              title="Gabung Notebook (Kode / Scan QR)"
-            >
-              <UserPlus className="w-3.5 h-3.5 stroke-[2]" />
-            </button>
-          )}
-
+          {/* Primary Action (+ New Notebook) */}
           <button
             type="button"
             onClick={() => {
@@ -686,13 +651,133 @@ export function BookshelfView({
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
+
+          {/* Apple Frosted Glass Overflow Popover */}
+          <AnimatePresence>
+            {isMoreMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="absolute top-full right-0 mt-2 w-56 rounded-2xl dynamic-island-shell shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)] border border-[var(--glass-border)] p-1.5 z-50 overflow-hidden text-xs backdrop-blur-xl pointer-events-auto"
+              >
+                {/* 1. Layout Switcher Row */}
+                <div className="p-2 flex items-center justify-between border-b border-[var(--glass-border)]/50">
+                  <span className="text-[11px] font-medium text-[var(--text-tertiary)]">
+                    {t.settings.shelfLayout}
+                  </span>
+                  <div className="apple-segmented-track !p-0.5 flex items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setShelfLayout("spines");
+                      }}
+                      className={`px-2 py-1 rounded-full flex items-center gap-1 text-[11px] transition-all cursor-pointer ${
+                        shelfLayout === "spines"
+                          ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-xs font-semibold"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      <Columns3 className="w-3 h-3 stroke-[2]" />
+                      <span>{t.bookshelf.spinesLayout}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setShelfLayout("covers");
+                      }}
+                      className={`px-2 py-1 rounded-full flex items-center gap-1 text-[11px] transition-all cursor-pointer ${
+                        shelfLayout === "covers"
+                          ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-xs font-semibold"
+                          : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      }`}
+                    >
+                      <LayoutGrid className="w-3 h-3 stroke-[2]" />
+                      <span>{t.bookshelf.coversLayout}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Menu Items */}
+                <div className="py-1 space-y-0.5">
+                  {/* Archived Books Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      const nextTab = shelfTab === "active" ? "archived" : "active";
+                      setShelfTab(nextTab);
+                      const targetList = nextTab === "archived" ? archivedSpaces : activeSpaces;
+                      if (targetList.length > 0) setSelectedId(targetList[0].id);
+                      setIsMoreMenuOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl transition-colors cursor-pointer ${
+                      shelfTab === "archived"
+                        ? "bg-[var(--text-primary)]/10 text-[var(--text-primary)] font-semibold"
+                        : "text-[var(--text-secondary)] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Archive className="w-3.5 h-3.5 stroke-[1.8]" />
+                      <span>{t.bookshelf.archivedTab}</span>
+                    </div>
+                    {archivedSpaces.length > 0 && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] font-semibold">
+                        {archivedSpaces.length}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Join Notebook */}
+                  {onOpenJoinSpace && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setIsMoreMenuOpen(false);
+                        onOpenJoinSpace();
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-[var(--text-secondary)] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    >
+                      <UserPlus className="w-3.5 h-3.5 stroke-[1.8]" />
+                      <span>{t.bookshelf.joinSpace}</span>
+                    </button>
+                  )}
+
+                  {/* Settings */}
+                  {onOpenSettings && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic("light");
+                        setIsMoreMenuOpen(false);
+                        onOpenSettings();
+                      }}
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-[var(--text-secondary)] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                    >
+                      <Settings className="w-3.5 h-3.5 stroke-[1.8]" />
+                      <span>{t.settings.title}</span>
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </header>
 
-      {/* 1.5. SHELF TAB SELECTOR (ACTIVE VS ARCHIVED) */}
-      {spaces.length > 0 && (
-        <div className="z-30 my-1.5 flex items-center justify-center w-full px-4">
-          <div className="apple-segmented-track !p-0.5 rounded-full dynamic-island-shell shadow-[0_4px_14px_-2px_rgba(0,0,0,0.08)] border border-[var(--glass-border)] flex items-center gap-1">
+      {/* Contextual Return Banner (Only displayed when viewing Archived Books) */}
+      {shelfTab === "archived" && (
+        <div className="z-30 my-1.5 flex items-center justify-center w-full px-4 animate-in fade-in duration-200">
+          <div className="px-3.5 py-1.5 rounded-full dynamic-island-shell shadow-sm border border-[var(--glass-border)] flex items-center gap-2.5 text-xs">
+            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
+              <Archive className="w-3.5 h-3.5" />
+              <span>{t.bookshelf.archivedTab} ({archivedSpaces.length})</span>
+            </div>
+            <span className="w-[1px] h-3 bg-[var(--glass-border)] opacity-60" />
             <button
               type="button"
               onClick={() => {
@@ -702,37 +787,9 @@ export function BookshelfView({
                   setSelectedId(activeSpaces[0].id);
                 }
               }}
-              className={`px-3.5 py-1 rounded-full text-xs font-medium tracking-wide transition-all cursor-pointer flex items-center gap-1.5 ${
-                shelfTab === "active"
-                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              }`}
+              className="text-[var(--text-primary)] hover:underline font-semibold cursor-pointer"
             >
-              <span>{t.bookshelf.activeTab}</span>
-              <span className="text-[10px] opacity-75 font-mono">
-                {activeSpaces.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("light");
-                setShelfTab("archived");
-                if (archivedSpaces.length > 0) {
-                  setSelectedId(archivedSpaces[0].id);
-                }
-              }}
-              className={`px-3.5 py-1 rounded-full text-xs font-medium tracking-wide transition-all cursor-pointer flex items-center gap-1.5 ${
-                shelfTab === "archived"
-                  ? "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white shadow-[0_2px_6px_rgba(0,0,0,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] font-semibold"
-                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              }`}
-            >
-              <Archive className="w-3 h-3 stroke-[1.8]" />
-              <span>{t.bookshelf.archivedTab}</span>
-              <span className="text-[10px] opacity-75 font-mono">
-                {archivedSpaces.length}
-              </span>
+              {currentLang === "id" ? "Kembali ke Rak Aktif" : "Back to Active Shelf"}
             </button>
           </div>
         </div>

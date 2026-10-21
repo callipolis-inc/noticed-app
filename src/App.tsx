@@ -1748,6 +1748,10 @@ export function App() {
     return notes.filter((n) => n.spaceId === activeSpace.id && !n.archived);
   }, [notes, activeSpace.id]);
 
+  const archivedNotebookNotes = useMemo(() => {
+    return notes.filter((n) => n.spaceId === activeSpace.id && Boolean(n.archived));
+  }, [notes, activeSpace.id]);
+
   const groupedNotes = useMemo(() => {
     const groups: { dateKey: string; notes: FieldNote[] }[] = [];
     const map = new Map<string, FieldNote[]>();
@@ -2409,9 +2413,12 @@ export function App() {
             onClose={() => setIsIndexOpen(false)}
             space={activeSpace}
             groupedNotes={groupedNotes}
+            archivedNotes={archivedNotebookNotes}
             onSelectNote={(noteId) =>
               handleSelectSearchNote(activeSpace.id, noteId)
             }
+            onUnarchiveNote={handleArchiveNoteToggle}
+            onDeleteNote={handleDeleteNote}
           />
         )}
 
