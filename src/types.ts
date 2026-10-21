@@ -107,6 +107,8 @@ export interface FieldNote {
   pinned?: boolean;
   archived?: boolean;
   photostripLayout?: 'polaroid' | 'strip' | 'grid';
+  isConflictCopy?: boolean;
+  _isDirty?: boolean;
   createdAt: string;
   updatedAt?: string;
   marginalia?: string;

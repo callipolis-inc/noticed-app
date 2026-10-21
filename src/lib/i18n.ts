@@ -244,6 +244,15 @@ export interface TranslationDictionary {
     loading: string;
     profile: string;
   };
+  sync: {
+    offlineNotice: string;
+    cloudSynced: string;
+    cloudSyncRequiresPro: string;
+    signedOutFromCloud: string;
+    signedInAs: string;
+    conflictCopySuffix: string;
+    untitledConflictCopy: string;
+  };
 }
 
 export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
@@ -474,6 +483,15 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       loading: "Memuat...",
       profile: "Profil",
     },
+    sync: {
+      offlineNotice: "Sedang offline — perubahan tersimpan di perangkat",
+      cloudSynced: "Tersinkronisasi dengan cloud",
+      cloudSyncRequiresPro: "Sinkronisasi cloud membutuhkan Atelier Pro",
+      signedOutFromCloud: "Keluar dari cloud",
+      signedInAs: "Masuk sebagai",
+      conflictCopySuffix: " (Salinan Konflik)",
+      untitledConflictCopy: "Catatan Tanpa Judul (Salinan Konflik)",
+    },
   },
   en: {
     app: {
@@ -701,6 +719,15 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       back: "Back",
       loading: "Loading...",
       profile: "Profile",
+    },
+    sync: {
+      offlineNotice: "Offline — changes saved on device",
+      cloudSynced: "Cloud synchronized",
+      cloudSyncRequiresPro: "Cloud sync requires Atelier Pro",
+      signedOutFromCloud: "Signed out from cloud",
+      signedInAs: "Signed in as",
+      conflictCopySuffix: " (Conflict Copy)",
+      untitledConflictCopy: "Untitled Note (Conflict Copy)",
     },
   },
 };

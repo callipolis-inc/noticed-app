@@ -103,6 +103,8 @@ import {
   saveToAtelierDB,
   clearAtelierDB,
   safeLocalStorageSet,
+  safeLocalStorageGet,
+  safeLocalStorageRemove,
 } from "@/lib/storage";
 import {
   supabase,
@@ -182,13 +184,12 @@ function sanitizeLegacyDummyData(
 }
 
 export function App() {
-  const [language, setLanguage] = useAppLanguage();
+  const [language, setLanguage, t] = useAppLanguage();
 
   const [theme, setTheme] = useState<ThemePalette>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem(
-        "sidenotes_theme_palette",
-      ) as ThemePalette;
+      const saved = (safeLocalStorageGet("noticed_theme_palette") ||
+        localStorage.getItem("sidenotes_theme_palette")) as ThemePalette;
       if (
         saved &&
         [
@@ -218,11 +219,11 @@ export function App() {
 
       const savedSpacesStr =
         typeof window !== "undefined"
-          ? localStorage.getItem("sidenotes_spaces")
+          ? safeLocalStorageGet("noticed_spaces")
           : null;
       const savedNotesStr =
         typeof window !== "undefined"
-          ? localStorage.getItem("sidenotes_notes")
+          ? safeLocalStorageGet("noticed_notes")
           : null;
       const rawSpaces: Space[] = savedSpacesStr
         ? JSON.parse(savedSpacesStr)
@@ -553,6 +554,7 @@ export function App() {
   }, []);
 
   const isApplyingRemoteSyncRef = useRef(false);
+  const isSyncingRef = useRef(false);
   const autoSyncTimerRef = useRef<number | null>(null);
 
   // Two-way synchronization handler (supports silent background mode or manual user trigger)
@@ -560,20 +562,27 @@ export function App() {
     const silent = options?.silent ?? false;
     if (!isProUser()) {
       if (!silent) {
-        showFlyout("Cloud sync requires Atelier Pro", 2500);
+        showFlyout(t.sync.cloudSyncRequiresPro, 2500);
       }
       return;
     }
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       if (!silent) {
-        showFlyout("Sedang offline — perubahan tersimpan di perangkat", 2500);
+        showFlyout(t.sync.offlineNotice, 2500);
       }
       return;
     }
-    if (isSyncing) return;
+    if (isSyncingRef.current || isSyncing) return;
+    isSyncingRef.current = true;
     setIsSyncing(true);
     try {
-      const result = await syncWithCloud(spaces, notes, userName, avatarPhoto);
+      const result = await syncWithCloud(
+        spaces,
+        notes,
+        userName,
+        avatarPhoto,
+        language,
+      );
       if (result.synced) {
         const spacesChanged =
           JSON.stringify(result.spaces) !== JSON.stringify(spaces);
@@ -591,13 +600,13 @@ export function App() {
           if (notesChanged) setNotes(result.notes);
           if (nameChanged && result.userName) {
             setUserName(result.userName);
-            localStorage.setItem("sidenotes_username", result.userName);
+            safeLocalStorageSet("noticed_username", result.userName);
           }
           if (avatarChanged && result.avatarPhoto !== undefined) {
             setAvatarPhoto(result.avatarPhoto);
             if (result.avatarPhoto) {
-              localStorage.setItem(
-                "sidenotes_avatar_photo",
+              safeLocalStorageSet(
+                "noticed_avatar_photo",
                 result.avatarPhoto,
               );
             }
@@ -609,7 +618,7 @@ export function App() {
 
         if (result.timestamp) setLastSyncedAt(result.timestamp);
         if (!silent) {
-          showFlyout("Cloud synchronized", 2000);
+          showFlyout(t.sync.cloudSynced, 2000);
         }
       } else if (
         !silent &&
@@ -621,6 +630,7 @@ export function App() {
     } catch (err: any) {
       console.error("[Noticed] Sync error:", err);
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
     }
   };
@@ -740,7 +750,7 @@ export function App() {
 
   const handleAuthSuccess = (email: string) => {
     setUserEmail(email);
-    showFlyout(`Signed in as ${email}`, 2500);
+    showFlyout(`${t.sync.signedInAs} ${email}`, 2500);
     setTimeout(() => {
       handleCloudSync({ silent: false });
     }, 400);
@@ -750,7 +760,7 @@ export function App() {
     try {
       await signOutUser();
       setUserEmail(null);
-      showFlyout("Signed out from cloud", 2000);
+      showFlyout(t.sync.signedOutFromCloud, 2000);
     } catch (err: any) {
       console.error(err);
     }
@@ -781,16 +791,16 @@ export function App() {
     setCurrentView("bookshelf");
 
     // Purge local persistent stores
-    localStorage.removeItem("sidenotes_spaces");
-    localStorage.removeItem("sidenotes_notes");
-    localStorage.removeItem("sidenotes_username");
-    localStorage.removeItem("sidenotes_avatar_photo");
-    localStorage.removeItem("sidenotes_author_bio");
-    localStorage.removeItem("sidenotes_is_pro");
-    localStorage.removeItem("sidenotes_user_email");
-    localStorage.removeItem("sidenotes_pending_mutations");
-    localStorage.removeItem("sidenotes_pending_deletes");
-    localStorage.removeItem("sidenotes_last_synced_at");
+    safeLocalStorageRemove("noticed_spaces");
+    safeLocalStorageRemove("noticed_notes");
+    safeLocalStorageRemove("noticed_username");
+    safeLocalStorageRemove("noticed_avatar_photo");
+    safeLocalStorageRemove("noticed_author_bio");
+    safeLocalStorageRemove("noticed_is_pro");
+    safeLocalStorageRemove("noticed_user_email");
+    safeLocalStorageRemove("noticed_pending_mutations");
+    safeLocalStorageRemove("noticed_pending_deletes");
+    safeLocalStorageRemove("noticed_last_synced_at");
     await clearAtelierDB();
 
     setIsProfileOpen(false);
@@ -810,8 +820,8 @@ export function App() {
       }
 
       const [idbSpaces, idbNotes] = await Promise.all([
-        loadFromAtelierDB<Space[]>("sidenotes_spaces"),
-        loadFromAtelierDB<FieldNote[]>("sidenotes_notes"),
+        loadFromAtelierDB<Space[]>("noticed_spaces"),
+        loadFromAtelierDB<FieldNote[]>("noticed_notes"),
       ]);
       if (!isMounted) return;
       const rawIdbSpaces =
@@ -1231,14 +1241,14 @@ export function App() {
 
   useEffect(() => {
     if (!isHydrated) return;
-    safeLocalStorageSet("sidenotes_spaces", JSON.stringify(spaces));
-    saveToAtelierDB("sidenotes_spaces", spaces);
+    safeLocalStorageSet("noticed_spaces", JSON.stringify(spaces));
+    saveToAtelierDB("noticed_spaces", spaces);
   }, [spaces, isHydrated]);
 
   useEffect(() => {
     if (!isHydrated) return;
-    safeLocalStorageSet("sidenotes_notes", JSON.stringify(notes));
-    saveToAtelierDB("sidenotes_notes", notes);
+    safeLocalStorageSet("noticed_notes", JSON.stringify(notes));
+    saveToAtelierDB("noticed_notes", notes);
   }, [notes, isHydrated]);
 
   const activeSpace =
@@ -1504,6 +1514,7 @@ export function App() {
     }
     const noteToSave: FieldNote = {
       ...newNote,
+      _isDirty: true,
       updatedAt: nowIso,
     };
     setNotes((prev) => [noteToSave, ...prev]);
@@ -1517,6 +1528,7 @@ export function App() {
   ) => {
     const noteToUpdate: FieldNote = {
       ...updatedNote,
+      _isDirty: true,
       updatedAt: new Date().toISOString(),
     };
     setNotes((prev) =>
@@ -1550,6 +1562,7 @@ export function App() {
               quoteSource,
               marginaliaItems:
                 marginaliaItems.length > 0 ? marginaliaItems : undefined,
+              _isDirty: true,
               updatedAt: new Date().toISOString(),
             }
           : n,
@@ -1563,7 +1576,12 @@ export function App() {
       setNotes((prev) =>
         prev.map((n) =>
           n.id === noteId
-            ? { ...n, highlights, updatedAt: new Date().toISOString() }
+            ? {
+                ...n,
+                highlights,
+                _isDirty: true,
+                updatedAt: new Date().toISOString(),
+              }
             : n,
         ),
       );
@@ -1576,7 +1594,12 @@ export function App() {
       setNotes((prev) =>
         prev.map((n) =>
           n.id === noteId
-            ? { ...n, textAlign: align, updatedAt: new Date().toISOString() }
+            ? {
+                ...n,
+                textAlign: align,
+                _isDirty: true,
+                updatedAt: new Date().toISOString(),
+              }
             : n,
         ),
       );
@@ -1589,7 +1612,12 @@ export function App() {
     setNotes((prev) =>
       prev.map((n) =>
         n.id === noteId
-          ? { ...n, pinned: !n.pinned, updatedAt: new Date().toISOString() }
+          ? {
+              ...n,
+              pinned: !n.pinned,
+              _isDirty: true,
+              updatedAt: new Date().toISOString(),
+            }
           : n,
       ),
     );
@@ -1611,6 +1639,7 @@ export function App() {
             return {
               ...n,
               archived: isArchivedNow,
+              _isDirty: true,
               updatedAt: new Date().toISOString(),
             };
           }

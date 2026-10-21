@@ -30,6 +30,7 @@ import {
   Pencil,
   Copy,
   Archive,
+  GitFork,
 } from "lucide-react";
 
 interface NoteEntryProps {
@@ -831,6 +832,15 @@ export const NoteEntry = memo(function NoteEntry({
                     <span>Pinned</span>
                   </span>
                 )}
+                {note.isConflictCopy && (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 font-sans font-semibold text-[9.5px] uppercase tracking-wider mr-2 align-middle border border-amber-500/20 shadow-2xs"
+                    title="Safe-forked conflict copy"
+                  >
+                    <GitFork className="w-2.5 h-2.5 shrink-0" />
+                    <span>Fork</span>
+                  </span>
+                )}
                 {formattedTime}
                 {note.locationName && (
                   <span className="inline-flex items-center gap-1 opacity-90 font-sans font-medium text-[10.5px] normal-case tracking-normal ml-1.5 align-middle">
@@ -900,6 +910,15 @@ export const NoteEntry = memo(function NoteEntry({
                   >
                     <Pin className="w-2.5 h-2.5 fill-current rotate-45 shrink-0" />
                     <span>Pinned</span>
+                  </span>
+                )}
+                {note.isConflictCopy && (
+                  <span
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 font-sans font-semibold text-[9.5px] uppercase tracking-wider mr-2 align-middle border border-amber-500/20 shadow-2xs"
+                    title="Safe-forked conflict copy"
+                  >
+                    <GitFork className="w-2.5 h-2.5 shrink-0" />
+                    <span>Fork</span>
                   </span>
                 )}
                 {formattedTime}

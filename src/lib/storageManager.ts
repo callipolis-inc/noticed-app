@@ -174,6 +174,9 @@ export async function optimizeAndPurgeStorage(
     // 2. Remove stale transient localStorage keys
     if (typeof window !== "undefined") {
       const transientKeyPrefixes = [
+        "noticed_temp_",
+        "noticed_cache_",
+        "noticed_audio_temp",
         "sidenotes_temp_",
         "sidenotes_cache_",
         "sidenotes_audio_temp",
@@ -196,8 +199,8 @@ export async function optimizeAndPurgeStorage(
     }
 
     // 3. Compact and re-save clean dataset in IndexedDB
-    await saveToAtelierDB("sidenotes_spaces", spaces);
-    await saveToAtelierDB("sidenotes_notes", notes);
+    await saveToAtelierDB("noticed_spaces", spaces);
+    await saveToAtelierDB("noticed_notes", notes);
 
     // 4. Force browser garbage collection on memory by freeing temporary blob URLs
     if (typeof window !== "undefined" && window.sessionStorage) {

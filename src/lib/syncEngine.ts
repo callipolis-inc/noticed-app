@@ -37,7 +37,8 @@ export const DEFAULT_STARTER_SPACE: Space = {
   createdAt: new Date().toISOString(),
 };
 
-const PENDING_DELETES_KEY = "sidenotes_pending_deletes";
+const PENDING_DELETES_KEY = "noticed_pending_deletes";
+const LEGACY_PENDING_DELETES_KEY = "sidenotes_pending_deletes";
 
 export const LEGACY_DUMMY_SPACE_IDS = new Set(["space-1", "space-3"]);
 export const LEGACY_DUMMY_NOTE_IDS = new Set([
@@ -60,7 +61,9 @@ export function isLegacyDummyNoteId(id: string): boolean {
 
 function getPendingDeletes(): PendingDeletes {
   try {
-    const raw = localStorage.getItem(PENDING_DELETES_KEY);
+    const raw =
+      localStorage.getItem(PENDING_DELETES_KEY) ||
+      localStorage.getItem(LEGACY_PENDING_DELETES_KEY);
     if (!raw) return { noteIds: [], spaceIds: [], mediaUrls: [] };
     const parsed = JSON.parse(raw);
     return {
@@ -376,6 +379,7 @@ export async function syncWithCloud(
   localNotes: FieldNote[],
   userName?: string,
   avatarPhoto?: string | null,
+  language: "en" | "id" = "en",
 ): Promise<SyncResult> {
   const user = await getCurrentUser();
   if (!user) {
@@ -397,7 +401,8 @@ export async function syncWithCloud(
     // Retrieve last successful sync timestamp for 3-way merge and tombstone detection
     const lastSyncedAt =
       typeof localStorage !== "undefined"
-        ? localStorage.getItem("sidenotes_last_synced_at")
+        ? localStorage.getItem("noticed_last_synced_at") ||
+          localStorage.getItem("sidenotes_last_synced_at")
         : null;
     const lastSyncTime = lastSyncedAt ? new Date(lastSyncedAt).getTime() : 0;
 
@@ -680,22 +685,29 @@ export async function syncWithCloud(
           // Remote is strictly newer.
           // True 3-Way Merge: Only create conflict copy if BOTH sides modified since last sync.
           const isLocallyModified =
-            lastSyncTime > 0 && localTime > lastSyncTime;
+            (lastSyncTime > 0 && localTime > lastSyncTime) ||
+            Boolean(localNote._isDirty);
 
           if (
             isLocallyModified &&
             isNoteContentDiverged(localNote, remoteNote)
           ) {
             // Safe Forking: fork local changes to prevent data loss
+            const isId = language === "id";
+            const conflictSuffix = isId ? " (Salinan Konflik)" : " (Conflict Copy)";
+            const untitledFallback = isId ? "Catatan Tanpa Judul" : "Untitled Note";
+
             const conflictCopy: FieldNote = {
               ...localNote,
               id: `${localNote.id}-conflict-${Date.now()}`,
               title: localNote.title
-                ? `${localNote.title} (Conflict Copy)`
-                : "Untitled Note (Conflict Copy)",
+                ? `${localNote.title}${conflictSuffix}`
+                : `${untitledFallback}${conflictSuffix}`,
+              isConflictCopy: true,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
             };
+            delete conflictCopy._isDirty;
             notesToPush.push(conflictCopy);
             finalNotesMap.set(conflictCopy.id, conflictCopy);
             // Canonical ID takes remote note
@@ -785,16 +797,23 @@ export async function syncWithCloud(
       mergedSpaces.push(DEFAULT_STARTER_SPACE);
     }
 
-    const mergedNotes = Array.from(finalNotesMap.values());
+    const mergedNotes = Array.from(finalNotesMap.values()).map((n) => {
+      if (n._isDirty) {
+        const clean = { ...n };
+        delete clean._isDirty;
+        return clean;
+      }
+      return n;
+    });
 
     // 8. Persist Merged Dataset into Offline Storage (IndexedDB + localStorage safe mirror)
-    await saveToAtelierDB("sidenotes_spaces", mergedSpaces);
-    await saveToAtelierDB("sidenotes_notes", mergedNotes);
-    safeLocalStorageSet("sidenotes_spaces", JSON.stringify(mergedSpaces));
-    safeLocalStorageSet("sidenotes_notes", JSON.stringify(mergedNotes));
+    await saveToAtelierDB("noticed_spaces", mergedSpaces);
+    await saveToAtelierDB("noticed_notes", mergedNotes);
+    safeLocalStorageSet("noticed_spaces", JSON.stringify(mergedSpaces));
+    safeLocalStorageSet("noticed_notes", JSON.stringify(mergedNotes));
 
     const syncTimestamp = new Date().toISOString();
-    localStorage.setItem("sidenotes_last_synced_at", syncTimestamp);
+    safeLocalStorageSet("noticed_last_synced_at", syncTimestamp);
 
     return {
       spaces: mergedSpaces,
