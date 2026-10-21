@@ -142,6 +142,96 @@ export interface TranslationDictionary {
     eveningDefaultTitle: string;
     eveningDefaultBody: string;
   };
+  spaceShare: {
+    collaborationAndExport: string;
+    shareNotebook: string;
+    noticesSaved: string;
+    sharedBadge: string;
+    collabAccess: string;
+    activeStatus: string;
+    enableStatus: string;
+    collabDesc: string;
+    memberRoleTitle: string;
+    roleEditor: string;
+    roleViewer: string;
+    roleEditorDesc: string;
+    roleViewerDesc: string;
+    tabLink: string;
+    tabQr: string;
+    copyLink: string;
+    copiedLink: string;
+    shareLink: string;
+    qrInstruction: string;
+    activeMembers: string;
+    syncingMembers: string;
+    removeMemberConfirm: string;
+    leaveNotebook: string;
+    leaveNotebookConfirm: string;
+    printFolioTitle: string;
+    printFolioDesc: string;
+    printFolioButton: string;
+  };
+  joinSpace: {
+    title: string;
+    scanTab: string;
+    typeTab: string;
+    scanInstruction: string;
+    typeInstruction: string;
+    inputPlaceholder: string;
+    searchButton: string;
+    searching: string;
+    readOnlyRole: string;
+    editorRole: string;
+    membersCount: string;
+    joinButton: string;
+    joiningButton: string;
+    cancelButton: string;
+    foundTitle: string;
+    viewerDesc: string;
+    editorDesc: string;
+    alreadyInShelf: string;
+    notFound: string;
+    invalidCode: string;
+    uploadQr: string;
+  };
+  manuscript: {
+    title: string;
+    subtitle: string;
+    a4Format: string;
+    a5Format: string;
+    options: string;
+    copyMarkdown: string;
+    copied: string;
+    unlockFull: string;
+    pro: string;
+    freePreviewTitle: string;
+    freePreviewDesc: string;
+    unlockFullButton: string;
+    printPdf: string;
+  };
+  atelierPro: {
+    membership: string;
+    title: string;
+    defaultDesc: string;
+    planSelection: string;
+    privilegesTitle: string;
+    privileges: {
+      unlimitedVolumes: string;
+      cloudSync: string;
+      motionClips: string;
+      audioStudio: string;
+      unlimitedPhotos: string;
+      printPdf: string;
+    };
+    oneTimeNotice: string;
+    subscriptionDisclosure: string;
+    processing: string;
+    continueStandard: string;
+    restorePurchases: string;
+    terms: string;
+    privacy: string;
+    eula: string;
+  };
   common: {
     cancel: string;
     save: string;
@@ -268,6 +358,110 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       eveningDefaultTitle: "Refleksi Hening",
       eveningDefaultBody: "Apa momen kecil atau rasa syukur yang hadir hari ini?",
     },
+    spaceShare: {
+      collaborationAndExport: "Kolaborasi & Ekspor",
+      shareNotebook: "Bagikan Notebook",
+      noticesSaved: "catatan tersimpan",
+      sharedBadge: "Bersama",
+      collabAccess: "Akses Kolaborasi Space",
+      activeStatus: "Aktif",
+      enableStatus: "Aktifkan",
+      collabDesc:
+        "Aktifkan akses kolaborasi untuk mengundang partner membaca atau menulis catatan bersama melalui tautan, kode, atau kode QR.",
+      memberRoleTitle: "Izin Akses Anggota",
+      roleEditor: "Bisa Edit",
+      roleViewer: "Hanya Baca",
+      roleEditorDesc:
+        "Anggota dapat membaca semua catatan dan membuat/mengedit catatan mereka sendiri.",
+      roleViewerDesc:
+        "Anggota hanya dapat membaca dan menjelajahi catatan tanpa dapat mengubah isi.",
+      tabLink: "Tautan & Kode",
+      tabQr: "Kode QR",
+      copyLink: "Salin",
+      copiedLink: "Tersalin!",
+      shareLink: "Bagikan",
+      qrInstruction:
+        "Pindai kode QR ini menggunakan kamera ponsel atau pembaca QR untuk bergabung ke notebook ini secara instan.",
+      activeMembers: "Anggota Aktif",
+      syncingMembers: "Menyinkronkan...",
+      removeMemberConfirm: "Keluarkan {name} dari notebook ini?",
+      leaveNotebook: "Tinggalkan Notebook Ini",
+      leaveNotebookConfirm:
+        "Apakah Anda yakin ingin meninggalkan notebook kolaborasi ini? Anda tidak akan dapat mengakses catatan di dalamnya kecuali diundang kembali.",
+      printFolioTitle: "Cetak Folio Manuscript",
+      printFolioDesc:
+        "Ekspor buku catatan ke format PDF siap cetak dengan tata letak editorial berkualitas tinggi.",
+      printFolioButton: "Cetak PDF",
+    },
+    joinSpace: {
+      title: "Gabung ke Notebook",
+      scanTab: "Pindai QR",
+      typeTab: "Ketik Kode",
+      scanInstruction:
+        "Arahkan kamera ke kode QR notebook atau unggah gambar QR dari galeri.",
+      typeInstruction:
+        "Masukkan 8-karakter kode undangan notebook atau tempel tautan undangan.",
+      inputPlaceholder: "Contoh: SPACE1 atau https://noticed.app/join/...",
+      searchButton: "Cari Notebook",
+      searching: "Mencari...",
+      readOnlyRole: "Hanya Baca",
+      editorRole: "Bisa Edit",
+      membersCount: "Anggota",
+      joinButton: "Gabung ke Notebook",
+      joiningButton: "Menghubungkan ke Space...",
+      cancelButton: "Batal",
+      foundTitle: "Notebook Ditemukan",
+      viewerDesc:
+        "Anda akan bergabung sebagai pembaca (read-only). Anda dapat menjelajahi seluruh catatan di dalamnya.",
+      editorDesc:
+        "Anda akan bergabung sebagai kolaborator penuh. Anda dapat membaca dan menambahkan catatan baru.",
+      alreadyInShelf: "Notebook ini sudah ada di rak buku Anda.",
+      notFound:
+        "Notebook tidak ditemukan atau izin berbagi belum diaktifkan oleh pemiliknya.",
+      invalidCode: "Masukkan kode undangan yang valid.",
+      uploadQr: "Unggah QR",
+    },
+    manuscript: {
+      title: "Edisi Manuskrip Folio",
+      subtitle: "notices",
+      a4Format: "A4 FOLIO",
+      a5Format: "A5 OCTAVO",
+      options: "Opsi",
+      copyMarkdown: "Salin Markdown",
+      copied: "Tersalin",
+      unlockFull: "Buka Seluruh Folio",
+      pro: "Pro",
+      freePreviewTitle: "Pratinjau Edisi Standar",
+      freePreviewDesc: "Menampilkan 5 dari {total} catatan dalam volume ini.",
+      unlockFullButton: "Buka Lengkap",
+      printPdf: "Cetak PDF",
+    },
+    atelierPro: {
+      membership: "Keanggotaan Atelier",
+      title: "Atelier Pro",
+      defaultDesc:
+        "Kapasitas tanpa batas, sinkronisasi cloud real-time, dan kebebasan mengarsipkan catatan seumur hidup.",
+      planSelection: "Pilih Paket Keanggotaan",
+      privilegesTitle: "Hak Istimewa Anggota Pro",
+      privileges: {
+        unlimitedVolumes: "Volume & Halaman Tanpa Batas",
+        cloudSync: "Cloud Sync Multi-Device",
+        motionClips: "Motion Video Clips 30s",
+        audioStudio: "Impor Audio Studio 3 Menit",
+        unlimitedPhotos: "Foto per Catatan Tanpa Batas",
+        printPdf: "Ekspor Manuskrip Cetak PDF",
+      },
+      oneTimeNotice:
+        "Pembelian satu kali. Akses keanggotaan Atelier Pro permanen tanpa biaya langganan berulang.",
+      subscriptionDisclosure:
+        "Pembayaran dibebankan ke akun Apple ID / Google Play Anda saat konfirmasi pembelian. Langganan otomatis diperpanjang seharga {price} {period} kecuali dibatalkan setidaknya 24 jam sebelum akhir periode berjalan. Kelola atau batalkan langganan kapan saja di Pengaturan Akun App Store.",
+      processing: "Memproses...",
+      continueStandard: "Lanjutkan dengan Edisi Standar",
+      restorePurchases: "Restore Purchases",
+      terms: "Terms of Service",
+      privacy: "Privacy Policy",
+      eula: "Apple Standard EULA",
+    },
     common: {
       cancel: "Batal",
       save: "Simpan",
@@ -391,6 +585,110 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       morningDefaultBody: "What is one meaningful thing you wish to notice today?",
       eveningDefaultTitle: "Evening Reflection",
       eveningDefaultBody: "What small moment or gratitude was present today?",
+    },
+    spaceShare: {
+      collaborationAndExport: "Collaboration & Export",
+      shareNotebook: "Share Notebook",
+      noticesSaved: "notices saved",
+      sharedBadge: "Shared",
+      collabAccess: "Space Collaboration Access",
+      activeStatus: "Active",
+      enableStatus: "Enable",
+      collabDesc:
+        "Enable collaboration access to invite partners to read or write notices together via link, code, or QR code.",
+      memberRoleTitle: "Member Access Role",
+      roleEditor: "Can Edit",
+      roleViewer: "Read Only",
+      roleEditorDesc:
+        "Members can read all notices and create/edit their own notices.",
+      roleViewerDesc:
+        "Members can only read and explore notices without modifying content.",
+      tabLink: "Link & Code",
+      tabQr: "QR Code",
+      copyLink: "Copy",
+      copiedLink: "Copied!",
+      shareLink: "Share",
+      qrInstruction:
+        "Scan this QR code using a mobile camera or QR reader to join this notebook instantly.",
+      activeMembers: "Active Members",
+      syncingMembers: "Syncing...",
+      removeMemberConfirm: "Remove {name} from this notebook?",
+      leaveNotebook: "Leave This Notebook",
+      leaveNotebookConfirm:
+        "Are you sure you want to leave this shared notebook? You will lose access to its notices unless invited again.",
+      printFolioTitle: "Print Folio Manuscript",
+      printFolioDesc:
+        "Export notebook to a print-ready PDF with high-quality editorial typesetting.",
+      printFolioButton: "Print PDF",
+    },
+    joinSpace: {
+      title: "Join Notebook",
+      scanTab: "Scan QR",
+      typeTab: "Enter Code",
+      scanInstruction:
+        "Point your camera at a notebook QR code or upload an image from your gallery.",
+      typeInstruction:
+        "Enter the 8-character notebook invite code or paste the invite link.",
+      inputPlaceholder: "e.g., SPACE1 or https://noticed.app/join/...",
+      searchButton: "Find Notebook",
+      searching: "Searching...",
+      readOnlyRole: "Read Only",
+      editorRole: "Can Edit",
+      membersCount: "Members",
+      joinButton: "Join Notebook",
+      joiningButton: "Connecting to Space...",
+      cancelButton: "Cancel",
+      foundTitle: "Notebook Found",
+      viewerDesc:
+        "You will join as a reader (read-only). You can explore all notices inside.",
+      editorDesc:
+        "You will join as a full collaborator. You can read and write new notices.",
+      alreadyInShelf: "This notebook is already on your bookshelf.",
+      notFound:
+        "Notebook not found or sharing has not been enabled by the owner.",
+      invalidCode: "Please enter a valid invite code.",
+      uploadQr: "Upload QR",
+    },
+    manuscript: {
+      title: "Folio Manuscript Edition",
+      subtitle: "notices",
+      a4Format: "A4 FOLIO",
+      a5Format: "A5 OCTAVO",
+      options: "Options",
+      copyMarkdown: "Copy Markdown",
+      copied: "Copied",
+      unlockFull: "Unlock Full Folio",
+      pro: "Pro",
+      freePreviewTitle: "Standard Edition Preview",
+      freePreviewDesc: "Showing 5 of {total} notices in this volume.",
+      unlockFullButton: "Unlock Full",
+      printPdf: "Print PDF",
+    },
+    atelierPro: {
+      membership: "Atelier Membership",
+      title: "Atelier Pro",
+      defaultDesc:
+        "Boundless capacity, real-time cloud sync, and the freedom to preserve a lifetime of marginalia.",
+      planSelection: "Choose Membership Tier",
+      privilegesTitle: "Pro Member Privileges",
+      privileges: {
+        unlimitedVolumes: "Unlimited Volumes & Marginalia",
+        cloudSync: "Multi-Device Encrypted Cloud Sync",
+        motionClips: "30s Motion Video Memories",
+        audioStudio: "3-Min High Fidelity Audio Studio",
+        unlimitedPhotos: "Boundless Photographs per Entry",
+        printPdf: "Print-Ready PDF Manuscript Export",
+      },
+      oneTimeNotice:
+        "One-time purchase. Permanent Atelier Pro membership without recurring subscription fees.",
+      subscriptionDisclosure:
+        "Payment will be charged to your Apple ID / Google Play account at confirmation of purchase. Subscription automatically renews for {price} {period} unless canceled at least 24 hours before the end of the current period. Manage or cancel anytime in App Store Account Settings.",
+      processing: "Processing...",
+      continueStandard: "Continue with Standard Edition",
+      restorePurchases: "Restore Purchases",
+      terms: "Terms of Service",
+      privacy: "Privacy Policy",
+      eula: "Apple Standard EULA",
     },
     common: {
       cancel: "Cancel",

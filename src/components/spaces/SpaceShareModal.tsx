@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import { Space, SpaceMember } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useAppLanguage } from "@/lib/i18n";
 import {
   X,
   Share2,
@@ -42,19 +43,29 @@ export function SpaceShareModal({
   onUpdateSpace,
   onLeaveSpace,
 }: SpaceShareModalProps) {
+  const [, , t] = useAppLanguage();
   const [copied, setCopied] = useState(false);
   const [activeShareTab, setActiveShareTab] = useState<"link" | "qr">("link");
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [members, setMembers] = useState<SpaceMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [localSpace, setLocalSpace] = useState<Space | null>(space);
+
+  useEffect(() => {
+    if (space) {
+      setLocalSpace(space);
+    }
+  }, [space]);
+
+  const currentSpace = localSpace || space;
 
   const isCurrentSpaceOwner = Boolean(
-    space && currentUserId && space.userId === currentUserId,
+    currentSpace && currentUserId && currentSpace.userId === currentUserId,
   );
 
   const inviteCode =
-    space?.inviteCode ||
-    space?.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase() ||
+    currentSpace?.inviteCode ||
+    currentSpace?.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase() ||
     "";
 
   const shareUrl = `https://noticed.app/join/${inviteCode}`;
@@ -74,9 +85,9 @@ export function SpaceShareModal({
       .catch((err) => console.warn("[SpaceShareModal] QR generation failed:", err));
   }, [shareUrl]);
 
-  if (!isOpen || !space) return null;
+  if (!isOpen || !currentSpace) return null;
 
-  const currentRole = space.defaultRole || space.memberRole || "editor";
+  const currentRole = currentSpace.defaultRole || currentSpace.memberRole || "editor";
 
   const handleCopyLink = async () => {
     triggerSuccessHaptic();
@@ -93,13 +104,13 @@ export function SpaceShareModal({
 
   const handleNativeShare = async () => {
     triggerHaptic("medium");
-    const roleText = currentRole === "viewer" ? "baca" : "kolaborasi";
-    const shareText = `Baca dan ${roleText} di notebook "${space.name}" di Noticed. Gabung dengan kode ${inviteCode}.`;
+    const roleText = currentRole === "viewer" ? t.spaceShare.roleViewer : t.spaceShare.roleEditor;
+    const shareText = `${t.spaceShare.shareNotebook} "${currentSpace.name}" (${roleText}). ${t.joinSpace.title}: ${inviteCode}.`;
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
-          title: `${space.name} - Noticed Space`,
+          title: `${currentSpace.name} - Noticed Space`,
           text: shareText,
           url: shareUrl,
         });
@@ -115,11 +126,11 @@ export function SpaceShareModal({
   };
 
   const loadMembers = useCallback(async () => {
-    if (!space?.id || !isSupabaseConfigured) return;
+    if (!currentSpace?.id || !isSupabaseConfigured) return;
     setIsLoadingMembers(true);
     try {
       const { data, error } = await supabase.rpc("get_space_members", {
-        p_space_id: space.id,
+        p_space_id: currentSpace.id,
       });
       if (!error && Array.isArray(data)) {
         setMembers(
@@ -139,35 +150,37 @@ export function SpaceShareModal({
     } finally {
       setIsLoadingMembers(false);
     }
-  }, [space?.id]);
+  }, [currentSpace?.id]);
 
   useEffect(() => {
-    if (isOpen && space?.isShared) {
+    if (isOpen && currentSpace?.isShared) {
       loadMembers();
     }
-  }, [isOpen, space?.isShared, loadMembers]);
+  }, [isOpen, currentSpace?.isShared, loadMembers]);
 
   const handleRevokeMember = async (
     targetUserId: string,
     targetName: string,
   ) => {
     triggerHaptic("heavy");
-    if (!space?.id) return;
-    if (!window.confirm(`Keluarkan ${targetName} dari notebook ini?`)) return;
+    if (!currentSpace?.id) return;
+    if (!window.confirm(t.spaceShare.removeMemberConfirm.replace("{name}", targetName))) return;
     try {
       const { error } = await supabase.rpc("revoke_space_member", {
-        p_space_id: space.id,
+        p_space_id: currentSpace.id,
         p_target_user_id: targetUserId,
       });
       if (!error) {
         triggerSuccessHaptic();
         loadMembers();
+        const updatedSpace: Space = {
+          ...currentSpace,
+          membersCount: Math.max(1, (currentSpace.membersCount || 2) - 1),
+          updatedAt: new Date().toISOString(),
+        };
+        setLocalSpace(updatedSpace);
         if (onUpdateSpace) {
-          onUpdateSpace({
-            ...space,
-            membersCount: Math.max(1, (space.membersCount || 2) - 1),
-            updatedAt: new Date().toISOString(),
-          });
+          onUpdateSpace(updatedSpace);
         }
       }
     } catch (err) {
@@ -177,27 +190,33 @@ export function SpaceShareModal({
 
   const handleToggleCollaboration = () => {
     triggerHaptic("medium");
-    if (!onUpdateSpace) return;
-    const nextShared = !space.isShared;
-    onUpdateSpace({
-      ...space,
+    const nextShared = !currentSpace.isShared;
+    const updatedSpace: Space = {
+      ...currentSpace,
       isShared: nextShared,
       inviteCode: nextShared ? inviteCode : undefined,
-      defaultRole: space.defaultRole || "editor",
-      partnerName: `role:${space.defaultRole || "editor"}`,
+      defaultRole: currentSpace.defaultRole || "editor",
+      partnerName: `role:${currentSpace.defaultRole || "editor"}`,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    setLocalSpace(updatedSpace);
+    if (onUpdateSpace) {
+      onUpdateSpace(updatedSpace);
+    }
   };
 
   const handleRoleChange = (role: "editor" | "viewer") => {
     triggerHaptic("medium");
-    if (!onUpdateSpace) return;
-    onUpdateSpace({
-      ...space,
+    const updatedSpace: Space = {
+      ...currentSpace,
       defaultRole: role,
       partnerName: `role:${role}`,
       updatedAt: new Date().toISOString(),
-    });
+    };
+    setLocalSpace(updatedSpace);
+    if (onUpdateSpace) {
+      onUpdateSpace(updatedSpace);
+    }
   };
 
   return (
@@ -234,10 +253,10 @@ export function SpaceShareModal({
             </button>
             <div className="text-center">
               <span className="text-[9px] font-semibold tracking-widest uppercase text-[var(--text-tertiary)] block">
-                Collaboration & Export
+                {t.spaceShare.collaborationAndExport}
               </span>
               <span className="text-xs font-semibold text-[var(--text-primary)]">
-                Bagikan Notebook
+                {t.spaceShare.shareNotebook}
               </span>
             </div>
             <div className="w-7 h-7" />
@@ -249,7 +268,7 @@ export function SpaceShareModal({
               <div
                 className="w-10 h-13 rounded-lg shadow-sm flex flex-col justify-between p-1.5 shrink-0 border border-black/15"
                 style={{
-                  backgroundColor: space.customColor || "#2b3543",
+                  backgroundColor: currentSpace.customColor || "#2b3543",
                 }}
               >
                 <div className="w-2.5 h-0.5 rounded-full bg-white/40" />
@@ -260,17 +279,17 @@ export function SpaceShareModal({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-sm font-semibold font-serif text-[var(--text-primary)] truncate">
-                    {space.name}
+                    {currentSpace.name}
                   </h3>
-                  {space.isShared && (
+                  {currentSpace.isShared && (
                     <span className="text-[9px] px-1.5 py-0.2 rounded-full font-sans font-semibold bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)] shrink-0">
-                      Shared
+                      {t.spaceShare.sharedBadge}
                     </span>
                   )}
                 </div>
                 <p className="text-[11px] text-[var(--text-tertiary)] truncate mt-0.5">
-                  {notesCount} catatan tersimpan
-                  {space.description ? ` · ${space.description}` : ""}
+                  {notesCount} {t.spaceShare.noticesSaved}
+                  {currentSpace.description ? ` · ${currentSpace.description}` : ""}
                 </p>
               </div>
             </div>
@@ -280,27 +299,27 @@ export function SpaceShareModal({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-primary)]">
                   <Users className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
-                  <span>Akses Kolaborasi Space</span>
+                  <span>{t.spaceShare.collabAccess}</span>
                 </div>
                 <button
                   type="button"
                   onClick={handleToggleCollaboration}
                   className={`px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all cursor-pointer ${
-                    space.isShared
+                    currentSpace.isShared
                       ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                       : "inner-pseudo-glass text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                   }`}
                 >
-                  {space.isShared ? "Aktif" : "Aktifkan"}
+                  {currentSpace.isShared ? t.spaceShare.activeStatus : t.spaceShare.enableStatus}
                 </button>
               </div>
 
-              {space.isShared ? (
+              {currentSpace.isShared ? (
                 <>
                   {/* Permission Role Selector */}
                   <div className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]/40 space-y-2">
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
-                      Izin Akses Anggota
+                      {t.spaceShare.memberRoleTitle}
                     </div>
                     <div className="grid grid-cols-2 gap-1.5">
                       <button
@@ -313,7 +332,7 @@ export function SpaceShareModal({
                         }`}
                       >
                         <Edit3 className="w-3 h-3" />
-                        <span>Bisa Edit</span>
+                        <span>{t.spaceShare.roleEditor}</span>
                       </button>
 
                       <button
@@ -326,13 +345,13 @@ export function SpaceShareModal({
                         }`}
                       >
                         <Eye className="w-3 h-3" />
-                        <span>Hanya Baca</span>
+                        <span>{t.spaceShare.roleViewer}</span>
                       </button>
                     </div>
                     <p className="text-[10px] text-[var(--text-tertiary)] leading-tight pt-0.5">
                       {currentRole === "editor"
-                        ? "Anggota dapat membaca semua catatan dan membuat/mengedit catatan mereka sendiri."
-                        : "Anggota hanya dapat membaca dan menjelajahi catatan tanpa dapat mengubah isi."}
+                        ? t.spaceShare.roleEditorDesc
+                        : t.spaceShare.roleViewerDesc}
                     </p>
                   </div>
 
@@ -351,7 +370,7 @@ export function SpaceShareModal({
                       }`}
                     >
                       <LinkIcon className="w-3 h-3" />
-                      <span>Tautan & Kode</span>
+                      <span>{t.spaceShare.tabLink}</span>
                     </button>
 
                     <button
@@ -367,7 +386,7 @@ export function SpaceShareModal({
                       }`}
                     >
                       <QrCode className="w-3 h-3" />
-                      <span>Kode QR</span>
+                      <span>{t.spaceShare.tabQr}</span>
                     </button>
                   </div>
 
@@ -387,17 +406,17 @@ export function SpaceShareModal({
                             type="button"
                             onClick={handleCopyLink}
                             className="h-7 px-2.5 rounded-lg inner-pseudo-glass text-[11px] font-medium text-[var(--text-primary)] hover:opacity-80 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                            title="Salin Tautan Undangan"
+                            title={t.spaceShare.copyLink}
                           >
                             {copied ? (
                               <>
                                 <Check className="w-3 h-3 text-emerald-400" />
-                                <span className="text-emerald-400 font-semibold">Tersalin</span>
+                                <span className="text-emerald-400 font-semibold">{t.spaceShare.copiedLink}</span>
                               </>
                             ) : (
                               <>
                                 <Copy className="w-3 h-3" />
-                                <span>Salin</span>
+                                <span>{t.spaceShare.copyLink}</span>
                               </>
                             )}
                           </button>
@@ -406,10 +425,10 @@ export function SpaceShareModal({
                             type="button"
                             onClick={handleNativeShare}
                             className="h-7 px-2.5 rounded-lg bg-[var(--text-primary)] text-[var(--accent-ink)] text-[11px] font-semibold active:scale-95 transition-transform flex items-center gap-1 cursor-pointer shadow-2xs"
-                            title="Bagikan Tautan Undangan"
+                            title={t.spaceShare.shareLink}
                           >
                             <Share2 className="w-3 h-3 stroke-[2.2]" />
-                            <span>Bagikan</span>
+                            <span>{t.spaceShare.shareLink}</span>
                           </button>
                         </div>
                       </div>
@@ -424,12 +443,12 @@ export function SpaceShareModal({
                       {qrDataUrl ? (
                         <img
                           src={qrDataUrl}
-                          alt={`QR Code ${space.name}`}
+                          alt={`QR Code ${currentSpace.name}`}
                           className="w-44 h-44 rounded-lg object-contain"
                         />
                       ) : (
                         <div className="w-44 h-44 flex items-center justify-center text-xs text-neutral-400">
-                          Memuat QR Code...
+                          ...
                         </div>
                       )}
                       <div>
@@ -437,7 +456,7 @@ export function SpaceShareModal({
                           {inviteCode}
                         </div>
                         <p className="text-[10px] text-neutral-500 max-w-[200px] leading-tight mt-0.5">
-                          Arahkan kamera smartphone ke kode QR untuk langsung bergabung.
+                          {t.spaceShare.qrInstruction}
                         </p>
                       </div>
                     </div>
@@ -449,10 +468,10 @@ export function SpaceShareModal({
                       <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-secondary)] px-0.5">
                         <span className="flex items-center gap-1.5">
                           <Users className="w-3.5 h-3.5 text-[var(--accent-ink)]" />
-                          <span>Anggota Aktif ({members.length})</span>
+                          <span>{t.spaceShare.activeMembers} ({members.length})</span>
                         </span>
                         {isLoadingMembers && (
-                          <span className="text-[10px] opacity-50">Menyinkronkan...</span>
+                          <span className="text-[10px] opacity-50">{t.spaceShare.syncingMembers}</span>
                         )}
                       </div>
 
@@ -484,16 +503,16 @@ export function SpaceShareModal({
                                     <span>{m.displayName || "Scribe"}</span>
                                     {isMe && (
                                       <span className="text-[9px] opacity-60">
-                                        (Anda)
+                                        (You)
                                       </span>
                                     )}
                                   </div>
                                   <div className="text-[9px] text-[var(--text-tertiary)] uppercase font-mono">
                                     {isMemberOwner
-                                      ? "Pemilik"
+                                      ? (t.greetings.author || "Owner")
                                       : m.role === "viewer"
-                                        ? "Hanya Baca"
-                                        : "Editor"}
+                                        ? t.spaceShare.roleViewer
+                                        : t.spaceShare.roleEditor}
                                   </div>
                                 </div>
                               </div>
@@ -504,11 +523,11 @@ export function SpaceShareModal({
                                   onClick={() =>
                                     handleRevokeMember(
                                       m.userId,
-                                      m.displayName || "Anggota",
+                                      m.displayName || "Member",
                                     )
                                   }
                                   className="p-1.5 rounded-lg text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                                  title="Keluarkan anggota dari notebook"
+                                  title="Remove member"
                                 >
                                   <UserMinus className="w-3.5 h-3.5" />
                                 </button>
@@ -522,13 +541,13 @@ export function SpaceShareModal({
                 </>
               ) : (
                 <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-sans">
-                  Aktifkan akses kolaborasi untuk mengundang partner membaca atau menulis catatan bersama melalui tautan, kode, atau kode QR.
+                  {t.spaceShare.collabDesc}
                 </p>
               )}
             </div>
 
             {/* Leave Space Button (For Non-Owner Collaborators) */}
-            {!isCurrentSpaceOwner && space.isShared && (
+            {!isCurrentSpaceOwner && currentSpace.isShared && (
               <div className="pt-1">
                 <button
                   type="button"
@@ -536,17 +555,17 @@ export function SpaceShareModal({
                     triggerHaptic("heavy");
                     if (
                       window.confirm(
-                        `Yakin ingin meninggalkan notebook "${space.name}"?`,
+                        t.spaceShare.leaveNotebookConfirm,
                       )
                     ) {
-                      onLeaveSpace?.(space.id);
+                      onLeaveSpace?.(currentSpace.id);
                       onClose();
                     }
                   }}
                   className="w-full py-2.5 px-3 rounded-2xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  <span>Tinggalkan Notebook Ini</span>
+                  <span>{t.spaceShare.leaveNotebook}</span>
                 </button>
               </div>
             )}
@@ -560,10 +579,10 @@ export function SpaceShareModal({
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-[var(--text-primary)]">
-                      Cetak Folio Manuscript
+                      {t.spaceShare.printFolioTitle}
                     </div>
                     <div className="text-[10px] text-[var(--text-tertiary)] truncate">
-                      Ekspor buku catatan ke format PDF / Cetak Fisik
+                      {t.spaceShare.printFolioDesc}
                     </div>
                   </div>
                 </div>
@@ -572,13 +591,13 @@ export function SpaceShareModal({
                   type="button"
                   onClick={() => {
                     triggerHaptic("light");
-                    onOpenPrintFolio(space);
+                    onOpenPrintFolio(currentSpace);
                   }}
                   className="h-7.5 px-3 rounded-full inner-pseudo-glass text-[11px] font-semibold text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 shadow-xs border border-[var(--glass-border)]"
-                  title="Buka Format Cetak & PDF"
+                  title={t.spaceShare.printFolioTitle}
                 >
                   <Sparkles className="w-3 h-3 text-[var(--accent-ink)]" />
-                  <span>Cetak PDF</span>
+                  <span>{t.spaceShare.printFolioButton}</span>
                 </button>
               </div>
             </div>

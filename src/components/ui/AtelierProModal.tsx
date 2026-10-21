@@ -23,6 +23,7 @@ import {
 } from "@/lib/purchases";
 import { PurchasesOffering } from "@revenuecat/purchases-capacitor";
 import { LegalModal, LegalTab } from "./LegalModal";
+import { useAppLanguage } from "@/lib/i18n";
 
 interface AtelierProModalProps {
   isOpen: boolean;
@@ -42,39 +43,13 @@ interface PricingPlan {
   isPopular?: boolean;
 }
 
-const PRICING_PLANS: PricingPlan[] = [
-  {
-    id: "lifetime",
-    name: "All-Time Patron",
-    price: "Rp 499.000",
-    period: "sekali bayar",
-    subtext: "Bebas langganan selamanya · Milik Anda abadi",
-    badge: "Patron Pass",
-    isPopular: true,
-  },
-  {
-    id: "annual",
-    name: "Annual Folio",
-    price: "Rp 299.000",
-    period: "/ tahun",
-    subtext: "Setara Rp 24.900 / bulan (Hemat 36%)",
-    badge: "Hemat 36%",
-  },
-  {
-    id: "monthly",
-    name: "Monthly Scribe",
-    price: "Rp 39.000",
-    period: "/ bulan",
-    subtext: "Fleksibel tanpa komitmen jangka panjang",
-  },
-];
-
 export function AtelierProModal({
   isOpen,
   onClose,
   triggerFeature,
 }: AtelierProModalProps) {
   useLockBodyScroll(isOpen);
+  const [currentLang, , t] = useAppLanguage();
 
   const isPro = useProStatus();
   const [selectedPlan, setSelectedPlan] = useState<PricingPlanId>("lifetime");
@@ -85,6 +60,63 @@ export function AtelierProModal({
   const [purchaseStatusMsg, setPurchaseStatusMsg] = useState<string | null>(
     null,
   );
+
+  const basePlans: PricingPlan[] = useMemo(() => {
+    if (currentLang === "en") {
+      return [
+        {
+          id: "lifetime",
+          name: "All-Time Patron",
+          price: "Rp 499.000",
+          period: "one-time payment",
+          subtext: "Subscription-free forever · Yours eternally",
+          badge: "Patron Pass",
+          isPopular: true,
+        },
+        {
+          id: "annual",
+          name: "Annual Folio",
+          price: "Rp 299.000",
+          period: "/ year",
+          subtext: "Equivalent to Rp 24,900 / mo (Save 36%)",
+          badge: "Save 36%",
+        },
+        {
+          id: "monthly",
+          name: "Monthly Scribe",
+          price: "Rp 39.000",
+          period: "/ month",
+          subtext: "Flexible without long-term commitment",
+        },
+      ];
+    }
+    return [
+      {
+        id: "lifetime",
+        name: "All-Time Patron",
+        price: "Rp 499.000",
+        period: "sekali bayar",
+        subtext: "Bebas langganan selamanya · Milik Anda abadi",
+        badge: "Patron Pass",
+        isPopular: true,
+      },
+      {
+        id: "annual",
+        name: "Annual Folio",
+        price: "Rp 299.000",
+        period: "/ tahun",
+        subtext: "Setara Rp 24.900 / bulan (Hemat 36%)",
+        badge: "Hemat 36%",
+      },
+      {
+        id: "monthly",
+        name: "Monthly Scribe",
+        price: "Rp 39.000",
+        period: "/ bulan",
+        subtext: "Fleksibel tanpa komitmen jangka panjang",
+      },
+    ];
+  }, [currentLang]);
 
   useEffect(() => {
     let isMounted = true;
@@ -102,10 +134,10 @@ export function AtelierProModal({
 
   const localizedPlans = useMemo(() => {
     if (!storeOffering || !storeOffering.availablePackages.length) {
-      return PRICING_PLANS;
+      return basePlans;
     }
 
-    return PRICING_PLANS.map((plan) => {
+    return basePlans.map((plan) => {
       const pkg = storeOffering.availablePackages.find((p) => {
         const id = p.identifier.toLowerCase();
         const type = String(p.packageType || "").toLowerCase();
@@ -123,7 +155,7 @@ export function AtelierProModal({
       }
       return plan;
     });
-  }, [storeOffering]);
+  }, [storeOffering, basePlans]);
 
   const activePlanObj =
     localizedPlans.find((p) => p.id === selectedPlan) || localizedPlans[0];
@@ -190,36 +222,70 @@ export function AtelierProModal({
   const featureDescriptions: Record<
     ProFeature,
     { title: string; desc: string }
-  > = {
-    notes_limit: {
-      title: "Volume Telah Genap (100 Halaman)",
-      desc: "Volume ini telah mencapai batas 100 lembar catatan. Buka Atelier Pro untuk melanjutkan bab tanpa batas atau menambah volume baru di rak buku Anda.",
-    },
-    spaces_limit: {
-      title: "Rak Buku Telah Penuh (3 Edisi)",
-      desc: "Rak buku Anda telah memuat 3 edisi volume. Upgrade ke Atelier Pro untuk menyusun koleksi buku jurnal tanpa batas.",
-    },
-    manuscript_export: {
-      title: "Ekspor Manuskrip Folio Lengkap",
-      desc: "Cetak seluruh bab tulisan Anda ke dalam buku digital PDF resolusi tinggi siap cetak (A4 / A5).",
-    },
-    luxury_foil: {
-      title: "Letterpress Luxury Foil",
-      desc: "Hiasi punggung dan sampul buku Anda dengan kilau daun emas (Antique Gold, Rose Gold, Platinum, atau Emerald).",
-    },
-    video: {
-      title: "Cinematic Video Vignettes",
-      desc: "Rekam dan abadikan klip kenangan bergerak hingga 30 detik di dalam catatan.",
-    },
-    audio_import: {
-      title: "Impor Audio Eksternal",
-      desc: "Impor file audio, wawancara, atau rekaman suara luar hingga 3 menit.",
-    },
-    unlimited_photos: {
-      title: "Galeri Foto Tanpa Batas",
-      desc: "Kurasi foto tanpa batas dalam setiap lembar catatan Anda.",
-    },
-  };
+  > = useMemo(() => {
+    if (currentLang === "en") {
+      return {
+        notes_limit: {
+          title: "Volume Capacity Reached (100 Pages)",
+          desc: "This volume has reached the 100-page limit. Unlock Atelier Pro to continue writing without limits or create new volumes on your shelf.",
+        },
+        spaces_limit: {
+          title: "Bookshelf Capacity Reached (3 Volumes)",
+          desc: "Your bookshelf currently holds 3 journal editions. Upgrade to Atelier Pro to curate an unlimited library of bespoke notebooks.",
+        },
+        manuscript_export: {
+          title: "Export Complete Folio Manuscript",
+          desc: "Publish and print your entire collection into high-resolution, print-ready PDF book formats (A4 / A5).",
+        },
+        luxury_foil: {
+          title: "Letterpress Luxury Foil",
+          desc: "Adorn your notebook spines and covers with metallic foil stamping (Antique Gold, Rose Gold, Platinum, or Emerald).",
+        },
+        video: {
+          title: "Cinematic Video Vignettes",
+          desc: "Capture and preserve moving memory clips up to 30 seconds within your notices.",
+        },
+        audio_import: {
+          title: "External Studio Audio Import",
+          desc: "Import audio files, voice recordings, or soundtrack memos up to 3 minutes.",
+        },
+        unlimited_photos: {
+          title: "Unlimited Photographic Gallery",
+          desc: "Embed boundless photographs and polaroids within every marginalia entry.",
+        },
+      };
+    }
+    return {
+      notes_limit: {
+        title: "Volume Telah Genap (100 Halaman)",
+        desc: "Volume ini telah mencapai batas 100 lembar catatan. Buka Atelier Pro untuk melanjutkan bab tanpa batas atau menambah volume baru di rak buku Anda.",
+      },
+      spaces_limit: {
+        title: "Rak Buku Telah Penuh (3 Edisi)",
+        desc: "Rak buku Anda telah memuat 3 edisi volume. Upgrade ke Atelier Pro untuk menyusun koleksi buku jurnal tanpa batas.",
+      },
+      manuscript_export: {
+        title: "Ekspor Manuskrip Folio Lengkap",
+        desc: "Cetak seluruh bab tulisan Anda ke dalam buku digital PDF resolusi tinggi siap cetak (A4 / A5).",
+      },
+      luxury_foil: {
+        title: "Letterpress Luxury Foil",
+        desc: "Hiasi punggung dan sampul buku Anda dengan kilau daun emas (Antique Gold, Rose Gold, Platinum, atau Emerald).",
+      },
+      video: {
+        title: "Cinematic Video Vignettes",
+        desc: "Rekam dan abadikan klip kenangan bergerak hingga 30 detik di dalam catatan.",
+      },
+      audio_import: {
+        title: "Impor Audio Eksternal",
+        desc: "Impor file audio, wawancara, atau rekaman suara luar hingga 3 menit.",
+      },
+      unlimited_photos: {
+        title: "Galeri Foto Tanpa Batas",
+        desc: "Kurasi foto tanpa batas dalam setiap lembar catatan Anda.",
+      },
+    };
+  }, [currentLang]);
 
   const activeContext = triggerFeature
     ? featureDescriptions[triggerFeature]
@@ -289,15 +355,15 @@ export function AtelierProModal({
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[var(--text-primary)]/5 to-transparent pointer-events-none" />
               </div>
               <div className="text-[9.5px] font-mono uppercase tracking-[0.22em] text-[var(--text-tertiary)] font-semibold">
-                Atelier Membership
+                {t.atelierPro.membership}
               </div>
               <h2 className="font-serif text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-                Atelier Pro
+                {t.atelierPro.title}
               </h2>
               <p className="font-serif italic text-xs text-[var(--text-secondary)] max-w-xs mx-auto leading-relaxed">
                 {activeContext
                   ? activeContext.desc
-                  : "Kapasitas tanpa batas, sinkronisasi cloud real-time, dan kebebasan mengarsipkan catatan seumur hidup."}
+                  : t.atelierPro.defaultDesc}
               </p>
             </div>
 
@@ -308,7 +374,9 @@ export function AtelierProModal({
                   {activeContext.title}
                 </span>
                 <span className="text-[10px] text-[var(--text-secondary)]">
-                  Pilih paket di bawah untuk membuka akses tanpa batas.
+                  {currentLang === "id"
+                    ? "Pilih paket di bawah untuk membuka akses tanpa batas."
+                    : "Select a membership tier below to unlock unlimited access."}
                 </span>
               </div>
             )}
@@ -316,7 +384,7 @@ export function AtelierProModal({
             {/* 3-Tier Pricing Plan Cards */}
             <div className="space-y-2 pt-1">
               <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)] font-semibold px-1">
-                Pilih Paket Keanggotaan
+                {t.atelierPro.planSelection}
               </div>
 
               {localizedPlans.map((plan) => {
@@ -387,17 +455,17 @@ export function AtelierProModal({
             {/* Core Pro Privileges Highlight */}
             <div className="pt-2">
               <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)] font-semibold px-1 mb-2">
-                Hak Istimewa Anggota Pro
+                {t.atelierPro.privilegesTitle}
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-left">
                 {[
-                  { icon: BookOpen, text: "Volume & Halaman Tanpa Batas" },
-                  { icon: Cloud, text: "Cloud Sync Multi-Device" },
-                  { icon: Video, text: "Motion Video Clips 30s" },
-                  { icon: Music, text: "Impor Audio Studio 3 Menit" },
-                  { icon: ImageIcon, text: "Foto per Catatan Tanpa Batas" },
-                  { icon: Printer, text: "Ekspor Manuskrip Cetak PDF" },
+                  { icon: BookOpen, text: t.atelierPro.privileges.unlimitedVolumes },
+                  { icon: Cloud, text: t.atelierPro.privileges.cloudSync },
+                  { icon: Video, text: t.atelierPro.privileges.motionClips },
+                  { icon: Music, text: t.atelierPro.privileges.audioStudio },
+                  { icon: ImageIcon, text: t.atelierPro.privileges.unlimitedPhotos },
+                  { icon: Printer, text: t.atelierPro.privileges.printPdf },
                 ].map((item, idx) => {
                   const Icon = item.icon;
                   return (
@@ -430,11 +498,11 @@ export function AtelierProModal({
             <div className="px-1 text-center">
               {selectedPlan === "lifetime" ? (
                 <p className="text-[10px] text-[var(--text-tertiary)] leading-tight">
-                  Pembelian satu kali. Akses keanggotaan Atelier Pro permanen tanpa biaya langganan berulang.
+                  {t.atelierPro.oneTimeNotice}
                 </p>
               ) : (
                 <p className="text-[9.5px] text-[var(--text-tertiary)] leading-normal">
-                  Pembayaran dibebankan ke akun Apple ID / Google Play Anda saat konfirmasi pembelian. Langganan otomatis diperpanjang seharga {activePlanObj.price} {activePlanObj.period} kecuali dibatalkan setidaknya 24 jam sebelum akhir periode berjalan. Kelola atau batalkan langganan kapan saja di Pengaturan Akun App Store.
+                  {t.atelierPro.subscriptionDisclosure.replace("{price}", activePlanObj.price).replace("{period}", activePlanObj.period)}
                 </p>
               )}
             </div>
@@ -448,7 +516,7 @@ export function AtelierProModal({
               {isProcessing ? (
                 <>
                   <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Memproses...</span>
+                  <span>{t.atelierPro.processing}</span>
                 </>
               ) : (
                 <>
@@ -457,10 +525,10 @@ export function AtelierProModal({
                     {isPro
                       ? "Atelier Pro Pass Active"
                       : selectedPlan === "lifetime"
-                        ? `Unlock All-Time Pass · ${activePlanObj.price}`
+                        ? `${currentLang === "id" ? "Buka Akses Permanen" : "Unlock All-Time Pass"} · ${activePlanObj.price}`
                         : selectedPlan === "annual"
-                          ? `Subscribe Annual · ${activePlanObj.price} / thn`
-                          : `Subscribe Monthly · ${activePlanObj.price} / bln`}
+                          ? `${currentLang === "id" ? "Berlangganan Tahunan" : "Subscribe Annual"} · ${activePlanObj.price} / ${currentLang === "id" ? "thn" : "yr"}`
+                          : `${currentLang === "id" ? "Berlangganan Bulanan" : "Subscribe Monthly"} · ${activePlanObj.price} / ${currentLang === "id" ? "bln" : "mo"}`}
                   </span>
                 </>
               )}
@@ -475,7 +543,7 @@ export function AtelierProModal({
               disabled={isProcessing}
               className="w-full py-1 text-center text-[11px] font-sans font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
-              Lanjutkan dengan Edisi Standar
+              {t.atelierPro.continueStandard}
             </button>
 
             {/* Legal Footnote for Store Compliance (Apple Guideline 3.1.2) */}

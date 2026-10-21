@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAppLanguage } from "@/lib/i18n";
 import { Space, FieldNote } from "@/types";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { formatNoteDate, formatTimeOnly } from "@/lib/utils";
@@ -50,6 +51,7 @@ export function ManuscriptExportModal({
   authorBio,
 }: ManuscriptExportModalProps) {
   useLockBodyScroll(isOpen);
+  const [currentLang, , t] = useAppLanguage();
 
   const [paperFormat, setPaperFormat] = useState<PaperFormat>("a4");
   const [includeCover, setIncludeCover] = useState(true);
@@ -434,7 +436,7 @@ export function ManuscriptExportModal({
 
                 <div className="w-full pt-1.5 flex items-center justify-between border-t border-[var(--glass-border)]/60 mt-1">
                   <span className="text-[11px] text-[var(--text-tertiary)]">
-                    Cadangan cetak mobile:
+                    {currentLang === "id" ? "Cadangan cetak mobile:" : "Mobile print fallback:"}
                   </span>
                   <button
                     type="button"
@@ -442,7 +444,7 @@ export function ManuscriptExportModal({
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-all cursor-pointer border border-[var(--glass-border)]"
                   >
                     <Share2 className="w-3 h-3 text-[var(--text-secondary)]" />
-                    <span>Bagikan Teks Dokumen Folio</span>
+                    <span>{currentLang === "id" ? "Bagikan Teks Dokumen Folio" : "Share Manuscript Text"}</span>
                   </button>
                 </div>
               </motion.div>
@@ -457,7 +459,7 @@ export function ManuscriptExportModal({
                 <div className="flex items-center gap-2 min-w-0">
                   <Sparkles className="w-4 h-4 text-[var(--accent-ink)] shrink-0" />
                   <span className="text-[11.5px] text-[var(--text-secondary)]">
-                    <strong className="text-[var(--text-primary)] font-semibold">Pratinjau Edisi Standar:</strong> Menampilkan 5 dari {sortedNotes.length} catatan dalam volume ini.
+                    <strong className="text-[var(--text-primary)] font-semibold">{t.manuscript.freePreviewTitle}:</strong> {t.manuscript.freePreviewDesc.replace("{total}", String(sortedNotes.length))}
                   </span>
                 </div>
                 <button
@@ -468,7 +470,7 @@ export function ManuscriptExportModal({
                   }}
                   className="shrink-0 px-3 py-1 rounded-full bg-[var(--text-primary)] hover:opacity-90 text-[var(--accent-ink)] text-[11px] font-semibold active:scale-95 transition-all cursor-pointer shadow-xs"
                 >
-                  Buka Lengkap
+                  {t.manuscript.unlockFullButton}
                 </button>
               </div>
             )}

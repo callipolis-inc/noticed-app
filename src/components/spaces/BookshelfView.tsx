@@ -602,7 +602,7 @@ export function BookshelfView({
             )}
           </div>
           <div className="flex items-center text-left min-w-0 py-0.5">
-            <span className="text-xs font-semibold leading-snug text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[115px] sm:max-w-[200px]">
+            <span className="text-xs font-semibold leading-snug text-[var(--text-primary)] font-sans whitespace-nowrap truncate max-w-[190px] xs:max-w-[240px] sm:max-w-[320px]">
               {isSyncing
                 ? `${t.greetings.syncing} · ${userName}`
                 : `${timeGreeting}, ${userName}`}
@@ -627,9 +627,6 @@ export function BookshelfView({
             title="Library Menu"
           >
             <MoreHorizontal className="w-4 h-4 stroke-[2]" />
-            {archivedSpaces.length > 0 && shelfTab === "active" && (
-              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--accent-ink)] ring-1 ring-[var(--bg-base)]" />
-            )}
           </button>
 
           {/* Primary Action (+ New Notebook) */}

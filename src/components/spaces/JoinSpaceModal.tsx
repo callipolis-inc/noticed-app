@@ -6,6 +6,7 @@ import { FREE_MAX_SPACES } from "@/lib/proManager";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { dbToSpace, dbToNote } from "@/lib/syncEngine";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
+import { useAppLanguage } from "@/lib/i18n";
 import {
   X,
   QrCode,
@@ -43,6 +44,7 @@ export function JoinSpaceModal({
   onTriggerPro,
   onJoinSuccess,
 }: JoinSpaceModalProps) {
+  const [currentLang, , t] = useAppLanguage();
   const [activeTab, setActiveTab] = useState<"scan" | "type">("scan");
   const [inputCode, setInputCode] = useState("");
   const [isSearching, setIsSearching] = useState(false);
@@ -84,7 +86,7 @@ export function JoinSpaceModal({
     async (codeToSearch: string) => {
       const code = extractCode(codeToSearch);
       if (!code) {
-        setSearchError("Masukkan kode undangan yang valid.");
+        setSearchError(t.joinSpace.invalidCode);
         return;
       }
 
@@ -95,7 +97,11 @@ export function JoinSpaceModal({
 
       try {
         if (!isSupabaseConfigured) {
-          throw new Error("Koneksi Supabase belum terkonfigurasi. Pastikan koneksi internet stabil.");
+          throw new Error(
+            currentLang === "id"
+              ? "Koneksi Supabase belum terkonfigurasi. Pastikan koneksi internet stabil."
+              : "Supabase connection is not configured. Please ensure a stable internet connection.",
+          );
         }
 
         const { data: rpcData, error: rpcError } = await supabase.rpc(
@@ -109,7 +115,7 @@ export function JoinSpaceModal({
 
         const rawSpace = rpcData?.space;
         if (!rawSpace) {
-          setSearchError("Notebook tidak ditemukan atau izin berbagi belum diaktifkan oleh pemiliknya.");
+          setSearchError(t.joinSpace.notFound);
           triggerHaptic("heavy");
           return;
         }
@@ -119,7 +125,7 @@ export function JoinSpaceModal({
           (s) => s.id === rawSpace.id || (s.inviteCode && s.inviteCode.toUpperCase() === code),
         );
         if (alreadyJoined) {
-          setSearchError("Notebook ini sudah ada di rak buku Anda.");
+          setSearchError(t.joinSpace.alreadyInShelf);
           triggerHaptic("medium");
           return;
         }
@@ -132,7 +138,12 @@ export function JoinSpaceModal({
         triggerSuccessHaptic();
       } catch (err: any) {
         console.error("[JoinSpaceModal] Search error:", err);
-        setSearchError(err?.message || "Gagal mencari notebook. Periksa koneksi internet Anda.");
+        setSearchError(
+          err?.message ||
+            (currentLang === "id"
+              ? "Gagal mencari notebook. Periksa koneksi internet Anda."
+              : "Failed to find notebook. Check your internet connection."),
+        );
         triggerHaptic("heavy");
       } finally {
         setIsSearching(false);
@@ -198,7 +209,11 @@ export function JoinSpaceModal({
 
     try {
       if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
-        setCameraError("Kamera tidak didukung di browser atau perangkat ini.");
+        setCameraError(
+          currentLang === "id"
+            ? "Kamera tidak didukung di browser atau perangkat ini."
+            : "Camera is not supported on this browser or device.",
+        );
         return;
       }
 
@@ -221,12 +236,16 @@ export function JoinSpaceModal({
       console.warn("[JoinSpaceModal] Camera access error:", err);
       setCameraError(
         err?.name === "NotAllowedError"
-          ? "Izin kamera ditolak. Silakan berikan izin di pengaturan perangkat atau gunakan ketik kode manual."
-          : "Tidak dapat mengakses kamera belakang.",
+          ? (currentLang === "id"
+              ? "Izin kamera ditolak. Silakan berikan izin di pengaturan perangkat atau gunakan ketik kode manual."
+              : "Camera permission denied. Please grant permission in device settings or type the code manually.")
+          : (currentLang === "id"
+              ? "Tidak dapat mengakses kamera belakang."
+              : "Unable to access the camera."),
       );
       setCameraActive(false);
     }
-  }, [scanFrame, stopCamera]);
+  }, [scanFrame, stopCamera, currentLang]);
 
   // Handle uploaded image for QR scan
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -255,7 +274,11 @@ export function JoinSpaceModal({
             return;
           }
         }
-        setSearchError("Tidak ditemukan kode QR yang valid pada gambar yang diunggah.");
+        setSearchError(
+          currentLang === "id"
+            ? "Tidak ditemukan kode QR yang valid pada gambar yang diunggah."
+            : "No valid QR code found in the uploaded image.",
+        );
         triggerHaptic("heavy");
       };
       img.src = event.target?.result as string;
@@ -358,7 +381,12 @@ export function JoinSpaceModal({
       onClose();
     } catch (err: any) {
       console.error("[JoinSpaceModal] Failed to join space:", err);
-      setSearchError(err?.message || "Gagal bergabung ke notebook. Silakan coba beberapa saat lagi.");
+      setSearchError(
+        err?.message ||
+          (currentLang === "id"
+            ? "Gagal bergabung ke notebook. Silakan coba beberapa saat lagi."
+            : "Failed to join notebook. Please try again later."),
+      );
       triggerHaptic("heavy");
     } finally {
       setIsJoining(false);
@@ -404,7 +432,7 @@ export function JoinSpaceModal({
                 Atelier Collaboration
               </span>
               <span className="text-xs font-semibold text-[var(--text-primary)]">
-                Gabung ke Space
+                {t.joinSpace.title}
               </span>
             </div>
             <div className="w-7 h-7" />
@@ -424,7 +452,7 @@ export function JoinSpaceModal({
                   }`}
                 >
                   <QrCode className="w-3.5 h-3.5" />
-                  <span>Pindai QR</span>
+                  <span>{t.joinSpace.scanTab}</span>
                 </button>
 
                 <button
@@ -437,7 +465,7 @@ export function JoinSpaceModal({
                   }`}
                 >
                   <Keyboard className="w-3.5 h-3.5" />
-                  <span>Ketik Kode</span>
+                  <span>{t.joinSpace.typeTab}</span>
                 </button>
               </div>
             )}
@@ -456,7 +484,7 @@ export function JoinSpaceModal({
                 <div className="text-center pt-1">
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 flex items-center justify-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Notebook Ditemukan
+                    {t.joinSpace.foundTitle}
                   </span>
                 </div>
 
@@ -479,24 +507,24 @@ export function JoinSpaceModal({
                         {foundSpace.name}
                       </h3>
                       <p className="text-[11px] text-[var(--text-tertiary)] line-clamp-2 mt-0.5">
-                        {foundSpace.description || "Notebook kolaborasi tanpa deskripsi tambahan."}
+                        {foundSpace.description || (currentLang === "id" ? "Notebook kolaborasi tanpa deskripsi tambahan." : "Shared notebook with no additional description.")}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="text-[9px] px-2 py-0.5 rounded-full font-sans font-semibold bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)] flex items-center gap-1">
                           <Users className="w-2.5 h-2.5" />
-                          <span>{foundSpace.membersCount || 1} Anggota</span>
+                          <span>{foundSpace.membersCount || 1} {t.joinSpace.membersCount}</span>
                         </span>
 
                         <span className="text-[9px] px-2 py-0.5 rounded-full font-sans font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                           {foundSpace.memberRole === "viewer" ? (
                             <>
                               <Eye className="w-2.5 h-2.5" />
-                              <span>Hanya Baca</span>
+                              <span>{t.joinSpace.readOnlyRole}</span>
                             </>
                           ) : (
                             <>
                               <Edit3 className="w-2.5 h-2.5" />
-                              <span>Bisa Edit</span>
+                              <span>{t.joinSpace.editorRole}</span>
                             </>
                           )}
                         </span>
@@ -506,8 +534,8 @@ export function JoinSpaceModal({
 
                   <div className="pt-2 border-t border-[var(--glass-border)]/50 text-[10px] text-[var(--text-secondary)]">
                     {foundSpace.memberRole === "viewer"
-                      ? "Anda akan bergabung sebagai pembaca (read-only). Anda dapat menjelajahi seluruh catatan di dalamnya."
-                      : "Anda akan bergabung sebagai kolaborator penuh. Anda dapat membaca dan menambahkan catatan baru."}
+                      ? t.joinSpace.viewerDesc
+                      : t.joinSpace.editorDesc}
                   </div>
                 </div>
 
@@ -522,12 +550,12 @@ export function JoinSpaceModal({
                     {isJoining ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Menghubungkan ke Space...</span>
+                        <span>{t.joinSpace.joiningButton}</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-3.5 h-3.5 text-[var(--accent-ink)]" />
-                        <span>Gabung ke Notebook</span>
+                        <span>{t.joinSpace.joinButton}</span>
                       </>
                     )}
                   </button>
@@ -540,7 +568,7 @@ export function JoinSpaceModal({
                     }}
                     className="w-full h-9 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-98 transition-all cursor-pointer"
                   >
-                    Cari Notebook Lain
+                    {currentLang === "id" ? "Cari Notebook Lain" : "Search Another Notebook"}
                   </button>
                 </div>
               </div>
@@ -571,14 +599,14 @@ export function JoinSpaceModal({
                       </div>
 
                       <div className="absolute bottom-3 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-[10px] text-white/80 font-sans pointer-events-none">
-                        Arahkan ke QR Code Noticed
+                        {currentLang === "id" ? "Arahkan ke QR Code Noticed" : "Point camera at Noticed QR code"}
                       </div>
                     </>
                   ) : (
                     <div className="p-4 text-center space-y-2">
                       <Camera className="w-8 h-8 text-[var(--text-tertiary)] mx-auto opacity-70" />
                       <p className="text-xs text-[var(--text-secondary)]">
-                        {cameraError || "Menyiapkan sensor kamera..."}
+                        {cameraError || (currentLang === "id" ? "Menyiapkan sensor kamera..." : "Preparing camera sensor...")}
                       </p>
                       <button
                         type="button"
@@ -586,7 +614,7 @@ export function JoinSpaceModal({
                         className="h-8 px-3 rounded-full inner-pseudo-glass text-[11px] font-semibold text-[var(--text-primary)] inline-flex items-center gap-1.5 cursor-pointer mt-1"
                       >
                         <RefreshCw className="w-3 h-3" />
-                        <span>Coba Akses Lagi</span>
+                        <span>{currentLang === "id" ? "Coba Akses Lagi" : "Retry Access"}</span>
                       </button>
                     </div>
                   )}
@@ -607,7 +635,7 @@ export function JoinSpaceModal({
                   className="w-full h-9 rounded-xl inner-pseudo-glass text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-[var(--glass-border)]/50"
                 >
                   <ImageIcon className="w-3.5 h-3.5" />
-                  <span>Pilih dari Galeri Foto / Screenshot</span>
+                  <span>{currentLang === "id" ? "Pilih dari Galeri Foto / Screenshot" : "Choose from Photo Gallery / Screenshot"}</span>
                 </button>
               </div>
             ) : (
@@ -622,13 +650,13 @@ export function JoinSpaceModal({
                 >
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)] block mb-1.5">
-                      Kode Undangan Notebook (8 Karakter)
+                      {currentLang === "id" ? "Kode Undangan Notebook (8 Karakter)" : "Notebook Invite Code (8 Characters)"}
                     </label>
                     <input
                       type="text"
                       value={inputCode}
                       onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                      placeholder="CONTOH: 7K9N2P4X"
+                      placeholder={currentLang === "id" ? "CONTOH: 7K9N2P4X" : "E.G.: 7K9N2P4X"}
                       maxLength={14}
                       autoFocus
                       className="w-full h-12 rounded-xl bg-black/5 dark:bg-white/5 border border-[var(--glass-border)]/60 px-4 text-base font-mono font-bold tracking-widest text-center text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/50 focus:outline-hidden focus:border-[var(--text-primary)] transition-all"
@@ -643,11 +671,11 @@ export function JoinSpaceModal({
                     {isSearching ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Mencari Notebook...</span>
+                        <span>{t.joinSpace.searching}</span>
                       </>
                     ) : (
                       <>
-                        <span>Cari & Pratinjau</span>
+                        <span>{currentLang === "id" ? "Cari & Pratinjau" : "Search & Preview"}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </>
                     )}
@@ -655,7 +683,9 @@ export function JoinSpaceModal({
                 </form>
 
                 <p className="text-[10px] text-center text-[var(--text-tertiary)] leading-relaxed">
-                  Kode undangan diberikan oleh pemilik notebook melalui tombol Bagikan di rak buku mereka.
+                  {currentLang === "id"
+                    ? "Kode undangan diberikan oleh pemilik notebook melalui tombol Bagikan di rak buku mereka."
+                    : "The invite code is provided by the notebook owner via the Share button on their bookshelf."}
                 </p>
               </div>
             )}

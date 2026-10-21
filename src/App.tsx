@@ -1431,6 +1431,9 @@ export function App() {
     setSpaces((prev) =>
       prev.map((s) => (s.id === updated.id ? spaceWithTimestamp : s)),
     );
+    setSharingSpace((prev) =>
+      prev && prev.id === updated.id ? spaceWithTimestamp : prev,
+    );
     showFlyout(`Updated: ${updated.name}`, 2500);
   };
 
