@@ -496,7 +496,7 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
   en: {
     app: {
       name: "Noticed",
-      tagline: "Quiet observations & daily marginalia",
+      tagline: "Notes on Noticing",
       version: "Version 1.0.0",
     },
     greetings: {
