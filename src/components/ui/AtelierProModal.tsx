@@ -157,68 +157,6 @@ export function AtelierProModal({
     });
   }, [storeOffering, basePlans]);
 
-  const activePlanObj =
-    localizedPlans.find((p) => p.id === selectedPlan) || localizedPlans[0];
-
-  if (!isOpen) return null;
-
-  const handleUnlockPro = async () => {
-    if (isPro) {
-      onClose();
-      return;
-    }
-
-    setIsProcessing(true);
-    setPurchaseStatusMsg(null);
-    triggerHaptic("medium");
-
-    try {
-      const res = await purchaseAtelierPlan(selectedPlan);
-      if (res.isPro) {
-        triggerSuccessHaptic();
-        setPurchaseStatusMsg(res.message || "Selamat datang di Atelier Pro.");
-        setTimeout(() => {
-          onClose();
-        }, 1200);
-      } else {
-        triggerHaptic("medium");
-        if (res.message && res.message !== "Pembelian dibatalkan.") {
-          setPurchaseStatusMsg(res.message);
-        }
-      }
-    } catch {
-      triggerHaptic("heavy");
-      setPurchaseStatusMsg("Terjadi kendala saat memproses pembelian.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleRestorePurchases = async () => {
-    setIsProcessing(true);
-    setPurchaseStatusMsg(null);
-    triggerHaptic("medium");
-
-    try {
-      const res = await restoreAtelierPurchases();
-      if (res.isPro) {
-        triggerSuccessHaptic();
-        setPurchaseStatusMsg(res.message || "Pembelian berhasil dipulihkan.");
-        setTimeout(() => {
-          onClose();
-        }, 1500);
-      } else {
-        triggerHaptic("light");
-        setPurchaseStatusMsg(res.message || "Tidak ada transaksi aktif.");
-      }
-    } catch {
-      triggerHaptic("heavy");
-      setPurchaseStatusMsg("Gagal memeriksa riwayat pembelian.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const featureDescriptions: Record<
     ProFeature,
     { title: string; desc: string }
@@ -287,9 +225,71 @@ export function AtelierProModal({
     };
   }, [currentLang]);
 
+  const activePlanObj =
+    localizedPlans.find((p) => p.id === selectedPlan) || localizedPlans[0];
+
   const activeContext = triggerFeature
     ? featureDescriptions[triggerFeature]
     : null;
+
+  if (!isOpen) return null;
+
+  const handleUnlockPro = async () => {
+    if (isPro) {
+      onClose();
+      return;
+    }
+
+    setIsProcessing(true);
+    setPurchaseStatusMsg(null);
+    triggerHaptic("medium");
+
+    try {
+      const res = await purchaseAtelierPlan(selectedPlan);
+      if (res.isPro) {
+        triggerSuccessHaptic();
+        setPurchaseStatusMsg(res.message || "Selamat datang di Atelier Pro.");
+        setTimeout(() => {
+          onClose();
+        }, 1200);
+      } else {
+        triggerHaptic("medium");
+        if (res.message && res.message !== "Pembelian dibatalkan.") {
+          setPurchaseStatusMsg(res.message);
+        }
+      }
+    } catch {
+      triggerHaptic("heavy");
+      setPurchaseStatusMsg("Terjadi kendala saat memproses pembelian.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    setIsProcessing(true);
+    setPurchaseStatusMsg(null);
+    triggerHaptic("medium");
+
+    try {
+      const res = await restoreAtelierPurchases();
+      if (res.isPro) {
+        triggerSuccessHaptic();
+        setPurchaseStatusMsg(res.message || "Pembelian berhasil dipulihkan.");
+        setTimeout(() => {
+          onClose();
+        }, 1500);
+      } else {
+        triggerHaptic("light");
+        setPurchaseStatusMsg(res.message || "Tidak ada transaksi aktif.");
+      }
+    } catch {
+      triggerHaptic("heavy");
+      setPurchaseStatusMsg("Gagal memeriksa riwayat pembelian.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return createPortal(
     <AnimatePresence>
