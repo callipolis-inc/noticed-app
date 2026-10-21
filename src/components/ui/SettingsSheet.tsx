@@ -860,10 +860,10 @@ export function SettingsSheet({
                 </div>
 
                 {permissionDeniedAlert && (
-                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 text-xs flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <div className="p-3 rounded-xl bg-[var(--text-primary)]/5 border border-[var(--glass-border)] text-[var(--text-secondary)] text-xs flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-[var(--text-primary)] shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold">{t.reminders.permissionDeniedTitle}</div>
+                      <div className="font-semibold text-[var(--text-primary)]">{t.reminders.permissionDeniedTitle}</div>
                       <div className="text-[11px] opacity-90">{t.reminders.permissionDeniedDesc}</div>
                     </div>
                   </div>
@@ -929,7 +929,7 @@ export function SettingsSheet({
                                 100
                             )}%`,
                           }}
-                          className="h-full bg-amber-500/80 dark:bg-amber-400/80"
+                          className="h-full bg-[var(--text-primary)] opacity-55"
                           title="Photos & Photostrips"
                         />
                         {/* Audio segment */}
@@ -942,7 +942,7 @@ export function SettingsSheet({
                                 100
                             )}%`,
                           }}
-                          className="h-full bg-blue-500/80 dark:bg-blue-400/80"
+                          className="h-full bg-[var(--text-primary)] opacity-35"
                           title="Audio Voice Memos"
                         />
                         {/* Video segment */}
@@ -956,7 +956,7 @@ export function SettingsSheet({
                                   100
                               )}%`,
                             }}
-                            className="h-full bg-rose-500/80 dark:bg-rose-400/80"
+                            className="h-full bg-[var(--text-primary)] opacity-20"
                             title="Video Captures"
                           />
                         )}
@@ -969,12 +969,12 @@ export function SettingsSheet({
                           Text {formatBytes(storageData.notesTextBytes)}
                         </span>
                         <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500/80 dark:bg-amber-400/80" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-primary)] opacity-55" />
                           Photos ({storageData.photosCount}){" "}
                           {formatBytes(storageData.photosBytes)}
                         </span>
                         <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500/80 dark:bg-blue-400/80" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-primary)] opacity-35" />
                           Audio ({storageData.audioCount}){" "}
                           {formatBytes(storageData.audioBytes)}
                         </span>

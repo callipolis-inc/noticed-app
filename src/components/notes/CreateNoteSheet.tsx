@@ -1380,7 +1380,7 @@ export function CreateNoteSheet({
                             </div>
                           </div>
                           {!isProUser() && (
-                            <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                            <span className="text-[9px] font-mono font-semibold uppercase px-1.5 py-0.5 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
                               PRO
                             </span>
                           )}
@@ -1672,8 +1672,8 @@ export function CreateNoteSheet({
                   transition={{ type: "spring", stiffness: 420, damping: 32 }}
                   className="relative w-full max-w-xs dynamic-island-shell rounded-3xl p-5 z-10 border border-[var(--glass-border)] shadow-2xl text-center"
                 >
-                  <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                    <AlertTriangle className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-[var(--text-primary)]/5 text-[var(--text-primary)] border border-[var(--glass-border)]">
+                    <AlertTriangle className="w-5 h-5 stroke-[1.75]" />
                   </div>
                   <h3 className="font-serif font-bold text-sm text-[var(--text-primary)]">
                     Discard Draft?

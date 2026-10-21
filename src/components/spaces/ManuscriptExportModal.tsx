@@ -337,10 +337,10 @@ export function ManuscriptExportModal({
                     triggerHaptic("medium");
                     setIsProModalOpen(true);
                   }}
-                  className="px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-500 text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-xs"
+                  className="px-3 py-1.5 rounded-full bg-[var(--text-primary)]/10 border border-[var(--glass-border)] text-[var(--text-primary)] text-xs font-semibold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer shadow-xs"
                   title="Unlock Full Folio Manuscript"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  <Sparkles className="w-3.5 h-3.5 text-[var(--accent-ink)]" />
                   <span className="hidden xs:inline">Unlock Full Folio</span>
                   <span className="xs:hidden">Pro</span>
                 </button>
@@ -453,9 +453,9 @@ export function ManuscriptExportModal({
           <div className="flex-1 overflow-y-auto p-4 sm:p-8 sm:py-10 bg-[#e7e4dc] dark:bg-[#0c0c0e] flex flex-col items-center no-scrollbar manuscript-scroll-container">
             {/* Free Tier Preview Banner */}
             {isTruncatedForFree && (
-              <div className="w-full max-w-[760px] mb-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs print:hidden shadow-xs">
+              <div className="w-full max-w-[760px] mb-4 p-3 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] flex items-center justify-between gap-3 text-xs print:hidden shadow-xs">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                  <Sparkles className="w-4 h-4 text-[var(--accent-ink)] shrink-0" />
                   <span className="text-[11.5px] text-[var(--text-secondary)]">
                     <strong className="text-[var(--text-primary)] font-semibold">Pratinjau Edisi Standar:</strong> Menampilkan 5 dari {sortedNotes.length} catatan dalam volume ini.
                   </span>
@@ -466,7 +466,7 @@ export function ManuscriptExportModal({
                     triggerHaptic("medium");
                     setIsProModalOpen(true);
                   }}
-                  className="shrink-0 px-3 py-1 rounded-full bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-semibold active:scale-95 transition-all cursor-pointer shadow-xs"
+                  className="shrink-0 px-3 py-1 rounded-full bg-[var(--text-primary)] hover:opacity-90 text-[var(--accent-ink)] text-[11px] font-semibold active:scale-95 transition-all cursor-pointer shadow-xs"
                 >
                   Buka Lengkap
                 </button>

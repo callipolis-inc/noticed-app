@@ -482,7 +482,7 @@ export function JoinSpaceModal({
                         {foundSpace.description || "Notebook kolaborasi tanpa deskripsi tambahan."}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[9px] px-2 py-0.5 rounded-full font-sans font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30 flex items-center gap-1">
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-sans font-semibold bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)] flex items-center gap-1">
                           <Users className="w-2.5 h-2.5" />
                           <span>{foundSpace.membersCount || 1} Anggota</span>
                         </span>
@@ -526,7 +526,7 @@ export function JoinSpaceModal({
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                        <Sparkles className="w-3.5 h-3.5 text-[var(--accent-ink)]" />
                         <span>Gabung ke Notebook</span>
                       </>
                     )}

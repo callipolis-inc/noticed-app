@@ -263,7 +263,7 @@ export function SpaceShareModal({
                     {space.name}
                   </h3>
                   {space.isShared && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full font-sans font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30 shrink-0">
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-full font-sans font-semibold bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)] shrink-0">
                       Shared
                     </span>
                   )}
@@ -448,7 +448,7 @@ export function SpaceShareModal({
                     <div className="pt-2 border-t border-[var(--glass-border)]/40 space-y-2">
                       <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-secondary)] px-0.5">
                         <span className="flex items-center gap-1.5">
-                          <Users className="w-3.5 h-3.5 text-blue-500" />
+                          <Users className="w-3.5 h-3.5 text-[var(--accent-ink)]" />
                           <span>Anggota Aktif ({members.length})</span>
                         </span>
                         {isLoadingMembers && (
@@ -475,7 +475,7 @@ export function SpaceShareModal({
                                     className="w-6 h-6 rounded-full object-cover shrink-0 border border-[var(--glass-border)]"
                                   />
                                 ) : (
-                                  <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-500 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                  <div className="w-6 h-6 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] text-[10px] font-bold flex items-center justify-center shrink-0">
                                     {(m.displayName || "A").charAt(0).toUpperCase()}
                                   </div>
                                 )}
@@ -577,7 +577,7 @@ export function SpaceShareModal({
                   className="h-7.5 px-3 rounded-full inner-pseudo-glass text-[11px] font-semibold text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all shrink-0 cursor-pointer flex items-center gap-1.5 shadow-xs border border-[var(--glass-border)]"
                   title="Buka Format Cetak & PDF"
                 >
-                  <Sparkles className="w-3 h-3 text-amber-500/80" />
+                  <Sparkles className="w-3 h-3 text-[var(--accent-ink)]" />
                   <span>Cetak PDF</span>
                 </button>
               </div>

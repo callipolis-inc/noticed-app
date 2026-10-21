@@ -849,7 +849,7 @@ export const NoteEntry = memo(function NoteEntry({
                         className="w-3.5 h-3.5 rounded-full object-cover inline border border-[var(--glass-border)]"
                       />
                     ) : !isCurrentUserAuthor ? (
-                      <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-500 dark:text-blue-400 text-[8px] font-bold flex items-center justify-center inline-flex leading-none">
+                      <span className="w-3.5 h-3.5 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] text-[8px] font-bold flex items-center justify-center inline-flex leading-none border border-[var(--glass-border)]">
                         {authorLabel.charAt(0)}
                       </span>
                     ) : null}
@@ -857,7 +857,7 @@ export const NoteEntry = memo(function NoteEntry({
                       className={
                         isCurrentUserAuthor
                           ? "opacity-65"
-                          : "text-blue-500 dark:text-blue-400 font-semibold"
+                          : "text-[var(--text-primary)] font-semibold opacity-90"
                       }
                     >
                       {authorLabel}
@@ -920,7 +920,7 @@ export const NoteEntry = memo(function NoteEntry({
                         className="w-3.5 h-3.5 rounded-full object-cover inline border border-[var(--glass-border)]"
                       />
                     ) : !isCurrentUserAuthor ? (
-                      <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-500 dark:text-blue-400 text-[8px] font-bold flex items-center justify-center inline-flex leading-none">
+                      <span className="w-3.5 h-3.5 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] text-[8px] font-bold flex items-center justify-center inline-flex leading-none border border-[var(--glass-border)]">
                         {authorLabel.charAt(0)}
                       </span>
                     ) : null}
@@ -928,7 +928,7 @@ export const NoteEntry = memo(function NoteEntry({
                       className={
                         isCurrentUserAuthor
                           ? "opacity-65"
-                          : "text-blue-500 dark:text-blue-400 font-semibold"
+                          : "text-[var(--text-primary)] font-semibold opacity-90"
                       }
                     >
                       {authorLabel}

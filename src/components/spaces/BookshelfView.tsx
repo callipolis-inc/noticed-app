@@ -594,7 +594,7 @@ export function BookshelfView({
               <span
                 className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-base)] transition-colors ${
                   isSyncing
-                    ? "bg-amber-400 animate-pulse"
+                    ? "bg-[var(--text-primary)] opacity-80 animate-pulse"
                     : "bg-emerald-500"
                 }`}
                 title={isSyncing ? "Syncing to Cloud..." : "Cloud Synced"}
@@ -628,7 +628,7 @@ export function BookshelfView({
           >
             <MoreHorizontal className="w-4 h-4 stroke-[2]" />
             {archivedSpaces.length > 0 && shelfTab === "active" && (
-              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-500 ring-1 ring-[var(--bg-base)]" />
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--accent-ink)] ring-1 ring-[var(--bg-base)]" />
             )}
           </button>
 
@@ -773,8 +773,8 @@ export function BookshelfView({
       {shelfTab === "archived" && (
         <div className="z-30 my-1.5 flex items-center justify-center w-full px-4 animate-in fade-in duration-200">
           <div className="px-3.5 py-1.5 rounded-full dynamic-island-shell shadow-sm border border-[var(--glass-border)] flex items-center gap-2.5 text-xs">
-            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium">
-              <Archive className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1.5 text-[var(--text-secondary)] font-medium">
+              <Archive className="w-3.5 h-3.5 text-[var(--accent-ink)]" />
               <span>{t.bookshelf.archivedTab} ({archivedSpaces.length})</span>
             </div>
             <span className="w-[1px] h-3 bg-[var(--glass-border)] opacity-60" />
@@ -918,7 +918,7 @@ export function BookshelfView({
                   className="flex items-center justify-center gap-2 mb-1.5"
                 >
                   {activeSelected.archived ? (
-                    <span className="uppercase font-mono tracking-widest text-amber-500/90 font-semibold flex items-center gap-1">
+                    <span className="uppercase font-mono tracking-widest text-[var(--text-secondary)] font-semibold flex items-center gap-1">
                       <Archive className="w-2.5 h-2.5" />
                       Archived Edition
                     </span>
@@ -1240,7 +1240,7 @@ export function BookshelfView({
                   className="flex items-center justify-center gap-2 mb-1.5"
                 >
                   {activeSelected.archived ? (
-                    <span className="uppercase font-mono tracking-widest text-amber-500/90 font-semibold flex items-center gap-1">
+                    <span className="uppercase font-mono tracking-widest text-[var(--text-secondary)] font-semibold flex items-center gap-1">
                       <Archive className="w-2.5 h-2.5" />
                       Archived Edition
                     </span>
@@ -1574,7 +1574,7 @@ export function BookshelfView({
                       Title Foil Color
                     </label>
                     {!isPro && (
-                      <span className="text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                      <span className="text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
                         PRO
                       </span>
                     )}
@@ -1939,7 +1939,7 @@ export function BookshelfView({
                       Title Foil Color
                     </label>
                     {!isPro && (
-                      <span className="text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                      <span className="text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
                         PRO
                       </span>
                     )}

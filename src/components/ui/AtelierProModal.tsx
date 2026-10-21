@@ -49,7 +49,7 @@ const PRICING_PLANS: PricingPlan[] = [
     price: "Rp 499.000",
     period: "sekali bayar",
     subtext: "Bebas langganan selamanya · Milik Anda abadi",
-    badge: "👑 Patron Pass",
+    badge: "Patron Pass",
     isPopular: true,
   },
   {
@@ -284,7 +284,10 @@ export function AtelierProModal({
           <div className="overflow-y-auto no-scrollbar flex-1 pr-0.5 space-y-4">
             {/* Header Seal */}
             <div className="text-center pt-1 space-y-1.5">
-              <div className="inline-flex items-center justify-center w-11 h-11 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] shadow-sm mb-1 text-[var(--text-primary)]"></div>
+              <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] shadow-sm mb-1 text-[var(--text-primary)]">
+                <Sparkles className="w-5 h-5 stroke-[1.25] text-[var(--accent-ink)]" />
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[var(--text-primary)]/5 to-transparent pointer-events-none" />
+              </div>
               <div className="text-[9.5px] font-mono uppercase tracking-[0.22em] text-[var(--text-tertiary)] font-semibold">
                 Atelier Membership
               </div>
@@ -300,8 +303,8 @@ export function AtelierProModal({
 
             {/* Contextual Trigger Alert Banner if feature triggered */}
             {activeContext && (
-              <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
-                <span className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 block mb-0.5">
+              <div className="p-3 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] text-center space-y-0.5">
+                <span className="text-[11px] font-semibold text-[var(--text-primary)] block">
                   {activeContext.title}
                 </span>
                 <span className="text-[10px] text-[var(--text-secondary)]">
@@ -312,7 +315,7 @@ export function AtelierProModal({
 
             {/* 3-Tier Pricing Plan Cards */}
             <div className="space-y-2 pt-1">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] font-semibold px-1">
+              <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)] font-semibold px-1">
                 Pilih Paket Keanggotaan
               </div>
 
@@ -331,7 +334,7 @@ export function AtelierProModal({
                       flex items-center justify-between gap-3 border
                       ${
                         isSelected
-                          ? "bg-[var(--text-primary)]/8 border-[var(--text-primary)]/60 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+                          ? "bg-[var(--text-primary)]/8 border-[var(--text-primary)]/60 shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
                           : "apple-card border-[var(--glass-border)]/40 hover:border-[var(--glass-border)] opacity-85 hover:opacity-100"
                       }
                     `}
@@ -342,7 +345,7 @@ export function AtelierProModal({
                         className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
                           isSelected
                             ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--accent-ink)]"
-                            : "border-[var(--text-tertiary)]"
+                            : "border-[var(--glass-border)]"
                         }`}
                       >
                         {isSelected && (
@@ -356,7 +359,7 @@ export function AtelierProModal({
                             {plan.name}
                           </span>
                           {plan.badge && (
-                            <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-blue-600 dark:text-blue-400">
+                            <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
                               {plan.badge}
                             </span>
                           )}
@@ -383,11 +386,11 @@ export function AtelierProModal({
 
             {/* Core Pro Privileges Highlight */}
             <div className="pt-2">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] font-semibold px-1 mb-2">
+              <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)] font-semibold px-1 mb-2">
                 Hak Istimewa Anggota Pro
               </div>
 
-              <div className="grid grid-cols-2 gap-1.5 text-left">
+              <div className="grid grid-cols-2 gap-2 text-left">
                 {[
                   { icon: BookOpen, text: "Volume & Halaman Tanpa Batas" },
                   { icon: Cloud, text: "Cloud Sync Multi-Device" },
@@ -400,10 +403,12 @@ export function AtelierProModal({
                   return (
                     <div
                       key={idx}
-                      className="p-2 rounded-xl inner-pseudo-glass border border-[var(--glass-border)]/40 flex items-center gap-2"
+                      className="p-2.5 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)]/50 flex items-center gap-2.5"
                     >
-                      <Icon className="w-3.5 h-3.5 text-blue-500 shrink-0 stroke-[2]" />
-                      <span className="text-[10px] font-medium text-[var(--text-secondary)] leading-tight">
+                      <div className="w-6 h-6 rounded-xl bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
+                        <Icon className="w-3.5 h-3.5 text-[var(--text-primary)] opacity-80 stroke-[1.6]" />
+                      </div>
+                      <span className="text-[10.5px] font-medium text-[var(--text-secondary)] leading-tight">
                         {item.text}
                       </span>
                     </div>

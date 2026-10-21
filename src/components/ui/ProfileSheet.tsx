@@ -489,7 +489,7 @@ export function ProfileSheet({
                       {archivedVolumesCount > 0 && (
                         <>
                           <span>•</span>
-                          <span className="text-amber-600/90 dark:text-amber-400/90 font-medium">
+                          <span className="text-[var(--text-secondary)] font-medium">
                             {archivedVolumesCount} Archived
                           </span>
                         </>
@@ -610,11 +610,11 @@ export function ProfileSheet({
                         <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1">
                           {userEmail ? (
                             !isPro ? (
-                              <span className="text-amber-500/90 font-medium">
+                              <span className="text-[var(--text-secondary)] font-medium">
                                 On-device (Cloud Sync Pro)
                               </span>
                             ) : isSyncing ? (
-                              <span className="flex items-center gap-1 text-sky-500">
+                              <span className="flex items-center gap-1 text-[var(--text-primary)]">
                                 <RotateCw className="w-2.5 h-2.5 animate-spin" />
                                 <span>Syncing...</span>
                               </span>
