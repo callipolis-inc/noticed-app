@@ -39,14 +39,20 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      - name: Select Xcode 16 & iOS Toolchain
+      - name: Select Xcode & Ensure iOS Platform
         run: |
-          XCODE_APP=$(ls -d /Applications/Xcode_16*.app /Applications/Xcode*.app 2>/dev/null | head -n 1)
+          echo "Listing all installed Xcode versions:"
+          ls -ld /Applications/Xcode*.app || true
+
+          # Prefer Xcode 26 / latest toolchain for native Capacitor 8 (Swift 6.2) compatibility
+          XCODE_APP=$(ls -d /Applications/Xcode_26*.app /Applications/Xcode*.app 2>/dev/null | head -n 1)
           if [ -n "$XCODE_APP" ]; then
             echo "Selecting $XCODE_APP"
             sudo xcode-select -switch "$XCODE_APP/Contents/Developer"
           fi
           xcodebuild -version
+          xcrun simctl list runtimes || true
+          sudo xcodebuild -downloadPlatform iOS || true
 
       - name: Install Project Dependencies
         run: |
@@ -129,6 +135,31 @@ jobs:
           echo "PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
           echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
 
+      - name: Resolve SPM Dependencies & Patch Swift Interfaces
+        run: |
+          mkdir -p build/SourcePackages
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -clonedSourcePackagesDirPath build/SourcePackages
+
+          echo "Checking and patching any SPM swiftinterfaces with \$NonescapableTypes..."
+          python3 -c '
+          import glob
+          count = 0
+          for p in glob.glob("build/**/*.swiftinterface", recursive=True):
+              try:
+                  with open(p, "r", encoding="utf-8") as f:
+                      c = f.read()
+                  if "$NonescapableTypes" in c:
+                      with open(p, "w", encoding="utf-8") as f:
+                          f.write(c.replace("$NonescapableTypes", "true"))
+                      count += 1
+                      print(f"Patched: {p}")
+              except Exception as e:
+                  print(f"Error {p}: {e}")
+          print(f"Total swiftinterface files patched: {count}")
+          '
+
       - name: Lock Xcode Manual Signing to App Target (Protect Swift Packages)
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID || 'VU4PP3SY5B' }}
@@ -140,11 +171,10 @@ jobs:
             const profName = process.env.PROFILE_NAME;
             const teamId = process.env.APPLE_TEAM_ID || 'VU4PP3SY5B';
 
-            // Inject explicit manual signing strictly into App target Release configuration (504EC3181FED79650016851F)
-            // This prevents xcodebuild from applying provisioning profiles globally to SPM package targets.
+            // Cleanly set CODE_SIGN_IDENTITY to Apple Distribution and inject PROVISIONING_PROFILE_SPECIFIER into App Release target
             pbx = pbx.replace(
-              /(504EC3181FED79650016851F \/\* Release \*\/ = \{[\s\S]*?buildSettings = \{)/,
-              '\$1\n\t\t\t\tCODE_SIGN_IDENTITY = \"Apple Distribution\";\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tDEVELOPMENT_TEAM = ' + teamId + ';\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = \"' + profName + '\";'
+              /(504EC3181FED79650016851F \/\* Release \*\/ = \{[\s\S]*?CODE_SIGN_IDENTITY = )\"\";/,
+              '\$1\"Apple Distribution\";\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = \"' + profName + '\";'
             );
 
             fs.writeFileSync(file, pbx);
@@ -160,6 +190,8 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath build/App.xcarchive \
+            -clonedSourcePackagesDirPath build/SourcePackages \
+            -skipPackagePluginValidation \
             -allowProvisioningUpdates=NO \
             2>&1 | tee xcodebuild-archive.log || {
               echo "=========================================="
