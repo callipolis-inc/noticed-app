@@ -44,12 +44,22 @@ jobs:
           echo "Listing all installed Xcode versions:"
           ls -ld /Applications/Xcode*.app || true
 
-          # Prefer Xcode 26 / latest toolchain for native Capacitor 8 (Swift 6.2) compatibility
-          XCODE_APP=$(ls -d /Applications/Xcode_26*.app /Applications/Xcode*.app 2>/dev/null | head -n 1)
+          # Select latest modern Xcode toolchain (Xcode 26 or Xcode 16.4/16.3/16.2).
+          # Explicitly avoid Xcode 16.0 (/Applications/Xcode_16.app) whose Swift 6.0 toolchain lacks NonescapableTypes.
+          XCODE_APP=""
+          for app in /Applications/Xcode_26*.app /Applications/Xcode_16.4*.app /Applications/Xcode_16.3*.app /Applications/Xcode_16.2*.app; do
+            if [ -d "$app" ]; then
+              XCODE_APP="$app"
+              break
+            fi
+          done
+
           if [ -n "$XCODE_APP" ]; then
-            echo "Selecting $XCODE_APP"
+            echo "Selecting modern Xcode toolchain: $XCODE_APP"
             sudo xcode-select -switch "$XCODE_APP/Contents/Developer"
+            echo "DEVELOPER_DIR=$XCODE_APP/Contents/Developer" >> $GITHUB_ENV
           fi
+
           xcodebuild -version
           xcrun simctl list runtimes || true
           sudo xcodebuild -downloadPlatform iOS || true
