@@ -135,30 +135,9 @@ jobs:
           echo "PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
           echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
 
-      - name: Resolve SPM Dependencies & Patch Swift Interfaces
+      - name: Resolve Swift Package Dependencies
         run: |
-          mkdir -p build/SourcePackages
-          xcodebuild -resolvePackageDependencies \
-            -project ios/App/App.xcodeproj \
-            -clonedSourcePackagesDirPath build/SourcePackages
-
-          echo "Checking and patching any SPM swiftinterfaces with \$NonescapableTypes..."
-          python3 -c '
-          import glob
-          count = 0
-          for p in glob.glob("build/**/*.swiftinterface", recursive=True):
-              try:
-                  with open(p, "r", encoding="utf-8") as f:
-                      c = f.read()
-                  if "$NonescapableTypes" in c:
-                      with open(p, "w", encoding="utf-8") as f:
-                          f.write(c.replace("$NonescapableTypes", "true"))
-                      count += 1
-                      print(f"Patched: {p}")
-              except Exception as e:
-                  print(f"Error {p}: {e}")
-          print(f"Total swiftinterface files patched: {count}")
-          '
+          xcodebuild -resolvePackageDependencies -project ios/App/App.xcodeproj
 
       - name: Lock Xcode Manual Signing to App Target (Protect Swift Packages)
         env:
@@ -190,7 +169,6 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath build/App.xcarchive \
-            -clonedSourcePackagesDirPath build/SourcePackages \
             -skipPackagePluginValidation \
             -allowProvisioningUpdates=NO \
             2>&1 | tee xcodebuild-archive.log || {
