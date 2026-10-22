@@ -82,15 +82,18 @@ jobs:
           if [ -z "$BUILD_NUM" ]; then
             BUILD_NUM="${{ github.run_number }}"
           fi
+          export RESOLVED_BUILD_NUMBER="$BUILD_NUM"
           echo "RESOLVED_BUILD_NUMBER=$BUILD_NUM" >> $GITHUB_ENV
           echo "Setting iOS CURRENT_PROJECT_VERSION to: $BUILD_NUM"
 
           node -e "
             const fs = require('fs');
             const file = 'ios/App/App.xcodeproj/project.pbxproj';
+            const buildNum = process.env.RESOLVED_BUILD_NUMBER || '1';
             let pbx = fs.readFileSync(file, 'utf8');
-            pbx = pbx.replace(/CURRENT_PROJECT_VERSION = \d+;/g, 'CURRENT_PROJECT_VERSION = ' + process.env.RESOLVED_BUILD_NUMBER + ';');
+            pbx = pbx.replace(/CURRENT_PROJECT_VERSION = [^;]+;/g, 'CURRENT_PROJECT_VERSION = ' + buildNum + ';');
             fs.writeFileSync(file, pbx);
+            console.log('Verified CURRENT_PROJECT_VERSION set to:', buildNum);
           "
 
       - name: Install Apple Distribution Certificate in Temporary Keychain
