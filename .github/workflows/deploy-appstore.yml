@@ -1,6 +1,14 @@
 name: Deploy to TestFlight / App Store Connect
 
 on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
   workflow_dispatch:
     inputs:
       build_number:
@@ -8,9 +16,6 @@ on:
         required: false
         type: string
         default: ''
-  push:
-    tags:
-      - 'v*'
 
 concurrency:
   group: deploy-appstore-${{ github.ref }}
@@ -173,40 +178,41 @@ jobs:
             console.log('Successfully locked App target signing to Profile:', profName);
           "
 
-      - name: Strip Alpha Channel from App Icon (Apple HIG Compliance)
+      - name: Verify App Icon HIG Compliance (1024x1024 RGB 24bpp, No Alpha)
         run: |
-          swift - <<'EOF'
-          import Cocoa
+          node -e "
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            const iconPath = 'ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png';
+            if (!fs.existsSync(iconPath)) {
+              console.error('AppIcon not found at: ' + iconPath);
+              process.exit(1);
+            }
+            let buf = fs.readFileSync(iconPath);
+            const width = buf.readUInt32BE(16);
+            const height = buf.readUInt32BE(20);
+            let colorType = buf.readUInt8(25);
+            console.log('AppIcon metadata: ' + width + 'x' + height + ', colorType=' + colorType);
 
-          let iconPath = "ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png"
-          guard let image = NSImage(contentsOfFile: iconPath) else {
-            print("Icon not found at: \(iconPath)")
-            exit(0)
-          }
+            if (width !== 1024 || height !== 1024) {
+              console.error('Error: App icon must be 1024x1024. Found: ' + width + 'x' + height);
+              process.exit(1);
+            }
 
-          let rep = NSBitmapImageRep(
-            bitmapDataPlanes: nil,
-            pixelsWide: 1024,
-            pixelsHigh: 1024,
-            bitsPerSample: 8,
-            samplesPerPixel: 3,
-            hasAlpha: false,
-            isPlanar: false,
-            colorSpaceName: .deviceRGB,
-            bytesPerRow: 0,
-            bitsPerPixel: 0
-          )!
-
-          NSGraphicsContext.saveGraphicsState()
-          NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
-          image.draw(in: NSRect(x: 0, y: 0, width: 1024, height: 1024))
-          NSGraphicsContext.restoreGraphicsState()
-
-          if let pngData = rep.representation(using: .png, properties: [:]) {
-            try? pngData.write(to: URL(fileURLWithPath: iconPath))
-            print("Successfully verified/converted AppIcon to 24bpp RGB without alpha channel.")
-          }
-          EOF
+            if (colorType === 2) {
+              console.log('Verified: AppIcon is Color Type 2 (RGB 24bpp without alpha). 100% Apple HIG compliant.');
+            } else if (colorType === 6) {
+              console.log('AppIcon contains alpha (colorType 6). Stripping alpha channel safely via sips...');
+              execSync('sips -s format bmp \"' + iconPath + '\" --out temp.bmp');
+              execSync('sips -s format png temp.bmp --out \"' + iconPath + '\"');
+              if (fs.existsSync('temp.bmp')) fs.unlinkSync('temp.bmp');
+              buf = fs.readFileSync(iconPath);
+              colorType = buf.readUInt8(25);
+              console.log('Verified: AppIcon stripped to colorType=' + colorType);
+            } else {
+              console.log('AppIcon colorType: ' + colorType);
+            }
+          "
 
       - name: Archive Xcode Project
         run: |
