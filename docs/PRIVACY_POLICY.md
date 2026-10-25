@@ -106,6 +106,6 @@ We may update this Privacy Policy from time to time. When significant updates oc
 
 If you have questions, privacy concerns, or data deletion requests, please contact us at:
 
-- **Email**: privacy@noticed.app / support@callipolis.co  
+- **Email**: [sidenotes.inc@gmail.com](mailto:sidenotes.inc@gmail.com?subject=[Noticed%20Privacy]%20Inquiry)  
 - **Publisher**: Callipolis Inc.  
 - **Website**: [noticed.app](https://noticed.app)

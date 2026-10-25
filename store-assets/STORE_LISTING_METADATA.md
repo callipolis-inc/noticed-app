@@ -62,8 +62,9 @@ notes,journal,diary,notebook,offline,writer,markdown,darkroom,polaroid,aesthetic
 
 ---
 
-### Store URLs
+### Store URLs & Contact
 * **Support URL:** `https://noticed.app`
+* **Support / Contact Email:** `sidenotes.inc@gmail.com`
 * **Marketing URL:** `https://noticed.app`
 * **Privacy Policy URL:** `https://noticed.app/privacy`
 

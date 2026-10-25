@@ -122,6 +122,6 @@ We may revise these Terms periodically. If we make material modifications, we wi
 
 For any inquiries, legal notices, or questions regarding these Terms, please contact us at:
 
-- **Email**: legal@noticed.app / support@callipolis.co  
+- **Email**: [sidenotes.inc@gmail.com](mailto:sidenotes.inc@gmail.com?subject=[Noticed%20Legal]%20Inquiry)  
 - **Publisher**: Callipolis Inc.  
 - **Website**: [noticed.app](https://noticed.app)

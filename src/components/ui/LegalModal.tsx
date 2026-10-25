@@ -241,7 +241,7 @@ export function LegalModal({
 
                   <div className="pt-2 border-t border-[var(--glass-border)]/40 text-[11px] text-[var(--text-tertiary)] flex flex-col gap-1">
                     <span>Publisher: Callipolis Inc.</span>
-                    <span>Contact: privacy@noticed.app / support@callipolis.co</span>
+                    <span>Contact: <a href="mailto:sidenotes.inc@gmail.com?subject=[Noticed%20Privacy]%20Inquiry" className="underline hover:text-[var(--text-primary)]">sidenotes.inc@gmail.com</a></span>
                   </div>
                 </div>
               ) : (
@@ -296,7 +296,7 @@ export function LegalModal({
 
                   <div className="pt-2 border-t border-[var(--glass-border)]/40 text-[11px] text-[var(--text-tertiary)] flex flex-col gap-1">
                     <span>Governing Law: State of Delaware, United States</span>
-                    <span>Contact: legal@noticed.app / support@callipolis.co</span>
+                    <span>Contact: <a href="mailto:sidenotes.inc@gmail.com?subject=[Noticed%20Legal]%20Inquiry" className="underline hover:text-[var(--text-primary)]">sidenotes.inc@gmail.com</a></span>
                   </div>
                 </div>
               )}
