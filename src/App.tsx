@@ -139,6 +139,12 @@ import {
   type ProFeature,
 } from "@/lib/proManager";
 import {
+  buildWidgetSnapshot,
+  syncWidgetSnapshot,
+  getPendingWidgetAction,
+  clearPendingWidgetAction,
+} from "@/lib/widgetBridge";
+import {
   initPurchases,
   loginPurchasesUser,
   logoutPurchasesUser,
@@ -548,7 +554,18 @@ export function App() {
           }
         } else if (host === "search" || path === "search") {
           setIsSearchOpen(true);
-        } else if (host === "new" || path === "new") {
+        } else if (
+          host === "new" ||
+          path === "new" ||
+          host === "write" ||
+          path === "write" ||
+          host === "dictate" ||
+          path === "dictate"
+        ) {
+          setEditingNote(null);
+          setIsCreateOpen(true);
+        } else if (host === "darkroom" || path === "darkroom") {
+          setEditingNote(null);
           setIsCreateOpen(true);
         } else if (host === "profile" || path === "profile") {
           setIsProfileOpen(true);
@@ -559,6 +576,23 @@ export function App() {
         console.warn("[App] Could not process deep link:", err);
       }
     };
+
+    // Cold-start pending action check from WidgetKit / AppIntents
+    if (Capacitor.isNativePlatform()) {
+      getPendingWidgetAction().then((res) => {
+        if (res.action) {
+          if (res.action === "write" || res.action === "dictate" || res.action === "darkroom") {
+            setEditingNote(null);
+            setIsCreateOpen(true);
+          }
+          if (res.spaceId) {
+            setActiveSpaceId(res.spaceId);
+            setCurrentView("notebook");
+          }
+          clearPendingWidgetAction();
+        }
+      }).catch(() => {});
+    }
 
     let removeDeepLink: (() => void) | undefined;
     if (Capacitor.isNativePlatform()) {
@@ -1294,6 +1328,24 @@ export function App() {
     safeLocalStorageSet("noticed_notes", JSON.stringify(notes));
     saveToAtelierDB("noticed_notes", notes);
   }, [notes, isHydrated]);
+
+  // Real-time synchronization of editorial state to iOS WidgetKit via App Group
+  useEffect(() => {
+    if (!isHydrated) return;
+    const isDark = theme === "obsidian" || theme === "espresso" || theme === "oxford";
+    const timer = setTimeout(() => {
+      const snapshot = buildWidgetSnapshot(
+        spaces,
+        notes,
+        activeSpaceId,
+        language as "en" | "id",
+        isDark ? "dark" : "light",
+        userName
+      );
+      syncWidgetSnapshot(snapshot);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [spaces, notes, activeSpaceId, language, theme, userName, isHydrated]);
 
   const activeSpace =
     spaces.find((s) => s.id === activeSpaceId) ||
