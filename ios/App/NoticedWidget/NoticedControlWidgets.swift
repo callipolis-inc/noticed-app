@@ -5,15 +5,15 @@ import AppIntents
 #if canImport(AppIntents)
 
 @available(iOS 18.0, *)
-public struct NoticedWriteControlIntent: AppIntent {
-    public static var title: LocalizedStringResource = "Write Note"
-    public static var description = IntentDescription("Open Noticed directly into note composition")
-    public static var openAppWhenRun: Bool = true
+struct NoticedWriteControlIntent: AppIntent {
+    static var title: LocalizedStringResource = "Write Note"
+    static var description = IntentDescription("Open Noticed directly into note composition")
+    static var openAppWhenRun: Bool = true
 
-    public init() {}
+    init() {}
 
     @MainActor
-    public func perform() async throws -> some IntentResult & OpensIntent {
+    func perform() async throws -> some IntentResult & OpensIntent {
         let suiteName = "group.com.syntheticae.noticed"
         let defaults = UserDefaults(suiteName: suiteName) ?? UserDefaults.standard
         defaults.set("write", forKey: "noticed_pending_widget_action")
@@ -23,15 +23,15 @@ public struct NoticedWriteControlIntent: AppIntent {
 }
 
 @available(iOS 18.0, *)
-public struct NoticedAudioControlIntent: AppIntent {
-    public static var title: LocalizedStringResource = "Record Voice Memo"
-    public static var description = IntentDescription("Open Noticed to record acoustic voice memo")
-    public static var openAppWhenRun: Bool = true
+struct NoticedAudioControlIntent: AppIntent {
+    static var title: LocalizedStringResource = "Record Voice Memo"
+    static var description = IntentDescription("Open Noticed to record acoustic voice memo")
+    static var openAppWhenRun: Bool = true
 
-    public init() {}
+    init() {}
 
     @MainActor
-    public func perform() async throws -> some IntentResult & OpensIntent {
+    func perform() async throws -> some IntentResult & OpensIntent {
         let suiteName = "group.com.syntheticae.noticed"
         let defaults = UserDefaults(suiteName: suiteName) ?? UserDefaults.standard
         defaults.set("dictate", forKey: "noticed_pending_widget_action")
@@ -41,15 +41,15 @@ public struct NoticedAudioControlIntent: AppIntent {
 }
 
 @available(iOS 18.0, *)
-public struct NoticedDarkroomControlIntent: AppIntent {
-    public static var title: LocalizedStringResource = "Darkroom Film"
-    public static var description = IntentDescription("Open Noticed 35mm Darkroom camera")
-    public static var openAppWhenRun: Bool = true
+struct NoticedDarkroomControlIntent: AppIntent {
+    static var title: LocalizedStringResource = "Darkroom Film"
+    static var description = IntentDescription("Open Noticed 35mm Darkroom camera")
+    static var openAppWhenRun: Bool = true
 
-    public init() {}
+    init() {}
 
     @MainActor
-    public func perform() async throws -> some IntentResult & OpensIntent {
+    func perform() async throws -> some IntentResult & OpensIntent {
         let suiteName = "group.com.syntheticae.noticed"
         let defaults = UserDefaults(suiteName: suiteName) ?? UserDefaults.standard
         defaults.set("darkroom", forKey: "noticed_pending_widget_action")
@@ -59,10 +59,10 @@ public struct NoticedDarkroomControlIntent: AppIntent {
 }
 
 @available(iOS 18.0, *)
-public struct NoticedWriteControl: ControlWidget {
-    public init() {}
+struct NoticedWriteControl: ControlWidget {
+    init() {}
 
-    public var body: some ControlWidgetConfiguration {
+    var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "com.syntheticae.noticed.control.write") {
             ControlWidgetButton(action: NoticedWriteControlIntent()) {
                 Label("Write", systemImage: "square.and.pencil")
@@ -74,10 +74,10 @@ public struct NoticedWriteControl: ControlWidget {
 }
 
 @available(iOS 18.0, *)
-public struct NoticedAudioControl: ControlWidget {
-    public init() {}
+struct NoticedAudioControl: ControlWidget {
+    init() {}
 
-    public var body: some ControlWidgetConfiguration {
+    var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "com.syntheticae.noticed.control.audio") {
             ControlWidgetButton(action: NoticedAudioControlIntent()) {
                 Label("Voice Memo", systemImage: "mic.fill")
@@ -89,10 +89,10 @@ public struct NoticedAudioControl: ControlWidget {
 }
 
 @available(iOS 18.0, *)
-public struct NoticedDarkroomControl: ControlWidget {
-    public init() {}
+struct NoticedDarkroomControl: ControlWidget {
+    init() {}
 
-    public var body: some ControlWidgetConfiguration {
+    var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: "com.syntheticae.noticed.control.darkroom") {
             ControlWidgetButton(action: NoticedDarkroomControlIntent()) {
                 Label("Darkroom Film", systemImage: "camera.fill")

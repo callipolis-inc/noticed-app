@@ -3,10 +3,10 @@ import SwiftUI
 
 // MARK: - 1. Rectangular Lock Screen: Active Folio Excerpt
 @available(iOS 16.0, *)
-public struct LockScreenExcerptWidget: Widget {
-    public let kind: String = "NoticedLockScreenExcerpt"
+struct LockScreenExcerptWidget: Widget {
+    let kind: String = "NoticedLockScreenExcerpt"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             LockScreenExcerptView(entry: entry)
         }
@@ -41,10 +41,10 @@ struct LockScreenExcerptView: View {
 
 // MARK: - 2. Rectangular Lock Screen: Habit & Streak Matrix
 @available(iOS 16.0, *)
-public struct LockScreenHabitWidget: Widget {
-    public let kind: String = "NoticedLockScreenHabit"
+struct LockScreenHabitWidget: Widget {
+    let kind: String = "NoticedLockScreenHabit"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             LockScreenHabitView(entry: entry)
         }
@@ -83,10 +83,10 @@ struct LockScreenHabitView: View {
 
 // MARK: - 3. Circular Lock Screen: Quick Write Entry
 @available(iOS 16.0, *)
-public struct LockScreenQuickNoteWidget: Widget {
-    public let kind: String = "NoticedLockScreenQuickNote"
+struct LockScreenQuickNoteWidget: Widget {
+    let kind: String = "NoticedLockScreenQuickNote"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             LockScreenQuickNoteView(entry: entry)
         }
@@ -116,10 +116,10 @@ struct LockScreenQuickNoteView: View {
 
 // MARK: - 4. Circular Lock Screen: Audio Voice Dictation
 @available(iOS 16.0, *)
-public struct LockScreenVoiceMemoWidget: Widget {
-    public let kind: String = "NoticedLockScreenVoiceMemo"
+struct LockScreenVoiceMemoWidget: Widget {
+    let kind: String = "NoticedLockScreenVoiceMemo"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             LockScreenVoiceMemoView(entry: entry)
         }
@@ -149,10 +149,10 @@ struct LockScreenVoiceMemoView: View {
 
 // MARK: - 5. Inline Lock Screen: Continuous Streak
 @available(iOS 16.0, *)
-public struct LockScreenInlineWidget: Widget {
-    public let kind: String = "NoticedLockScreenInline"
+struct LockScreenInlineWidget: Widget {
+    let kind: String = "NoticedLockScreenInline"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             LockScreenInlineView(entry: entry)
         }

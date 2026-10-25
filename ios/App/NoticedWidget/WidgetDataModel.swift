@@ -74,8 +74,8 @@ public struct NoticedWidgetSnapshot: Codable {
 
 // MARK: - Snapshot Storage Provider
 
-public struct WidgetDataProvider {
-    public static func loadSnapshot() -> NoticedWidgetSnapshot {
+struct WidgetDataProvider {
+    static func loadSnapshot() -> NoticedWidgetSnapshot {
         let defaults = UserDefaults(suiteName: NOTICED_APP_GROUP_ID) ?? UserDefaults.standard
 
         if let data = defaults.data(forKey: "noticed_widget_snapshot_data") {
@@ -89,7 +89,7 @@ public struct WidgetDataProvider {
         return placeholderSnapshot()
     }
 
-    public static func placeholderSnapshot() -> NoticedWidgetSnapshot {
+    static func placeholderSnapshot() -> NoticedWidgetSnapshot {
         let mockHeatmap = [
             WidgetHeatmapDay(dayLabel: "M", dayName: "Mon", dateStr: "2026-10-19", words: 0, intensity: 0, isToday: false),
             WidgetHeatmapDay(dayLabel: "T", dayName: "Tue", dateStr: "2026-10-20", words: 180, intensity: 2, isToday: false),
@@ -221,8 +221,8 @@ extension Color {
 
 // MARK: - Bilingual Localization Helper
 
-public struct NoticedI18n {
-    public static func t(_ key: String, lang: String) -> String {
+struct NoticedI18n {
+    static func t(_ key: String, lang: String) -> String {
         let isId = lang.lowercased() == "id"
         switch key {
         case "brand": return "NOTICED ATELIER"
@@ -254,23 +254,23 @@ public struct NoticedI18n {
 
 // MARK: - Timeline Entry for WidgetKit
 
-public struct NoticedTimelineEntry: TimelineEntry {
-    public let date: Date
-    public let snapshot: NoticedWidgetSnapshot
+struct NoticedTimelineEntry: TimelineEntry {
+    let date: Date
+    let snapshot: NoticedWidgetSnapshot
 }
 
-public struct NoticedTimelineProvider: TimelineProvider {
-    public func placeholder(in context: Context) -> NoticedTimelineEntry {
+struct NoticedTimelineProvider: TimelineProvider {
+    func placeholder(in context: Context) -> NoticedTimelineEntry {
         NoticedTimelineEntry(date: Date(), snapshot: WidgetDataProvider.placeholderSnapshot())
     }
 
-    public func getSnapshot(in context: Context, completion: @escaping (NoticedTimelineEntry) -> Void) {
+    func getSnapshot(in context: Context, completion: @escaping (NoticedTimelineEntry) -> Void) {
         let snapshot = WidgetDataProvider.loadSnapshot()
         let entry = NoticedTimelineEntry(date: Date(), snapshot: snapshot)
         completion(entry)
     }
 
-    public func getTimeline(in context: Context, completion: @escaping (Timeline<NoticedTimelineEntry>) -> Void) {
+    func getTimeline(in context: Context, completion: @escaping (Timeline<NoticedTimelineEntry>) -> Void) {
         let snapshot = WidgetDataProvider.loadSnapshot()
         let currentDate = Date()
         let entry = NoticedTimelineEntry(date: currentDate, snapshot: snapshot)

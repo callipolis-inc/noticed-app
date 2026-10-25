@@ -2,10 +2,10 @@ import WidgetKit
 import SwiftUI
 
 // MARK: - 1. FULL LARGE: Curated Bookshelf Showcase
-public struct BookshelfShowcaseWidget: Widget {
-    public let kind: String = "NoticedBookshelfShowcase"
+struct BookshelfShowcaseWidget: Widget {
+    let kind: String = "NoticedBookshelfShowcase"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             BookshelfShowcaseView(entry: entry)
         }
@@ -153,10 +153,10 @@ struct BookshelfShowcaseView: View {
 }
 
 // MARK: - 2. FULL LARGE: Darkroom Diary & Audio Waveform Player
-public struct DarkroomDiaryWidget: Widget {
-    public let kind: String = "NoticedDarkroomDiary"
+struct DarkroomDiaryWidget: Widget {
+    let kind: String = "NoticedDarkroomDiary"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             DarkroomDiaryView(entry: entry)
         }
@@ -295,10 +295,10 @@ struct DarkroomDiaryView: View {
 }
 
 // MARK: - 3. FULL LARGE: Literary Habit & Marginalia Matrix
-public struct WritingMarginaliaWidget: Widget {
-    public let kind: String = "NoticedWritingMarginalia"
+struct WritingMarginaliaWidget: Widget {
+    let kind: String = "NoticedWritingMarginalia"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             WritingMarginaliaView(entry: entry)
         }
@@ -463,10 +463,10 @@ struct WritingMarginaliaView: View {
 }
 
 // MARK: - 4. MEDIUM: Tactile Quick Capture Desk
-public struct QuickCaptureDeskWidget: Widget {
-    public let kind: String = "NoticedQuickCaptureDesk"
+struct QuickCaptureDeskWidget: Widget {
+    let kind: String = "NoticedQuickCaptureDesk"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             QuickCaptureDeskView(entry: entry)
         }
@@ -562,10 +562,10 @@ struct QuickCaptureDeskView: View {
 }
 
 // MARK: - 5. SMALL: Active Folio Penguin Classics Tri-Band
-public struct ActiveFolioTriBandWidget: Widget {
-    public let kind: String = "NoticedActiveFolioTriBand"
+struct ActiveFolioTriBandWidget: Widget {
+    let kind: String = "NoticedActiveFolioTriBand"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             ActiveFolioTriBandView(entry: entry)
         }
@@ -633,10 +633,10 @@ struct ActiveFolioTriBandView: View {
 }
 
 // MARK: - 6. SMALL: Daily Marginalia Whisper & Progress
-public struct DailyMarginaliaWidget: Widget {
-    public let kind: String = "NoticedDailyMarginalia"
+struct DailyMarginaliaWidget: Widget {
+    let kind: String = "NoticedDailyMarginalia"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             DailyMarginaliaView(entry: entry)
         }
@@ -705,10 +705,10 @@ struct DailyMarginaliaView: View {
 }
 
 // MARK: - 7. SMALL: Bookshelf 3D Stack
-public struct BookshelfStackWidget: Widget {
-    public let kind: String = "NoticedBookshelfStack"
+struct BookshelfStackWidget: Widget {
+    let kind: String = "NoticedBookshelfStack"
 
-    public var body: some WidgetConfiguration {
+    var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: NoticedTimelineProvider()) { entry in
             BookshelfStackView(entry: entry)
         }
