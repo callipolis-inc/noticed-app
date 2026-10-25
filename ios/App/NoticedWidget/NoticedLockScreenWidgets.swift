@@ -2,6 +2,7 @@ import WidgetKit
 import SwiftUI
 
 // MARK: - 1. Rectangular Lock Screen: Active Folio Excerpt
+@available(iOS 16.0, *)
 public struct LockScreenExcerptWidget: Widget {
     public let kind: String = "NoticedLockScreenExcerpt"
 
@@ -15,6 +16,7 @@ public struct LockScreenExcerptWidget: Widget {
     }
 }
 
+@available(iOS 16.0, *)
 struct LockScreenExcerptView: View {
     let entry: NoticedTimelineEntry
     var s: NoticedWidgetSnapshot { entry.snapshot }
@@ -38,6 +40,7 @@ struct LockScreenExcerptView: View {
 }
 
 // MARK: - 2. Rectangular Lock Screen: Habit & Streak Matrix
+@available(iOS 16.0, *)
 public struct LockScreenHabitWidget: Widget {
     public let kind: String = "NoticedLockScreenHabit"
 
@@ -51,6 +54,7 @@ public struct LockScreenHabitWidget: Widget {
     }
 }
 
+@available(iOS 16.0, *)
 struct LockScreenHabitView: View {
     let entry: NoticedTimelineEntry
     var s: NoticedWidgetSnapshot { entry.snapshot }
@@ -78,6 +82,7 @@ struct LockScreenHabitView: View {
 }
 
 // MARK: - 3. Circular Lock Screen: Quick Write Entry
+@available(iOS 16.0, *)
 public struct LockScreenQuickNoteWidget: Widget {
     public let kind: String = "NoticedLockScreenQuickNote"
 
@@ -91,6 +96,7 @@ public struct LockScreenQuickNoteWidget: Widget {
     }
 }
 
+@available(iOS 16.0, *)
 struct LockScreenQuickNoteView: View {
     let entry: NoticedTimelineEntry
 
@@ -109,6 +115,7 @@ struct LockScreenQuickNoteView: View {
 }
 
 // MARK: - 4. Circular Lock Screen: Audio Voice Dictation
+@available(iOS 16.0, *)
 public struct LockScreenVoiceMemoWidget: Widget {
     public let kind: String = "NoticedLockScreenVoiceMemo"
 
@@ -122,6 +129,7 @@ public struct LockScreenVoiceMemoWidget: Widget {
     }
 }
 
+@available(iOS 16.0, *)
 struct LockScreenVoiceMemoView: View {
     let entry: NoticedTimelineEntry
 
@@ -140,6 +148,7 @@ struct LockScreenVoiceMemoView: View {
 }
 
 // MARK: - 5. Inline Lock Screen: Continuous Streak
+@available(iOS 16.0, *)
 public struct LockScreenInlineWidget: Widget {
     public let kind: String = "NoticedLockScreenInline"
 
@@ -153,6 +162,7 @@ public struct LockScreenInlineWidget: Widget {
     }
 }
 
+@available(iOS 16.0, *)
 struct LockScreenInlineView: View {
     let entry: NoticedTimelineEntry
     var s: NoticedWidgetSnapshot { entry.snapshot }

@@ -13,6 +13,7 @@ struct NoticedHomeWidgets: WidgetBundle {
     }
 }
 
+@available(iOS 16.0, *)
 struct NoticedLockScreenWidgets: WidgetBundle {
     var body: some Widget {
         LockScreenExcerptWidget()
@@ -36,7 +37,9 @@ struct NoticedControlWidgetsBundle: WidgetBundle {
 struct NoticedWidgetBundle: WidgetBundle {
     var body: some Widget {
         NoticedHomeWidgets().body
-        NoticedLockScreenWidgets().body
+        if #available(iOS 16.0, *) {
+            NoticedLockScreenWidgets().body
+        }
         if #available(iOS 18.0, *) {
             NoticedControlWidgetsBundle().body
         }
