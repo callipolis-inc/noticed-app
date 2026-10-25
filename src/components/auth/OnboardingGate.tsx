@@ -264,6 +264,12 @@ export function OnboardingGate({
             alt="Noticed Brand Mark"
             loading="eager"
             decoding="async"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.includes("logo-dark.png")) {
+                target.src = "/logo-dark.png";
+              }
+            }}
             className="w-full h-full object-cover scale-105 dark:block hidden"
             style={{ objectPosition: "center 25%" }}
           />
@@ -273,6 +279,12 @@ export function OnboardingGate({
             alt="Noticed Brand Mark"
             loading="eager"
             decoding="async"
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.includes("logo-light.png")) {
+                target.src = "/logo-light.png";
+              }
+            }}
             className="w-full h-full object-cover scale-105 dark:hidden block"
             style={{ objectPosition: "center 25%" }}
           />

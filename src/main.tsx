@@ -19,6 +19,12 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
       .register("/sw.js")
       .then((reg) => {
         console.log("[Noticed PWA] Service Worker registered, scope:", reg.scope);
+        // Automatically check for updates on app foregrounding (essential for iOS PWA)
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            reg.update();
+          }
+        });
       })
       .catch((err) => {
         console.warn("[Noticed PWA] Service Worker registration failed:", err);

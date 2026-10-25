@@ -3,7 +3,7 @@
  * Version: 1.0.0
  */
 
-const CACHE_NAME = 'noticed-v1.0.3';
+const CACHE_NAME = 'noticed-v1.0.4';
 
 const PRECACHE_ASSETS = [
   '/',
