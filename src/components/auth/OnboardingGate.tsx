@@ -56,14 +56,9 @@ export function OnboardingGate({
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % totalSlides);
-    }, 4500);
+    }, 4000);
     return () => clearInterval(timer);
   }, [currentSlide, totalSlides]);
-
-  const goToSlide = (idx: number) => {
-    triggerHaptic("light");
-    setCurrentSlide(idx);
-  };
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -383,9 +378,9 @@ export function OnboardingGate({
         </div>
       </header>
 
-      {/* CENTER COPY & AUTO-ADVANCING DOTS */}
-      <main className="relative flex-1 flex flex-col items-center justify-end px-6 pb-6 text-center z-10 max-w-md mx-auto w-full">
-        {/* Swiping gesture area */}
+      {/* CENTER COPY: 2-Line Concise Editorial Typography (1-line Header + 1-line Desc) */}
+      <main className="relative flex-1 flex flex-col items-center justify-end px-6 pb-5 text-center z-10 max-w-md mx-auto w-full">
+        {/* Swiping gesture area (swipe left/right to change message) */}
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
@@ -401,7 +396,7 @@ export function OnboardingGate({
           }}
           className="w-full flex flex-col items-center cursor-grab active:cursor-grabbing"
         >
-          {/* Headline & Subtitle per slide */}
+          {/* Headline & Subtitle per slide (strictly 1 line header + 1 line desc) */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`headline-${currentSlide}-${currentLang}`}
@@ -409,71 +404,50 @@ export function OnboardingGate({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="space-y-2.5 max-w-sm mx-auto"
+              className="space-y-1.5 max-w-sm mx-auto w-full px-2"
             >
               {currentSlide === 0 ? (
                 <>
-                  <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-[1.18] drop-shadow-sm">
+                  <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] leading-tight whitespace-nowrap overflow-hidden text-ellipsis drop-shadow-sm">
                     {currentLang === "id"
-                      ? "Abadikan keheningan catatan keseharian."
-                      : "Notice the quiet beauty of everyday thoughts."}
+                      ? "Ruang hening untuk pikiranmu."
+                      : "Quiet thoughts, beautifully kept."}
                   </h1>
-                  <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs mx-auto">
+                  <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-snug whitespace-nowrap overflow-hidden text-ellipsis drop-shadow-xs">
                     {currentLang === "id"
-                      ? "Menulis hening dengan kenyamanan tipografi dan sentuhan pena digital."
-                      : "Private, offline-first, and crafted for deep contemplation."}
+                      ? "Catat observasi dengan fokus dan kejernihan."
+                      : "Mindful notes and intimate contemplation."}
                   </p>
                 </>
               ) : currentSlide === 1 ? (
                 <>
-                  <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-[1.18]">
+                  <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] leading-tight whitespace-nowrap overflow-hidden text-ellipsis drop-shadow-sm">
                     {currentLang === "id"
-                      ? "Jilid catatan yang menyimpan pikiran."
-                      : "Volumes that hold a lifetime of reflection."}
+                      ? "Jilid arsip yang abadi."
+                      : "Archival notebooks, bound for life."}
                   </h1>
-                  <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs mx-auto">
+                  <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-snug whitespace-nowrap overflow-hidden text-ellipsis drop-shadow-xs">
                     {currentLang === "id"
-                      ? "Susun jurnal Anda dalam jilid-jilid buku yang elegan dan teratur."
-                      : "Organize your observations into bespoke archival notebooks."}
+                      ? "Susun jurnal dalam buku catatan digital yang elegan."
+                      : "Organize reflections into bespoke digital volumes."}
                   </p>
                 </>
               ) : (
                 <>
-                  <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-[1.18]">
+                  <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] leading-tight whitespace-nowrap overflow-hidden text-ellipsis drop-shadow-sm">
                     {currentLang === "id"
-                      ? "Suaka hening jauh dari kebisingan."
-                      : "A quiet sanctuary away from the noise."}
+                      ? "Suaka privat tanpa distraksi."
+                      : "A sanctuary away from the noise."}
                   </h1>
-                  <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs mx-auto">
+                  <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-snug whitespace-nowrap overflow-hidden text-ellipsis drop-shadow-xs">
                     {currentLang === "id"
-                      ? "Privat, offline-first, dan dirancang untuk perenungan yang mendalam."
-                      : "Private, offline-first, and crafted for deep contemplation."}
+                      ? "Sepenuhnya offline-first dan aman untuk perenungan."
+                      : "Private, offline-first, and crafted for deep focus."}
                   </p>
                 </>
               )}
             </motion.div>
           </AnimatePresence>
-
-          {/* 3 Pagination Dots (Auto-advancing & Clickable) */}
-          <div className="flex items-center justify-center gap-2 pt-4 pb-1">
-            {[0, 1, 2].map((idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => goToSlide(idx)}
-                aria-label={`Slide ${idx + 1}`}
-                className="p-1 cursor-pointer focus:outline-none"
-              >
-                <div
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    currentSlide === idx
-                      ? "w-6 bg-[var(--text-primary)]"
-                      : "w-1.5 bg-[var(--text-primary)]/20 hover:bg-[var(--text-primary)]/40"
-                  }`}
-                />
-              </button>
-            ))}
-          </div>
         </motion.div>
       </main>
 
