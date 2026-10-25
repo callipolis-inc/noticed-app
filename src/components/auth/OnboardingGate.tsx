@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import { useAppLanguage } from "@/lib/i18n";
@@ -19,6 +19,7 @@ import {
   ArrowLeft,
   RotateCw,
   Globe,
+  ChevronDown,
   Check,
   X,
   Compass,
@@ -30,6 +31,144 @@ interface OnboardingGateProps {
 }
 
 type AuthMode = "signin" | "signup" | "forgot";
+
+/**
+ * Editorial 3-Book Ensemble: 2 upright archival volumes + 1 tilted/leaning volume with silk bookmark.
+ * Unboxed, card-free, and floating on an ambient floor shadow.
+ */
+function TiltedLibraryBooksHero() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className="relative w-64 h-44 sm:h-48 mb-6 flex items-end justify-center select-none"
+    >
+      {/* Ambient warm radial illumination */}
+      <div className="absolute inset-0 bg-radial from-amber-500/10 via-amber-700/5 to-transparent blur-2xl pointer-events-none" />
+
+      {/* Bookshelf Floor Contact Shadow */}
+      <div className="absolute -bottom-1.5 w-52 h-4 rounded-[100%] bg-black/60 blur-[6px] pointer-events-none" />
+
+      {/* The 3 Books Ensemble */}
+      <div className="relative flex items-end pb-1 pl-2">
+        {/* BOOK 1: Left - Upright (Midnight Charcoal Archival Buckram Cloth) */}
+        <motion.div
+          initial={{ y: 8, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="relative w-[34px] h-[138px] rounded-t-[4px] rounded-b-[2px] shadow-[0_12px_24px_rgba(0,0,0,0.45)] flex flex-col justify-between py-3 items-center z-10 overflow-hidden cursor-default"
+          style={{
+            background: "linear-gradient(180deg, #242933 0%, #171b22 100%)",
+            borderLeft: "1px solid rgba(255,255,255,0.14)",
+            borderRight: "1px solid rgba(0,0,0,0.65)",
+            borderTop: "1px solid rgba(255,255,255,0.22)",
+          }}
+        >
+          {/* Top Foil Band */}
+          <div className="w-5 h-[1.5px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent" />
+
+          {/* Vertical Foil Title */}
+          <div className="flex flex-col items-center">
+            <span
+              style={{ writingMode: "vertical-rl" }}
+              className="font-serif text-[8.5px] tracking-[0.25em] text-[#d4af37]/85 uppercase rotate-180 select-none font-medium"
+            >
+              SILENCE · I
+            </span>
+          </div>
+
+          {/* Bottom Foil Rib */}
+          <div className="w-5 h-[1.5px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent" />
+        </motion.div>
+
+        {/* BOOK 2: Center - Upright (Tuscan Espresso Leather) */}
+        <motion.div
+          initial={{ y: 8, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="relative w-[38px] h-[154px] rounded-t-[5px] rounded-b-[2px] shadow-[0_14px_28px_rgba(0,0,0,0.55)] flex flex-col justify-between py-3.5 items-center z-20 overflow-hidden -ml-1 cursor-default"
+          style={{
+            background: "linear-gradient(180deg, #321c17 0%, #1a0e0b 100%)",
+            borderLeft: "1px solid rgba(255,255,255,0.16)",
+            borderRight: "1px solid rgba(0,0,0,0.7)",
+            borderTop: "1px solid rgba(255,255,255,0.28)",
+          }}
+        >
+          {/* Top Embossed Ribs */}
+          <div className="w-full px-2 flex flex-col gap-1 items-center">
+            <div className="w-6 h-[1.5px] bg-[#e6ca85]/75 shadow-xs" />
+            <div className="w-6 h-[1px] bg-[#e6ca85]/40" />
+          </div>
+
+          {/* Center Foil Emblem & Vertical Title */}
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-[9px] text-[#e6ca85] select-none leading-none">✦</span>
+            <span
+              style={{ writingMode: "vertical-rl" }}
+              className="font-serif text-[9px] tracking-[0.22em] text-[#e6ca85] uppercase rotate-180 select-none font-semibold"
+            >
+              NOTICED · II
+            </span>
+          </div>
+
+          {/* Bottom Embossed Ribs */}
+          <div className="w-full px-2 flex flex-col gap-1 items-center">
+            <div className="w-6 h-[1px] bg-[#e6ca85]/40" />
+            <div className="w-6 h-[1.5px] bg-[#e6ca85]/75 shadow-xs" />
+          </div>
+        </motion.div>
+
+        {/* BOOK 3: Right - Tilted / Leaning ("Miring Mau Jatuh") */}
+        <motion.div
+          initial={{ rotate: 0, opacity: 0 }}
+          animate={{ rotate: 21, opacity: 1 }}
+          transition={{
+            type: "spring",
+            stiffness: 90,
+            damping: 12,
+            delay: 0.35,
+          }}
+          className="relative w-[34px] h-[142px] rounded-t-[4px] rounded-b-[2px] shadow-[8px_16px_28px_rgba(0,0,0,0.5)] flex flex-col justify-between py-3 items-center z-10 origin-bottom-left -ml-1 cursor-default"
+          style={{
+            background: "linear-gradient(180deg, #1d3326 0%, #0f1c14 100%)",
+            borderLeft: "1px solid rgba(255,255,255,0.12)",
+            borderRight: "1px solid rgba(0,0,0,0.65)",
+            borderTop: "1px solid rgba(255,255,255,0.22)",
+          }}
+        >
+          {/* Exposed Deckled Pages Edge along the right side of the tilted book */}
+          <div
+            className="absolute top-1 right-0 bottom-1 w-[4.5px] pointer-events-none rounded-r-xs opacity-85"
+            style={{
+              background: "linear-gradient(90deg, rgba(235,225,200,0.9), rgba(200,190,165,0.7))",
+              boxShadow: "inset 1px 0 2px rgba(0,0,0,0.25)",
+            }}
+          />
+
+          {/* Golden Silk Bookmark Ribbon draping from top */}
+          <div className="absolute -top-1.5 left-2.5 w-[2.5px] h-14 bg-gradient-to-b from-[#e6ca85] via-[#d4af37] to-[#b38e28] rounded-full shadow-sm z-30 pointer-events-none" />
+
+          {/* Top Foil Band */}
+          <div className="w-5 h-[1.5px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent" />
+
+          {/* Vertical Foil Title */}
+          <div className="flex flex-col items-center">
+            <span
+              style={{ writingMode: "vertical-rl" }}
+              className="font-serif text-[8.5px] tracking-[0.25em] text-[#d4af37]/85 uppercase rotate-180 select-none font-medium"
+            >
+              MARGINALIA · III
+            </span>
+          </div>
+
+          {/* Bottom Foil Rib */}
+          <div className="w-5 h-[1.5px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent" />
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+}
 
 export function OnboardingGate({
   onAuthSuccess,
@@ -44,21 +183,41 @@ export function OnboardingGate({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
-  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
+  const languageDropdownRef = useRef<HTMLDivElement>(null);
   const [legalModalTab, setLegalModalTab] = useState<LegalTab | null>(null);
 
-  // Close drawer if open when pressing Escape
+  // Close dropdown on click outside
+  useEffect(() => {
+    if (!isLanguageDropdownOpen) return;
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (
+        languageDropdownRef.current &&
+        !languageDropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsLanguageDropdownOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("touchstart", handleOutsideClick);
+    return () => {
+      window.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("touchstart", handleOutsideClick);
+    };
+  }, [isLanguageDropdownOpen]);
+
+  // Close drawer or dropdown when pressing Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (legalModalTab) setLegalModalTab(null);
-        else if (isLanguageModalOpen) setIsLanguageModalOpen(false);
+        else if (isLanguageDropdownOpen) setIsLanguageDropdownOpen(false);
         else if (isAuthDrawerOpen) setIsAuthDrawerOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isAuthDrawerOpen, isLanguageModalOpen, legalModalTab]);
+  }, [isAuthDrawerOpen, isLanguageDropdownOpen, legalModalTab]);
 
   const openAuthWithMode = (mode: AuthMode) => {
     triggerHaptic("medium");
@@ -211,59 +370,105 @@ export function OnboardingGate({
           paddingTop: "max(calc(env(safe-area-inset-top, 0px) + 12px), 20px)",
         }}
       >
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl overflow-hidden inner-pseudo-glass border border-[var(--glass-border)] shadow-xs flex items-center justify-center p-1 bg-black/20">
-            <img
-              src="/logo-dark.png"
-              alt="Noticed"
-              className="w-full h-full object-contain"
-              onError={(e) => {
-                // Fallback icon if logo image fails
-                (e.target as HTMLElement).style.display = "none";
-              }}
-            />
-          </div>
+        <div className="flex items-center gap-2 select-none">
+          <img
+            src="/logo-dark.png"
+            alt="Noticed"
+            className="w-7 h-7 object-contain drop-shadow-sm select-none"
+            onError={(e) => {
+              // Fallback icon if logo image fails
+              (e.target as HTMLElement).style.display = "none";
+            }}
+          />
           <span className="font-serif text-lg font-bold tracking-tight text-[var(--text-primary)]">
             Noticed
           </span>
         </div>
 
-        {/* Language Switcher Pill */}
-        <button
-          type="button"
-          onClick={() => {
-            triggerHaptic("light");
-            setIsLanguageModalOpen(true);
-          }}
-          className="h-8 px-3 rounded-full inner-pseudo-glass border border-[var(--glass-border)]/60 text-xs font-sans font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-        >
-          <Globe className="w-3.5 h-3.5 stroke-[1.8]" />
-          <span>{currentLang === "id" ? "Bahasa" : "English"}</span>
-        </button>
+        {/* Language Switcher Dropdown */}
+        <div ref={languageDropdownRef} className="relative z-30">
+          <button
+            type="button"
+            onClick={() => {
+              triggerHaptic("light");
+              setIsLanguageDropdownOpen((prev) => !prev);
+            }}
+            className="h-8 px-3 rounded-full inner-pseudo-glass border border-[var(--glass-border)]/60 text-xs font-sans font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            aria-expanded={isLanguageDropdownOpen}
+          >
+            <Globe className="w-3.5 h-3.5 stroke-[1.8]" />
+            <span>{currentLang === "id" ? "Bahasa" : "English"}</span>
+            <ChevronDown
+              className={`w-3 h-3 text-[var(--text-tertiary)] transition-transform duration-200 ${
+                isLanguageDropdownOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {/* Floating Dropdown Menu */}
+          <AnimatePresence>
+            {isLanguageDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 4, scale: 0.95 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="absolute right-0 top-full mt-2 w-44 rounded-2xl dynamic-island-shell border border-[var(--glass-border)] shadow-[0_16px_36px_rgba(0,0,0,0.45)] p-1.5 z-50 backdrop-blur-2xl"
+              >
+                <div className="dynamic-island-specular-rim" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setLanguage("en");
+                    setIsLanguageDropdownOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                    currentLang === "en"
+                      ? "bg-white/10 text-[var(--text-primary)] font-semibold"
+                      : "text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm">🇬🇧</span>
+                    <span>English</span>
+                  </span>
+                  {currentLang === "en" && (
+                    <Check className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setLanguage("id");
+                    setIsLanguageDropdownOpen(false);
+                  }}
+                  className={`w-full px-3 py-2 rounded-xl text-left text-xs font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                    currentLang === "id"
+                      ? "bg-white/10 text-[var(--text-primary)] font-semibold"
+                      : "text-[var(--text-secondary)] hover:bg-white/5 hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm">🇮🇩</span>
+                    <span>Bahasa Indonesia</span>
+                  </span>
+                  {currentLang === "id" && (
+                    <Check className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
+                  )}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </header>
 
-      {/* CENTER HERO: Editorial 3D Mascot & Headline */}
+      {/* CENTER HERO: Editorial 3-Book Ensemble & Headline */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-4 text-center z-10 max-w-md mx-auto w-full">
-        {/* Editorial Mascot Character Badge */}
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0, y: 16 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative w-44 h-44 sm:w-52 sm:h-52 mb-6 flex items-center justify-center"
-        >
-          {/* Subtle Outer Halo Ring */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-b from-[var(--text-primary)]/10 to-transparent blur-md pointer-events-none" />
-          <div className="w-full h-full rounded-full inner-pseudo-glass border border-[var(--glass-border)]/80 p-5 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.35)] flex items-center justify-center overflow-hidden bg-black/15">
-            <img
-              src="/logo-dark-original.png"
-              alt="Noticed Atelier"
-              className="w-full h-full object-contain drop-shadow-md select-none pointer-events-none"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "/logo-dark.png";
-              }}
-            />
-          </div>
-        </motion.div>
+        {/* Editorial 3-Book Ensemble (Unboxed, 2 Upright + 1 Tilted/Leaning) */}
+        <TiltedLibraryBooksHero />
 
         {/* Headline & Subtitle */}
         <motion.div
@@ -673,71 +878,6 @@ export function OnboardingGate({
                     </button>
                   </p>
                 )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ==================================================================== */}
-      {/* LANGUAGE SELECTOR MODAL                                              */}
-      {/* ==================================================================== */}
-      <AnimatePresence>
-        {isLanguageModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-xs rounded-[28px] bg-[var(--sheet-bg)] backdrop-blur-[40px] border border-[var(--glass-border)] p-5 text-[var(--text-primary)] shadow-2xl"
-            >
-              <div className="flex items-center justify-between pb-3 border-b border-[var(--glass-border)]/40 mb-3">
-                <span className="font-serif font-bold text-base">
-                  {currentLang === "id" ? "Pilih Bahasa" : "Choose Language"}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsLanguageModalOpen(false)}
-                  className="w-6 h-6 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)]"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerSuccessHaptic();
-                    setLanguage("en");
-                    setIsLanguageModalOpen(false);
-                  }}
-                  className={`w-full p-3 rounded-2xl flex items-center justify-between text-xs font-semibold transition-all ${
-                    currentLang === "en"
-                      ? "bg-[var(--text-primary)] text-[var(--accent-ink)]"
-                      : "inner-pseudo-glass text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
-                  }`}
-                >
-                  <span>English (US)</span>
-                  {currentLang === "en" && <Check className="w-4 h-4 stroke-[2.5]" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerSuccessHaptic();
-                    setLanguage("id");
-                    setIsLanguageModalOpen(false);
-                  }}
-                  className={`w-full p-3 rounded-2xl flex items-center justify-between text-xs font-semibold transition-all ${
-                    currentLang === "id"
-                      ? "bg-[var(--text-primary)] text-[var(--accent-ink)]"
-                      : "inner-pseudo-glass text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5"
-                  }`}
-                >
-                  <span>Bahasa Indonesia</span>
-                  {currentLang === "id" && <Check className="w-4 h-4 stroke-[2.5]" />}
-                </button>
               </div>
             </motion.div>
           </div>
