@@ -1,4 +1,16 @@
 import { createClient, type User, type Session } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
+
+export function getAuthRedirectUrl(): string {
+  if (typeof window === "undefined") return "http://localhost:5174";
+
+  if (Capacitor.isNativePlatform()) {
+    return "com.syntheticae.noticed://auth/callback";
+  }
+
+  // In browser or PWA: use clean active origin
+  return window.location.origin.replace(/\/+$/, "");
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
@@ -75,8 +87,7 @@ export async function signInWithApple() {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
-  const redirectTo =
-    typeof window !== "undefined" ? window.location.origin : undefined;
+  const redirectTo = getAuthRedirectUrl();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "apple",
@@ -100,8 +111,7 @@ export async function signInWithGoogle() {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
-  const redirectTo =
-    typeof window !== "undefined" ? window.location.origin : undefined;
+  const redirectTo = getAuthRedirectUrl();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -125,8 +135,7 @@ export async function sendPasswordResetEmail(email: string) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
-  const redirectTo =
-    typeof window !== "undefined" ? window.location.origin : undefined;
+  const redirectTo = getAuthRedirectUrl();
 
   const { data, error } = await supabase.auth.resetPasswordForEmail(
     email.trim().toLowerCase(),
@@ -151,9 +160,10 @@ export async function sendEmailOtp(email: string) {
   }
 
   const { data, error } = await supabase.auth.signInWithOtp({
-    email,
+    email: email.trim().toLowerCase(),
     options: {
       shouldCreateUser: true,
+      emailRedirectTo: getAuthRedirectUrl(),
     },
   });
 
@@ -172,14 +182,76 @@ export async function verifyEmailOtp(email: string, token: string) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
+  const cleanToken = token.trim().replace(/\D/g, "");
+
   const { data, error } = await supabase.auth.verifyOtp({
-    email,
-    token: token.trim(),
+    email: email.trim().toLowerCase(),
+    token: cleanToken,
     type: "email",
   });
 
   if (error) {
     throw error;
+  }
+
+  return data;
+}
+
+/**
+ * Verifies the 6-digit confirmation token sent during email+password sign-up
+ */
+export async function verifySignupOtp(email: string, token: string) {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured. Please check your .env file.");
+  }
+
+  const cleanToken = token.trim().replace(/\D/g, "");
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Try type: "signup" first (standard Supabase registration confirmation)
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: cleanEmail,
+    token: cleanToken,
+    type: "signup",
+  });
+
+  if (error) {
+    // Fallback to type: "email" if project OTP template is unified
+    const fallback = await supabase.auth.verifyOtp({
+      email: cleanEmail,
+      token: cleanToken,
+      type: "email",
+    });
+
+    if (fallback.error) {
+      throw error;
+    }
+    return fallback.data;
+  }
+
+  return data;
+}
+
+/**
+ * Resends the 6-digit signup confirmation code
+ */
+export async function resendSignupOtp(email: string) {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured. Please check your .env file.");
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const { data, error } = await supabase.auth.resend({
+    type: "signup",
+    email: cleanEmail,
+    options: {
+      emailRedirectTo: getAuthRedirectUrl(),
+    },
+  });
+
+  if (error) {
+    // Fallback to signInWithOtp if resend fails
+    return sendEmailOtp(cleanEmail);
   }
 
   return data;

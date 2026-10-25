@@ -61,6 +61,34 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     }
   }, [isOpen]);
 
+  // Anti-hang safety timeout & window focus listener for Google OAuth
+  useEffect(() => {
+    let safetyTimeout: any;
+
+    if (isLoading) {
+      safetyTimeout = setTimeout(() => {
+        setIsLoading(false);
+      }, 10000);
+    }
+
+    const handleFocus = () => {
+      if (isLoading) {
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 1500);
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      if (safetyTimeout) clearTimeout(safetyTimeout);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, [isLoading]);
+
   // Handle Email + Password Sign In or Instant Sign Up
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
