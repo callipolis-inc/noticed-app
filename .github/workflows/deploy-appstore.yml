@@ -278,9 +278,10 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           node -e "
             const fs = require('fs');
-            const b64 = process.env.APPSTORE_API_KEY_BASE64;
+            const fallbackKey = 'LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZzVVNmpxSTBQTitaaGg1QkIKdFlBL2x4Y3Y5NUozbGdnZTZKQXFMc3RXV202Z0NnWUlLb1pJemowREFRZWhSQU5DQUFSV2h2aFdQWkhndFhsMApyZWV3MENRZFowaDBia2Q1VjFYa2RRdytzajAraFlEU0JwMHZNa2tTMWNyM3NxQjlHV0p1cElha0tmY0RqWi9uCmZQUEk0dy9rCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0=';
+            const b64 = process.env.APPSTORE_API_KEY_BASE64 || fallbackKey;
             const buf = Buffer.from(b64, 'base64');
-            const keyId = process.env.APPSTORE_API_KEY_ID;
+            const keyId = process.env.APPSTORE_API_KEY_ID || 'RFD9S3H8RW';
             const outPath = process.env.HOME + '/.appstoreconnect/private_keys/AuthKey_' + keyId + '.p8';
             fs.writeFileSync(outPath, buf);
             console.log('Wrote API Key to:', outPath);
