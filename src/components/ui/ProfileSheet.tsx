@@ -1033,7 +1033,7 @@ export function ProfileSheet({
                       ) : (
                         <>
                           <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
-                          <span>Delete Everything</span>
+                          <span>Delete</span>
                         </>
                       )}
                     </button>

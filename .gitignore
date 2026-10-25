@@ -36,7 +36,6 @@ ios/App/Podfile.lock
 build/
 *.ipa
 *.xcarchive
-*-original.png
 
 # Android Capacitor builds
 .gradle/

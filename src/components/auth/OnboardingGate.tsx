@@ -260,7 +260,7 @@ export function OnboardingGate({
         >
           {/* Dark Mode master 3D render */}
           <img
-            src="/logo-dark-original.png"
+            src="/hero-pebble-dark.png"
             alt="Noticed Brand Mark"
             loading="eager"
             decoding="async"
@@ -275,7 +275,7 @@ export function OnboardingGate({
           />
           {/* Light Mode master 3D render */}
           <img
-            src="/logo-light-original.png"
+            src="/hero-pebble-light.png"
             alt="Noticed Brand Mark"
             loading="eager"
             decoding="async"
