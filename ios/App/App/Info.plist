@@ -30,6 +30,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>noticed</string>
+				<string>com.syntheticae.noticed</string>
 			</array>
 		</dict>
 	</array>
