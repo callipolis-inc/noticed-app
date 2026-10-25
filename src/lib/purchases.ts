@@ -4,6 +4,17 @@ import { setProUser, isProUser } from "./proManager";
 import { supabase } from "./supabase";
 
 export const RC_ENTITLEMENT_ID = "atelier_pro";
+export const RC_FALLBACK_ENTITLEMENT_ID = "noticed_notes_on_noticing_pro";
+
+export function checkCustomerHasPro(customerInfo?: {
+  entitlements?: { active?: Record<string, unknown> };
+} | null): boolean {
+  if (!customerInfo?.entitlements?.active) return false;
+  return Boolean(
+    customerInfo.entitlements.active[RC_ENTITLEMENT_ID] ||
+    customerInfo.entitlements.active[RC_FALLBACK_ENTITLEMENT_ID]
+  );
+}
 
 export type AtelierPlanId = "monthly" | "annual" | "lifetime";
 
@@ -75,14 +86,14 @@ export async function initPurchases(appUserId?: string | null): Promise<void> {
 
     // Listen for customer entitlement updates from RevenueCat
     await Purchases.addCustomerInfoUpdateListener((customerInfo) => {
-      const isPro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
+      const isPro = checkCustomerHasPro(customerInfo);
       setProUser(isPro);
       syncProToSupabase(isPro, appUserId);
     });
 
     // Check initial entitlement status on boot
     const { customerInfo } = await Purchases.getCustomerInfo();
-    const hasActivePro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
+    const hasActivePro = checkCustomerHasPro(customerInfo);
     if (hasActivePro) {
       setProUser(true);
       syncProToSupabase(true, appUserId);
@@ -162,7 +173,7 @@ export async function purchaseAtelierPlan(
       aPackage: targetPackage,
     });
 
-    const isPro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
+    const isPro = checkCustomerHasPro(customerInfo);
     setProUser(isPro);
     syncProToSupabase(isPro);
 
@@ -208,7 +219,7 @@ export async function restoreAtelierPurchases(): Promise<PurchaseResult> {
 
   try {
     const { customerInfo } = await Purchases.restorePurchases();
-    const isPro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
+    const isPro = checkCustomerHasPro(customerInfo);
     setProUser(isPro);
     syncProToSupabase(isPro);
 
@@ -237,7 +248,7 @@ export async function loginPurchasesUser(userId: string): Promise<void> {
   if (!isInitialized || !Capacitor.isNativePlatform()) return;
   try {
     const { customerInfo } = await Purchases.logIn({ appUserID: userId });
-    const isPro = Boolean(customerInfo.entitlements.active[RC_ENTITLEMENT_ID]);
+    const isPro = checkCustomerHasPro(customerInfo);
     if (isPro) {
       setProUser(true);
     }

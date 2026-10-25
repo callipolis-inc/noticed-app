@@ -366,7 +366,13 @@ export function App() {
   const [exportingSpace, setExportingSpace] = useState<Space | null>(null);
   const [isJoinSpaceOpen, setIsJoinSpaceOpen] = useState(false);
   const [joinSpaceInitialCode, setJoinSpaceInitialCode] = useState<string | null>(null);
-  const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [isProModalOpen, setIsProModalOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      return p.get("modal") === "pro" || p.get("sheet") === "pro" || p.get("paywall") === "1";
+    }
+    return false;
+  });
   const [proTriggerFeature, setProTriggerFeature] = useState<ProFeature | null>(null);
   const [flyoutMessage, setFlyoutMessage] = useState<string | null>(null);
   const [flyoutAction, setFlyoutAction] = useState<{
