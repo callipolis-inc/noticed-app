@@ -1943,13 +1943,20 @@ export function App() {
             className="w-full min-h-screen"
           >
             <OnboardingGate
+              currentLanguage={language}
+              onLanguageChange={setLanguage}
               onAuthSuccess={(email, uid) => {
                 handleAuthSuccess(email, uid);
               }}
               onContinueAsGuest={() => {
                 setIsGuestMode(true);
                 safeLocalStorageSet("noticed_guest_mode", "true");
-                showFlyout("Melanjutkan sebagai Tamu (Mode Offline)", 2500);
+                showFlyout(
+                  language === "id"
+                    ? "Melanjutkan sebagai Tamu (Mode Offline)"
+                    : "Continuing as Guest (Offline Mode)",
+                  2500,
+                );
               }}
             />
           </motion.div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
-import { useAppLanguage } from "@/lib/i18n";
+import { useAppLanguage, AppLanguage } from "@/lib/i18n";
 import {
   signInWithPassword,
   signUpWithPassword,
@@ -27,6 +27,8 @@ import {
 interface OnboardingGateProps {
   onAuthSuccess: (email: string, userId?: string) => void;
   onContinueAsGuest: () => void;
+  currentLanguage?: AppLanguage;
+  onLanguageChange?: (lang: AppLanguage) => void;
 }
 
 type AuthMode = "signin" | "signup" | "forgot";
@@ -34,8 +36,15 @@ type AuthMode = "signin" | "signup" | "forgot";
 export function OnboardingGate({
   onAuthSuccess,
   onContinueAsGuest,
+  currentLanguage,
+  onLanguageChange,
 }: OnboardingGateProps) {
-  const [currentLang, setLanguage] = useAppLanguage();
+  const [internalLang, setInternalLanguage] = useAppLanguage();
+  const currentLang = currentLanguage || internalLang;
+  const setLanguage = (newLang: AppLanguage) => {
+    setInternalLanguage(newLang);
+    onLanguageChange?.(newLang);
+  };
   const [isAuthDrawerOpen, setIsAuthDrawerOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [email, setEmail] = useState("");
