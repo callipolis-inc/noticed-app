@@ -273,7 +273,7 @@ jobs:
       - name: Write App Store Connect API Key (.p8)
         env:
           APPSTORE_API_KEY_BASE64: ${{ secrets.APPSTORE_API_KEY_BASE64 }}
-          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || 'X4SX9VQZ44' }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || 'RFD9S3H8RW' }}
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
           node -e "
@@ -288,7 +288,7 @@ jobs:
 
       - name: Upload IPA to TestFlight / App Store Connect
         env:
-          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || 'X4SX9VQZ44' }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID || 'RFD9S3H8RW' }}
           APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID || 'c32ee50b-c9f8-4532-898e-4c793cac57f6' }}
         run: |
           IPA_PATH=$(find build -name "*.ipa" | head -n 1)
