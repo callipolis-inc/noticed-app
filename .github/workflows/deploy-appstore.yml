@@ -140,7 +140,12 @@ jobs:
           mkdir -p "$PROFILES_DIR"
 
           RAW_PROFILE="$RUNNER_TEMP/profile.mobileprovision"
-          echo -n "$APPLE_PROVISION_PROFILE_BASE64" | base64 --decode > "$RAW_PROFILE"
+          if [ -f "ios/App/App/Noticed_AppStore.mobileprovision" ]; then
+            echo "Using repository bundled Noticed_AppStore.mobileprovision"
+            cp "ios/App/App/Noticed_AppStore.mobileprovision" "$RAW_PROFILE"
+          elif [ -n "$APPLE_PROVISION_PROFILE_BASE64" ]; then
+            echo -n "$APPLE_PROVISION_PROFILE_BASE64" | base64 --decode > "$RAW_PROFILE"
+          fi
 
           # Extract UUID and Profile Name for Main App
           PROFILE_UUID=$(security cms -D -i "$RAW_PROFILE" | plutil -extract UUID raw -)
@@ -156,11 +161,11 @@ jobs:
 
           # Install Widget Provisioning Profile
           RAW_WIDGET_PROFILE="$RUNNER_TEMP/widget.mobileprovision"
-          if [ -n "$APPLE_WIDGET_PROVISION_PROFILE_BASE64" ]; then
-            echo -n "$APPLE_WIDGET_PROVISION_PROFILE_BASE64" | base64 --decode > "$RAW_WIDGET_PROFILE"
-          elif [ -f "ios/App/NoticedWidget/Noticed_Widget_AppStore.mobileprovision" ]; then
+          if [ -f "ios/App/NoticedWidget/Noticed_Widget_AppStore.mobileprovision" ]; then
             echo "Using repository bundled Noticed_Widget_AppStore.mobileprovision"
             cp "ios/App/NoticedWidget/Noticed_Widget_AppStore.mobileprovision" "$RAW_WIDGET_PROFILE"
+          elif [ -n "$APPLE_WIDGET_PROVISION_PROFILE_BASE64" ]; then
+            echo -n "$APPLE_WIDGET_PROVISION_PROFILE_BASE64" | base64 --decode > "$RAW_WIDGET_PROFILE"
           fi
 
           if [ -f "$RAW_WIDGET_PROFILE" ]; then
