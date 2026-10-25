@@ -325,9 +325,10 @@ export function AtelierProModal({
             p-5 sm:p-6
           "
           style={{
-            marginTop: "max(calc(env(safe-area-inset-top, 0px) + 14px), 20px)",
+            marginTop: "max(calc(env(safe-area-inset-top, 0px) + 20px), 28px)",
             maxHeight:
-              "calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 14px), 20px) - 20px)",
+              "calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 20px), 28px) - max(env(safe-area-inset-bottom, 0px), 20px))",
+            paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 4px), 16px)",
           }}
         >
           {/* Top Specular Rim */}

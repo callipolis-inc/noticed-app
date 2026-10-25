@@ -104,16 +104,40 @@ export function JoinSpaceModal({
           );
         }
 
+        let rawSpace: any = null;
+        let ownerName: string | null = null;
+
+        // 1. Try secure RPC lookup
         const { data: rpcData, error: rpcError } = await supabase.rpc(
           "preview_space_by_invite",
           { p_invite_code: code },
         );
 
-        if (rpcError) {
-          throw rpcError;
+        if (!rpcError && rpcData?.space) {
+          rawSpace = rpcData.space;
+          ownerName = rpcData.owner_name || null;
+        } else {
+          // 2. Direct table fallback for high resilience
+          const { data: directSpaces, error: directError } = await supabase
+            .from("spaces")
+            .select("*")
+            .or(`invite_code.ilike.${code},id.eq.${code}`)
+            .eq("is_shared", true)
+            .limit(1);
+
+          if (!directError && directSpaces && directSpaces.length > 0) {
+            rawSpace = directSpaces[0];
+            if (rawSpace.user_id) {
+              const { data: prof } = await supabase
+                .from("profiles")
+                .select("display_name")
+                .eq("id", rawSpace.user_id)
+                .single();
+              ownerName = prof?.display_name || null;
+            }
+          }
         }
 
-        const rawSpace = rpcData?.space;
         if (!rawSpace) {
           setSearchError(t.joinSpace.notFound);
           triggerHaptic("heavy");
@@ -131,8 +155,8 @@ export function JoinSpaceModal({
         }
 
         const resolvedSpace = dbToSpace(rawSpace);
-        if (rpcData?.owner_name) {
-          resolvedSpace.partnerName = rpcData.owner_name;
+        if (ownerName) {
+          resolvedSpace.partnerName = ownerName;
         }
         setFoundSpace(resolvedSpace);
         triggerSuccessHaptic();
@@ -161,6 +185,9 @@ export function JoinSpaceModal({
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
     setCameraActive(false);
   }, []);
@@ -219,7 +246,7 @@ export function JoinSpaceModal({
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: "environment",
+          facingMode: { ideal: "environment" },
           width: { ideal: 1280 },
           height: { ideal: 720 },
         },
@@ -228,9 +255,22 @@ export function JoinSpaceModal({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current
+            ?.play()
+            .then(() => {
+              setCameraActive(true);
+              animationFrameRef.current = requestAnimationFrame(scanFrame);
+            })
+            .catch((playErr) => {
+              console.warn("[JoinSpaceModal] Video play error:", playErr);
+              setCameraActive(true);
+              animationFrameRef.current = requestAnimationFrame(scanFrame);
+            });
+        };
+      } else {
+        // Fallback if videoRef hasn't mounted yet
         setCameraActive(true);
-        animationFrameRef.current = requestAnimationFrame(scanFrame);
       }
     } catch (err: any) {
       console.warn("[JoinSpaceModal] Camera access error:", err);
@@ -576,16 +616,20 @@ export function JoinSpaceModal({
               /* STATE 2: SCAN QR VIEW */
               <div className="space-y-3">
                 <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-black/80 border border-[var(--glass-border)] flex items-center justify-center shadow-inner">
-                  {cameraActive ? (
-                    <>
-                      <video
-                        ref={videoRef}
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover"
-                      />
-                      <canvas ref={canvasRef} className="hidden" />
+                  {/* Video is always mounted in DOM to prevent React ref attachment race conditions */}
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    muted
+                    autoPlay
+                    className={`w-full h-full object-cover transition-opacity duration-300 ${
+                      cameraActive ? "opacity-100" : "opacity-0 absolute pointer-events-none"
+                    }`}
+                  />
+                  <canvas ref={canvasRef} className="hidden" />
 
+                  {cameraActive && (
+                    <>
                       {/* Viewfinder Target Reticle */}
                       <div className="absolute inset-8 rounded-2xl border-2 border-dashed border-white/60 pointer-events-none flex flex-col justify-between p-2">
                         <div className="flex justify-between">
@@ -602,7 +646,9 @@ export function JoinSpaceModal({
                         {currentLang === "id" ? "Arahkan ke QR Code Noticed" : "Point camera at Noticed QR code"}
                       </div>
                     </>
-                  ) : (
+                  )}
+
+                  {!cameraActive && (
                     <div className="p-4 text-center space-y-2">
                       <Camera className="w-8 h-8 text-[var(--text-tertiary)] mx-auto opacity-70" />
                       <p className="text-xs text-[var(--text-secondary)]">

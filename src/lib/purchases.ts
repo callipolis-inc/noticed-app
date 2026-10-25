@@ -120,6 +120,22 @@ export async function getAtelierOfferings(): Promise<PurchasesOffering | null> {
   }
 }
 
+function sanitizePurchaseErrorMessage(rawMessage?: string): string {
+  if (!rawMessage) return "Gagal memproses transaksi in-app purchase. Silakan coba lagi.";
+  const lower = rawMessage.toLowerCase();
+  if (
+    lower.includes("configuration") ||
+    lower.includes("none of the products") ||
+    lower.includes("rev.cat") ||
+    lower.includes("empty") ||
+    lower.includes("storekit") ||
+    lower.includes("could not be fetched")
+  ) {
+    return "Katalog App Store sedang disinkronkan oleh server Apple. Silakan coba beberapa saat lagi.";
+  }
+  return rawMessage;
+}
+
 /**
  * Purchases an Atelier Pro plan through Apple App Store / Google Play via RevenueCat,
  * with seamless simulated fallback in development or web previews.
@@ -193,11 +209,11 @@ export async function purchaseAtelierPlan(
         message: "Pembelian dibatalkan.",
       };
     }
-    console.error("[Purchases] Purchase failed:", err);
+    console.warn("[Purchases] Purchase notice:", err);
     return {
       success: false,
       isPro: isProUser(),
-      message: errorObj?.message || "Gagal memproses transaksi in-app purchase.",
+      message: sanitizePurchaseErrorMessage(errorObj?.message),
     };
   }
 }

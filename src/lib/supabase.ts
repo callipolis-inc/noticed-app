@@ -68,6 +68,31 @@ export async function signInWithPassword(email: string, password: string) {
 }
 
 /**
+ * Sign-In with Apple OAuth (Apple App Store Guideline 4.8 Compliance)
+ */
+export async function signInWithApple() {
+  if (!isSupabaseConfigured) {
+    throw new Error("Supabase is not configured. Please check your .env file.");
+  }
+
+  const redirectTo =
+    typeof window !== "undefined" ? window.location.origin : undefined;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "apple",
+    options: {
+      redirectTo,
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
  * Sign-In with Google OAuth (Web & Android)
  */
 export async function signInWithGoogle() {

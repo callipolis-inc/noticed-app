@@ -60,7 +60,12 @@ export function SpaceShareModal({
   const currentSpace = localSpace || space;
 
   const isCurrentSpaceOwner = Boolean(
-    currentSpace && currentUserId && currentSpace.userId === currentUserId,
+    currentSpace &&
+      !currentSpace.partnerName?.startsWith("joined:") &&
+      (!currentSpace.userId ||
+        currentSpace.userId === "local_user" ||
+        !currentUserId ||
+        currentSpace.userId === currentUserId),
   );
 
   const inviteCode =
@@ -188,13 +193,14 @@ export function SpaceShareModal({
     }
   };
 
-  const handleToggleCollaboration = () => {
+  const handleToggleCollaboration = async () => {
     triggerHaptic("medium");
     const nextShared = !currentSpace.isShared;
+    const resolvedInvite = nextShared ? inviteCode : undefined;
     const updatedSpace: Space = {
       ...currentSpace,
       isShared: nextShared,
-      inviteCode: nextShared ? inviteCode : undefined,
+      inviteCode: resolvedInvite,
       defaultRole: currentSpace.defaultRole || "editor",
       partnerName: `role:${currentSpace.defaultRole || "editor"}`,
       updatedAt: new Date().toISOString(),
@@ -202,6 +208,23 @@ export function SpaceShareModal({
     setLocalSpace(updatedSpace);
     if (onUpdateSpace) {
       onUpdateSpace(updatedSpace);
+    }
+
+    // Direct push to Supabase spaces if configured
+    if (isSupabaseConfigured && currentSpace.id) {
+      try {
+        await supabase
+          .from("spaces")
+          .update({
+            is_shared: nextShared,
+            invite_code: resolvedInvite,
+            default_role: currentSpace.defaultRole || "editor",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", currentSpace.id);
+      } catch (err) {
+        console.warn("[SpaceShareModal] Failed to push collaboration update to Supabase:", err);
+      }
     }
   };
 
@@ -234,6 +257,8 @@ export function SpaceShareModal({
           className="w-full max-w-sm rounded-[32px] overflow-hidden bg-[var(--sheet-bg)] backdrop-blur-[40px] saturate-[190%] border border-[var(--glass-border)] shadow-[0_28px_64px_-12px_rgba(0,0,0,0.28)] flex flex-col max-h-[88dvh] p-5 relative text-[var(--text-primary)]"
           style={{
             marginTop: "max(calc(env(safe-area-inset-top, 0px) + 16px), 24px)",
+            paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 12px), 24px)",
+            maxHeight: "calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 16px), 24px) - max(env(safe-area-inset-bottom, 0px), 16px) - 16px)",
           }}
         >
           <div className="dynamic-island-specular-rim" />

@@ -25,6 +25,7 @@ import {
 import { NoteEntry } from "@/components/notes/NoteEntry";
 import { DateGroupDivider } from "@/components/notes/DateGroupDivider";
 import { BookshelfView } from "@/components/spaces/BookshelfView";
+import { OnboardingGate } from "@/components/auth/OnboardingGate";
 import { DynamicFlyout } from "@/components/ui/DynamicFlyout";
 
 const CreateNoteSheet = lazy(() =>
@@ -415,6 +416,15 @@ export function App() {
   // Cloud Auth & Sync State
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState<boolean>(true);
+  const [isGuestMode, setIsGuestMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("demo") === "1") return true;
+      return localStorage.getItem("noticed_guest_mode") === "true";
+    }
+    return false;
+  });
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isMediaUploading, setIsMediaUploading] = useState<boolean>(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(() => {
@@ -434,26 +444,31 @@ export function App() {
 
   // Listen to Supabase session state & initialize RevenueCat purchases
   useEffect(() => {
-    getCurrentUser().then(async (user) => {
-      if (user?.email) {
-        setUserEmail(user.email);
-        setCurrentUserId(user.id);
-        initPurchases(user.id);
+    getCurrentUser()
+      .then(async (user) => {
+        if (user?.email) {
+          setUserEmail(user.email);
+          setCurrentUserId(user.id);
+          initPurchases(user.id);
 
-        // Cross-platform Pro Entitlement sync: check if profile already has is_pro
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("is_pro")
-          .eq("id", user.id)
-          .maybeSingle();
-        if (prof?.is_pro) {
-          setProUser(true);
+          // Cross-platform Pro Entitlement sync: check if profile already has is_pro
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("is_pro")
+            .eq("id", user.id)
+            .maybeSingle();
+          if (prof?.is_pro) {
+            setProUser(true);
+          }
+        } else {
+          setCurrentUserId(null);
+          initPurchases(null);
         }
-      } else {
-        setCurrentUserId(null);
-        initPurchases(null);
-      }
-    });
+        setIsAuthChecking(false);
+      })
+      .catch(() => {
+        setIsAuthChecking(false);
+      });
 
     const { data: authListener } = onAuthStateChange(async (event, session) => {
       if (session?.user?.email) {
@@ -482,6 +497,7 @@ export function App() {
         setCurrentUserId(null);
         logoutPurchasesUser();
       }
+      setIsAuthChecking(false);
     });
 
     // Check web URL parameters for ?join=CODE or ?code=CODE
@@ -754,8 +770,14 @@ export function App() {
     };
   }, [notes, userEmail, isHydrated, currentUserId]);
 
-  const handleAuthSuccess = (email: string) => {
+  const handleAuthSuccess = (email: string, userId?: string) => {
     setUserEmail(email);
+    if (userId) {
+      setCurrentUserId(userId);
+      loginPurchasesUser(userId);
+    }
+    setIsGuestMode(false);
+    safeLocalStorageRemove("noticed_guest_mode");
     showFlyout(`${t.sync.signedInAs} ${email}`, 2500);
     setTimeout(() => {
       handleCloudSync({ silent: false });
@@ -766,6 +788,11 @@ export function App() {
     try {
       await signOutUser();
       setUserEmail(null);
+      setCurrentUserId(null);
+      setIsGuestMode(false);
+      safeLocalStorageRemove("noticed_guest_mode");
+      setIsProfileOpen(false);
+      setIsSettingsOpen(false);
       showFlyout(t.sync.signedOutFromCloud, 2000);
     } catch (err: any) {
       console.error(err);
@@ -788,6 +815,9 @@ export function App() {
 
     // Reset local state to starter defaults
     setUserEmail(null);
+    setCurrentUserId(null);
+    setIsGuestMode(false);
+    safeLocalStorageRemove("noticed_guest_mode");
     setUserName("Author");
     setAvatarPhoto(null);
     setAuthorBio("Quiet observations & daily marginalia");
@@ -810,6 +840,7 @@ export function App() {
     await clearAtelierDB();
 
     setIsProfileOpen(false);
+    setIsSettingsOpen(false);
     showFlyout("Account and personal data deleted", 3000);
   };
 
@@ -964,9 +995,16 @@ export function App() {
     setNotes([]);
     setActiveSpaceId(DEFAULT_STARTER_SPACE.id);
     setCurrentView("bookshelf");
-    localStorage.removeItem("sidenotes_spaces");
-    localStorage.removeItem("sidenotes_notes");
+    safeLocalStorageRemove("sidenotes_spaces");
+    safeLocalStorageRemove("sidenotes_notes");
+    safeLocalStorageRemove("noticed_spaces");
+    safeLocalStorageRemove("noticed_notes");
+    safeLocalStorageRemove("noticed_guest_mode");
+    setIsGuestMode(false);
+    setUserEmail(null);
+    setCurrentUserId(null);
     clearAtelierDB();
+    setIsSettingsOpen(false);
     showFlyout("All data reset to defaults", 2500);
   };
 
@@ -1429,6 +1467,7 @@ export function App() {
       foilColor,
       isShared: false,
       membersCount: 1,
+      userId: currentUserId || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -1437,6 +1476,10 @@ export function App() {
     setActiveSpaceId(newSpace.id);
     setCurrentView("notebook");
     showFlyout(`Opened notebook: ${name}`, 2500);
+
+    if (currentUserId && isProUser()) {
+      handleCloudSync({ silent: true });
+    }
   };
 
   const handleUpdateSpace = (updated: Space) => {
@@ -1879,7 +1922,38 @@ export function App() {
       )}
 
       <AnimatePresence mode="wait">
-        {currentView === "bookshelf" ? (
+        {isAuthChecking ? (
+          <motion.div
+            key="view-auth-checking"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="w-full min-h-screen flex items-center justify-center bg-[var(--bg-base)]"
+          >
+            <div className="w-6 h-6 rounded-full border-2 border-stone-600/30 border-t-amber-400 animate-spin" />
+          </motion.div>
+        ) : !userEmail && !isGuestMode ? (
+          <motion.div
+            key="view-onboarding-gate"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full min-h-screen"
+          >
+            <OnboardingGate
+              onAuthSuccess={(email, uid) => {
+                handleAuthSuccess(email, uid);
+              }}
+              onContinueAsGuest={() => {
+                setIsGuestMode(true);
+                safeLocalStorageSet("noticed_guest_mode", "true");
+                showFlyout("Melanjutkan sebagai Tamu (Mode Offline)", 2500);
+              }}
+            />
+          </motion.div>
+        ) : currentView === "bookshelf" ? (
           <motion.div
             key="view-bookshelf"
             initial={{ opacity: 0, scale: 0.94 }}
