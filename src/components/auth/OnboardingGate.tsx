@@ -32,140 +32,261 @@ interface OnboardingGateProps {
 
 type AuthMode = "signin" | "signup" | "forgot";
 
-/**
- * Editorial 3-Book Ensemble: 2 upright archival volumes + 1 tilted/leaning volume with silk bookmark.
- * Unboxed, card-free, and floating on an ambient floor shadow.
- */
-function TiltedLibraryBooksHero() {
+// ============================================================================
+// STYLE 1: The Curated Manuscript (Floating Layered Notes with Poetic Observation)
+// ============================================================================
+function ManuscriptCardsHero({ lang }: { lang: "id" | "en" }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="relative w-64 h-44 sm:h-48 mb-6 flex items-end justify-center select-none"
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="relative w-72 h-48 sm:h-52 mb-4 flex items-center justify-center select-none"
     >
-      {/* Ambient warm radial illumination */}
-      <div className="absolute inset-0 bg-radial from-amber-500/10 via-amber-700/5 to-transparent blur-2xl pointer-events-none" />
+      {/* Ambient warm radial glow */}
+      <div className="absolute inset-0 bg-radial from-amber-500/12 via-amber-700/5 to-transparent blur-2xl pointer-events-none" />
 
-      {/* Bookshelf Floor Contact Shadow */}
-      <div className="absolute -bottom-1.5 w-52 h-4 rounded-[100%] bg-black/60 blur-[6px] pointer-events-none" />
+      {/* Floating Floor Shadow */}
+      <div className="absolute -bottom-2 w-56 h-4 rounded-[100%] bg-black/60 blur-[8px] pointer-events-none" />
 
-      {/* The 3 Books Ensemble */}
-      <div className="relative flex items-end pb-1 pl-2">
-        {/* BOOK 1: Left - Upright (Midnight Charcoal Archival Buckram Cloth) */}
-        <motion.div
-          initial={{ y: 8, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="relative w-[34px] h-[138px] rounded-t-[4px] rounded-b-[2px] shadow-[0_12px_24px_rgba(0,0,0,0.45)] flex flex-col justify-between py-3 items-center z-10 overflow-hidden cursor-default"
-          style={{
-            background: "linear-gradient(180deg, #242933 0%, #171b22 100%)",
-            borderLeft: "1px solid rgba(255,255,255,0.14)",
-            borderRight: "1px solid rgba(0,0,0,0.65)",
-            borderTop: "1px solid rgba(255,255,255,0.22)",
-          }}
-        >
-          {/* Top Foil Band */}
-          <div className="w-5 h-[1.5px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent" />
+      {/* BACK CARD (Card 3): Forest Sage / Botanical Deckle Card */}
+      <motion.div
+        animate={{ y: [0, -4, 0], rotate: [9, 10, 9] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute w-52 h-34 rounded-2xl p-4 shadow-[0_16px_32px_rgba(0,0,0,0.5)] border border-white/10 z-10 flex flex-col justify-between origin-bottom-right"
+        style={{
+          background: "linear-gradient(145deg, #18261e 0%, #0d1712 100%)",
+          transform: "translate(22px, -8px) rotate(9deg)",
+        }}
+      >
+        <div className="flex items-center justify-between text-[9px] font-mono tracking-widest text-[#a3c4b0]/70 uppercase">
+          <span>FOLIO · 03</span>
+          <span className="text-amber-400/80">✦</span>
+        </div>
+        <div className="space-y-1.5 opacity-40">
+          <div className="h-1.5 w-3/4 rounded-full bg-white/30" />
+          <div className="h-1.5 w-1/2 rounded-full bg-white/20" />
+        </div>
+      </motion.div>
 
-          {/* Vertical Foil Title */}
-          <div className="flex flex-col items-center">
-            <span
-              style={{ writingMode: "vertical-rl" }}
-              className="font-serif text-[8.5px] tracking-[0.25em] text-[#d4af37]/85 uppercase rotate-180 select-none font-medium"
-            >
-              SILENCE · I
-            </span>
+      {/* MIDDLE CARD (Card 2): Tuscan Espresso Buckram Card */}
+      <motion.div
+        animate={{ y: [0, -3, 0], rotate: [-8, -7, -8] }}
+        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+        className="absolute w-52 h-34 rounded-2xl p-4 shadow-[0_18px_36px_rgba(0,0,0,0.55)] border border-white/12 z-20 flex flex-col justify-between origin-bottom-left"
+        style={{
+          background: "linear-gradient(145deg, #2d1b16 0%, #170d0a 100%)",
+          transform: "translate(-22px, -4px) rotate(-8deg)",
+        }}
+      >
+        <div className="flex items-center justify-between text-[9px] font-mono tracking-widest text-[#e6ca85]/75 uppercase">
+          <span>ARCHIVE · II</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-[#e6ca85]" />
+        </div>
+        <div className="flex items-center justify-center py-1">
+          <span className="font-serif text-[11px] tracking-wider text-[#e6ca85]/80 italic">
+            Noticed Atelier
+          </span>
+        </div>
+        <div className="h-1 w-12 rounded-full bg-[#e6ca85]/30 mx-auto" />
+      </motion.div>
+
+      {/* FRONT CARD (Card 1): Tactile Ivory Deckled Paper Note with Poetic Prose */}
+      <motion.div
+        animate={{ y: [0, -5, 0], rotate: [1.5, 0.5, 1.5] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+        className="relative w-60 h-38 rounded-2xl p-4 shadow-[0_24px_48px_-10px_rgba(0,0,0,0.65)] border border-white/20 z-30 flex flex-col justify-between text-left overflow-hidden"
+        style={{
+          background: "linear-gradient(165deg, rgba(255,255,255,0.96) 0%, rgba(246,242,233,0.94) 100%)",
+          color: "#1c1b18",
+        }}
+      >
+        {/* Subtle bookmark ribbon corner peeking out */}
+        <div className="absolute -top-1 right-6 w-3 h-8 bg-gradient-to-b from-[#d4af37] to-[#b38e28] rounded-b-xs shadow-xs pointer-events-none" />
+
+        {/* Note Header */}
+        <div className="flex items-center justify-between border-b border-black/8 pb-1.5">
+          <div className="flex items-center gap-1.5 text-[9.5px] font-mono text-stone-500 uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+            <span>{lang === "id" ? "25 OKT · 07:14" : "OCT 25 · 07:14 AM"}</span>
           </div>
+          <span className="text-[10px] text-amber-700/80 font-serif font-semibold">№ 01</span>
+        </div>
 
-          {/* Bottom Foil Rib */}
-          <div className="w-5 h-[1.5px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent" />
-        </motion.div>
+        {/* Note Handwritten / Serif Body */}
+        <p className="font-serif italic text-xs text-stone-800 leading-relaxed pt-0.5">
+          {lang === "id"
+            ? "“Kabut pagi menyelimuti dahan pinus. Kopi telah mendingin, namun heningnya tetap abadi.”"
+            : "“Morning mist settling gently over the pine branches. The tea has cooled, but the quiet remains.”"}
+        </p>
 
-        {/* BOOK 2: Center - Upright (Tuscan Espresso Leather) */}
-        <motion.div
-          initial={{ y: 8, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="relative w-[38px] h-[154px] rounded-t-[5px] rounded-b-[2px] shadow-[0_14px_28px_rgba(0,0,0,0.55)] flex flex-col justify-between py-3.5 items-center z-20 overflow-hidden -ml-1 cursor-default"
-          style={{
-            background: "linear-gradient(180deg, #321c17 0%, #1a0e0b 100%)",
-            borderLeft: "1px solid rgba(255,255,255,0.16)",
-            borderRight: "1px solid rgba(0,0,0,0.7)",
-            borderTop: "1px solid rgba(255,255,255,0.28)",
-          }}
-        >
-          {/* Top Embossed Ribs */}
-          <div className="w-full px-2 flex flex-col gap-1 items-center">
-            <div className="w-6 h-[1.5px] bg-[#e6ca85]/75 shadow-xs" />
-            <div className="w-6 h-[1px] bg-[#e6ca85]/40" />
-          </div>
+        {/* Note Footer */}
+        <div className="flex items-center justify-between pt-1 border-t border-black/5 text-[9px] font-sans text-stone-400">
+          <span>Marginalia</span>
+          <span className="font-serif italic text-stone-600">Vol. I</span>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
-          {/* Center Foil Emblem & Vertical Title */}
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-[9px] text-[#e6ca85] select-none leading-none">✦</span>
-            <span
-              style={{ writingMode: "vertical-rl" }}
-              className="font-serif text-[9px] tracking-[0.22em] text-[#e6ca85] uppercase rotate-180 select-none font-semibold"
-            >
-              NOTICED · II
-            </span>
-          </div>
+// ============================================================================
+// STYLE 2: The Spatial Atelier (3D Perspective Open Journal & Liquid Glass)
+// ============================================================================
+function SpatialOpenJournalHero({ lang: _lang }: { lang: "id" | "en" }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="relative w-72 h-48 sm:h-52 mb-4 flex items-center justify-center select-none"
+      style={{ perspective: "1100px" }}
+    >
+      {/* Ambient Candlelight Core */}
+      <div className="absolute inset-0 bg-radial from-amber-500/15 via-amber-600/5 to-transparent blur-3xl pointer-events-none" />
 
-          {/* Bottom Embossed Ribs */}
-          <div className="w-full px-2 flex flex-col gap-1 items-center">
-            <div className="w-6 h-[1px] bg-[#e6ca85]/40" />
-            <div className="w-6 h-[1.5px] bg-[#e6ca85]/75 shadow-xs" />
-          </div>
-        </motion.div>
+      {/* 3D Journal Container */}
+      <motion.div
+        animate={{
+          rotateX: [18, 15, 18],
+          rotateY: [-6, -3, -6],
+          y: [0, -4, 0],
+        }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="relative w-64 h-36 rounded-xl shadow-[0_28px_56px_-12px_rgba(0,0,0,0.7)] flex items-center justify-center p-1.5"
+        style={{
+          transformStyle: "preserve-3d",
+          background: "linear-gradient(145deg, #2b1a15 0%, #140c09 100%)",
+          border: "1px solid rgba(255,255,255,0.18)",
+        }}
+      >
+        {/* Specular Edge Highlight */}
+        <div className="absolute inset-x-2 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-200/60 to-transparent pointer-events-none" />
 
-        {/* BOOK 3: Right - Tilted / Leaning ("Miring Mau Jatuh") */}
-        <motion.div
-          initial={{ rotate: 0, opacity: 0 }}
-          animate={{ rotate: 21, opacity: 1 }}
-          transition={{
-            type: "spring",
-            stiffness: 90,
-            damping: 12,
-            delay: 0.35,
-          }}
-          className="relative w-[34px] h-[142px] rounded-t-[4px] rounded-b-[2px] shadow-[8px_16px_28px_rgba(0,0,0,0.5)] flex flex-col justify-between py-3 items-center z-10 origin-bottom-left -ml-1 cursor-default"
-          style={{
-            background: "linear-gradient(180deg, #1d3326 0%, #0f1c14 100%)",
-            borderLeft: "1px solid rgba(255,255,255,0.12)",
-            borderRight: "1px solid rgba(0,0,0,0.65)",
-            borderTop: "1px solid rgba(255,255,255,0.22)",
-          }}
-        >
-          {/* Exposed Deckled Pages Edge along the right side of the tilted book */}
+        {/* The Open Journal Spread */}
+        <div className="w-full h-full rounded-lg flex overflow-hidden shadow-inner bg-[#1e222a] border border-white/10 relative">
+          {/* Left Page (Vellum Parchment Spread) */}
           <div
-            className="absolute top-1 right-0 bottom-1 w-[4.5px] pointer-events-none rounded-r-xs opacity-85"
+            className="flex-1 p-3 flex flex-col justify-between text-left relative border-r border-black/30"
             style={{
-              background: "linear-gradient(90deg, rgba(235,225,200,0.9), rgba(200,190,165,0.7))",
-              boxShadow: "inset 1px 0 2px rgba(0,0,0,0.25)",
+              background: "linear-gradient(90deg, #1a1e26 0%, #202630 100%)",
             }}
-          />
-
-          {/* Golden Silk Bookmark Ribbon draping from top */}
-          <div className="absolute -top-1.5 left-2.5 w-[2.5px] h-14 bg-gradient-to-b from-[#e6ca85] via-[#d4af37] to-[#b38e28] rounded-full shadow-sm z-30 pointer-events-none" />
-
-          {/* Top Foil Band */}
-          <div className="w-5 h-[1.5px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent" />
-
-          {/* Vertical Foil Title */}
-          <div className="flex flex-col items-center">
-            <span
-              style={{ writingMode: "vertical-rl" }}
-              className="font-serif text-[8.5px] tracking-[0.25em] text-[#d4af37]/85 uppercase rotate-180 select-none font-medium"
-            >
-              MARGINALIA · III
-            </span>
+          >
+            <div className="text-[9px] font-mono tracking-widest text-amber-400/80 uppercase">
+              NOTICED · LIBRA
+            </div>
+            <div className="space-y-1.5 my-auto">
+              <div className="h-1 w-full rounded-full bg-white/15" />
+              <div className="h-1 w-4/5 rounded-full bg-white/15" />
+              <div className="h-1 w-3/5 rounded-full bg-white/15" />
+            </div>
+            <div className="text-[8px] font-serif italic text-stone-400">
+              Folio XXIV
+            </div>
           </div>
 
-          {/* Bottom Foil Rib */}
-          <div className="w-5 h-[1.5px] bg-gradient-to-r from-transparent via-[#d4af37]/80 to-transparent" />
-        </motion.div>
-      </div>
+          {/* Spine Valley Shadow */}
+          <div className="w-2.5 bg-gradient-to-r from-black/60 via-black/80 to-black/60 z-20 relative flex items-center justify-center">
+            {/* Silk Ribbon Bookmark cascading across seam */}
+            <div className="w-[3px] h-24 bg-gradient-to-b from-[#e6ca85] via-[#d4af37] to-[#a37f20] rounded-full shadow-md transform -translate-y-1 rotate-[6deg]" />
+          </div>
+
+          {/* Right Page (Vellum Parchment Spread) */}
+          <div
+            className="flex-1 p-3 flex flex-col justify-between text-left relative"
+            style={{
+              background: "linear-gradient(90deg, #202630 0%, #1a1e26 100%)",
+            }}
+          >
+            <div className="flex items-center justify-between text-[9px] font-mono text-stone-400">
+              <span>MCXXVI</span>
+              <span className="text-amber-400 text-xs">✦</span>
+            </div>
+            <div className="space-y-1.5 my-auto">
+              <div className="h-1 w-full rounded-full bg-white/15" />
+              <div className="h-1 w-5/6 rounded-full bg-white/15" />
+              <div className="h-1 w-2/3 rounded-full bg-white/10" />
+            </div>
+            <div className="text-[8px] font-mono text-right text-stone-400">
+              p. 01
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Floating Sparkles Dust */}
+      <div className="absolute top-4 left-6 w-1.5 h-1.5 rounded-full bg-amber-400/60 blur-[1px] animate-pulse" />
+      <div
+        className="absolute bottom-6 right-8 w-2 h-2 rounded-full bg-amber-300/40 blur-[1px] animate-pulse"
+        style={{ animationDelay: "1.2s" }}
+      />
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// STYLE 3: The Kyoto Zen Folio (Swiss Typographic Boldness & Ex Libris Stamp)
+// ============================================================================
+function ZenExLibrisHero({ lang }: { lang: "id" | "en" }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="relative w-72 h-48 sm:h-52 mb-4 flex items-center justify-center select-none"
+    >
+      {/* Background Monumental Serif Letterform */}
+      <span className="absolute inset-0 flex items-center justify-center font-serif text-[150px] font-bold text-white/[0.04] pointer-events-none select-none -translate-y-2">
+        I
+      </span>
+
+      {/* Soft Ambient Radial */}
+      <div className="absolute inset-0 bg-radial from-amber-500/8 via-transparent to-transparent blur-2xl pointer-events-none" />
+
+      {/* Ex Libris Pass Card */}
+      <motion.div
+        animate={{ y: [0, -3, 0] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+        className="relative w-64 rounded-2xl p-4.5 dynamic-island-shell border border-[var(--glass-border)] shadow-[0_20px_44px_rgba(0,0,0,0.5)] z-10 space-y-3 backdrop-blur-2xl text-left"
+      >
+        <div className="dynamic-island-specular-rim" />
+
+        {/* Card Header with Artisan Vermilion Stamp */}
+        <div className="flex items-start justify-between">
+          <div className="space-y-0.5">
+            <div className="text-[9px] font-mono tracking-[0.24em] text-amber-400/90 uppercase font-semibold">
+              ATELIER PRIVÉ
+            </div>
+            <div className="text-[10px] font-serif text-[var(--text-tertiary)] italic">
+              Ex Libris Marginalia
+            </div>
+          </div>
+
+          {/* Artisan Vermilion Seal Stamp */}
+          <div className="w-8 h-8 rounded-lg bg-rose-600/90 border border-rose-400/40 shadow-sm flex items-center justify-center text-white font-serif font-bold text-xs select-none transform rotate-3">
+            <span>見</span>
+          </div>
+        </div>
+
+        {/* Minimal Typewriter Thought */}
+        <div className="pt-0.5 pb-0.5">
+          <p className="font-serif text-xs text-[var(--text-primary)] leading-relaxed italic">
+            {lang === "id"
+              ? "“Menyadari adalah cara kita mendiami waktu dengan sepenuhnya.”"
+              : "“To notice is to inhabit the passing of time with quiet grace.”"}
+            <span className="inline-block w-1.5 h-3.5 bg-amber-400 ml-1.5 align-middle animate-pulse" />
+          </p>
+        </div>
+
+        {/* Card Hairline Metadata Footer */}
+        <div className="flex items-center justify-between pt-2 border-t border-[var(--glass-border)]/50 text-[9px] font-mono text-[var(--text-tertiary)] uppercase tracking-widest">
+          <span>№ 00892 / ARCHIVE</span>
+          <span>TOKYO · 2026</span>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
@@ -186,6 +307,29 @@ export function OnboardingGate({
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
   const languageDropdownRef = useRef<HTMLDivElement>(null);
   const [legalModalTab, setLegalModalTab] = useState<LegalTab | null>(null);
+
+  type PreviewStyle = 1 | 2 | 3;
+  const [activeStyle, setActiveStyle] = useState<PreviewStyle>(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("style");
+      if (p === "1" || p === "2" || p === "3") {
+        return parseInt(p, 10) as PreviewStyle;
+      }
+      const saved = localStorage.getItem("noticed_onboarding_style");
+      if (saved === "1" || saved === "2" || saved === "3") {
+        return parseInt(saved, 10) as PreviewStyle;
+      }
+    }
+    return 1;
+  });
+
+  const handleSelectStyle = (s: PreviewStyle) => {
+    triggerHaptic("light");
+    setActiveStyle(s);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("noticed_onboarding_style", s.toString());
+    }
+  };
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -465,29 +609,137 @@ export function OnboardingGate({
         </div>
       </header>
 
-      {/* CENTER HERO: Editorial 3-Book Ensemble & Headline */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-4 text-center z-10 max-w-md mx-auto w-full">
-        {/* Editorial 3-Book Ensemble (Unboxed, 2 Upright + 1 Tilted/Leaning) */}
-        <TiltedLibraryBooksHero />
+      {/* STYLE PREVIEW SEGMENTED CONTROL (Live Switcher for User) */}
+      <div className="w-full max-w-xs mx-auto px-4 pt-1 pb-1 flex items-center justify-center z-20">
+        <div className="flex items-center p-1 rounded-full dynamic-island-shell border border-[var(--glass-border)] shadow-md backdrop-blur-xl gap-1">
+          <button
+            type="button"
+            onClick={() => handleSelectStyle(1)}
+            className={`px-3 py-1 rounded-full text-[11px] font-sans font-medium transition-all cursor-pointer ${
+              activeStyle === 1
+                ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-semibold shadow-xs scale-[1.02]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            1 · Manuscript
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSelectStyle(2)}
+            className={`px-3 py-1 rounded-full text-[11px] font-sans font-medium transition-all cursor-pointer ${
+              activeStyle === 2
+                ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-semibold shadow-xs scale-[1.02]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            2 · Spatial
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSelectStyle(3)}
+            className={`px-3 py-1 rounded-full text-[11px] font-sans font-medium transition-all cursor-pointer ${
+              activeStyle === 3
+                ? "bg-[var(--text-primary)] text-[var(--accent-ink)] font-semibold shadow-xs scale-[1.02]"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            3 · Zen
+          </button>
+        </div>
+      </div>
 
-        {/* Headline & Subtitle */}
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-          className="space-y-3"
-        >
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-[1.2]">
-            {currentLang === "id"
-              ? "Abadikan keheningan dan keindahan catatan keseharian."
-              : "Notice the quiet beauty of everyday thoughts."}
-          </h1>
-          <p className="font-serif italic text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-xs mx-auto">
-            {currentLang === "id"
-              ? "Atelier digital untuk membaca mendalam, menulis hening, dan refleksi jurnal personal."
-              : "The Digital Atelier for Deep Reading, Focused Writing & Quiet Reflection."}
-          </p>
-        </motion.div>
+      {/* CENTER HERO: Dynamic 3 Styles with AnimatePresence */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-2 text-center z-10 max-w-md mx-auto w-full">
+        <AnimatePresence mode="wait">
+          {activeStyle === 1 && (
+            <motion.div
+              key="hero-style-1"
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ManuscriptCardsHero lang={currentLang} />
+            </motion.div>
+          )}
+
+          {activeStyle === 2 && (
+            <motion.div
+              key="hero-style-2"
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ duration: 0.3 }}
+            >
+              <SpatialOpenJournalHero lang={currentLang} />
+            </motion.div>
+          )}
+
+          {activeStyle === 3 && (
+            <motion.div
+              key="hero-style-3"
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ZenExLibrisHero lang={currentLang} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Headline & Subtitle tailored to each style */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`headline-${activeStyle}-${currentLang}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="space-y-2.5 max-w-sm mx-auto"
+          >
+            {activeStyle === 1 ? (
+              <>
+                <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-[1.18]">
+                  {currentLang === "id"
+                    ? "Abadikan keheningan catatan keseharian."
+                    : "Notice the quiet beauty of everyday thoughts."}
+                </h1>
+                <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs mx-auto">
+                  {currentLang === "id"
+                    ? "Atelier digital untuk membaca mendalam, menulis hening, dan refleksi jurnal personal."
+                    : "The Digital Atelier for Deep Reading, Focused Writing & Quiet Reflection."}
+                </p>
+              </>
+            ) : activeStyle === 2 ? (
+              <>
+                <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-[1.18]">
+                  {currentLang === "id"
+                    ? "Ruang suaka bagi pikiran yang bermakna."
+                    : "A sanctuary for thoughts that deserve to stay."}
+                </h1>
+                <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs mx-auto">
+                  {currentLang === "id"
+                    ? "Jilid catatan abadi yang disinkronkan secara mulus di seluruh atelier Anda."
+                    : "Archival volumes bound with care, synchronized seamlessly across your devices."}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[var(--text-primary)] leading-[1.18]">
+                  {currentLang === "id"
+                    ? "Observasi hening & marginalia harian."
+                    : "Quiet observations & daily marginalia."}
+                </h1>
+                <p className="font-serif italic text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed max-w-xs mx-auto">
+                  {currentLang === "id"
+                    ? "Fokus mendalam. Refleksi intim. Tanpa distraksi."
+                    : "Deep focus. Intimate reflection. Minimal distraction."}
+                </p>
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* BOTTOM ACTION BUTTONS (Matching Reference Mockup) */}
