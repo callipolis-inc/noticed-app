@@ -3,7 +3,7 @@
  * Version: 1.0.0
  */
 
-const CACHE_NAME = 'noticed-v1.0.1';
+const CACHE_NAME = 'noticed-v1.0.2';
 
 const PRECACHE_ASSETS = [
   '/',
@@ -14,6 +14,8 @@ const PRECACHE_ASSETS = [
   '/pwa-512x512.png',
   '/logo-dark.png',
   '/logo-light.png',
+  '/logo-dark-original.png',
+  '/logo-light-original.png',
 ];
 
 // Install Event: Precache App Shell

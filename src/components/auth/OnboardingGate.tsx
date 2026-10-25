@@ -253,6 +253,8 @@ export function OnboardingGate({
           <img
             src="/logo-dark-original.png"
             alt="Noticed Brand Mark"
+            loading="eager"
+            decoding="async"
             className="w-full h-full object-cover scale-105 dark:block hidden"
             style={{ objectPosition: "center 25%" }}
           />
@@ -260,6 +262,8 @@ export function OnboardingGate({
           <img
             src="/logo-light-original.png"
             alt="Noticed Brand Mark"
+            loading="eager"
+            decoding="async"
             className="w-full h-full object-cover scale-105 dark:hidden block"
             style={{ objectPosition: "center 25%" }}
           />
