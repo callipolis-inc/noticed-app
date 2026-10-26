@@ -37,6 +37,7 @@ interface PricingPlan {
   id: PricingPlanId;
   name: string;
   price: string;
+  secondaryPrice?: string;
   period: string;
   subtext: string;
   badge?: string;
@@ -147,13 +148,27 @@ export function AtelierProModal({
         return false;
       });
 
+      let priceStr = plan.price;
+      let secondaryPrice: string | undefined;
+
       if (pkg?.product?.priceString) {
-        return {
-          ...plan,
-          price: pkg.product.priceString,
-        };
+        priceStr = pkg.product.priceString;
+        const currency = pkg.product.currencyCode?.toUpperCase();
+        const isNonIdr = currency && currency !== "IDR";
+        const hasDollar = priceStr.includes("$");
+
+        if (isNonIdr || hasDollar) {
+          if (plan.id === "monthly") secondaryPrice = "≈ Rp 39.000";
+          else if (plan.id === "annual") secondaryPrice = "≈ Rp 299.000";
+          else if (plan.id === "lifetime") secondaryPrice = "≈ Rp 499.000";
+        }
       }
-      return plan;
+
+      return {
+        ...plan,
+        price: priceStr,
+        secondaryPrice,
+      };
     });
   }, [storeOffering, basePlans]);
 
@@ -444,6 +459,11 @@ export function AtelierProModal({
                       <div className="text-xs font-bold font-mono text-[var(--text-primary)]">
                         {plan.price}
                       </div>
+                      {plan.secondaryPrice && (
+                        <div className="text-[9.5px] font-mono text-[var(--text-tertiary)] tabular-nums">
+                          {plan.secondaryPrice}
+                        </div>
+                      )}
                       <div className="text-[9px] text-[var(--text-tertiary)] font-mono">
                         {plan.period}
                       </div>
@@ -590,6 +610,13 @@ export function AtelierProModal({
               >
                 Apple Standard EULA
               </a>
+            </div>
+
+            {/* Apple Payment Compliance & Indonesian E-Wallet Note */}
+            <div className="text-[10px] text-[var(--text-tertiary)] text-center max-w-xs mx-auto leading-relaxed pt-1 opacity-80">
+              {currentLang === "id"
+                ? "Pembayaran resmi melalui Apple In-App Purchase. Mendukung GoPay, DANA, ShopeePay, dan Kartu Debit terhubung Apple ID."
+                : "Official Apple In-App Purchase. Supports GoPay, DANA, ShopeePay & Debit Cards linked to your Apple ID."}
             </div>
           </div>
 

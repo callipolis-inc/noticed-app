@@ -520,10 +520,62 @@ export function App() {
       }
     }
 
-    // Deep Linking listener for noticed:// URL scheme and external shortcuts
-    const handleDeepLink = (rawUrl: string) => {
+    // Deep Linking listener for noticed:// and com.syntheticae.noticed:// URL scheme
+    const handleDeepLink = async (rawUrl: string) => {
       try {
-        if (!rawUrl || !rawUrl.startsWith("noticed://")) return;
+        if (
+          !rawUrl ||
+          (!rawUrl.startsWith("noticed://") &&
+            !rawUrl.startsWith("com.syntheticae.noticed://"))
+        ) {
+          return;
+        }
+
+        // 1. Auth Callback intercept (Google OAuth / Email Magic Link / Password Recovery)
+        const isAuthTarget =
+          rawUrl.includes("auth/callback") ||
+          rawUrl.includes("auth-callback") ||
+          rawUrl.includes("access_token=") ||
+          rawUrl.includes("refresh_token=") ||
+          rawUrl.includes("type=recovery") ||
+          rawUrl.includes("code=");
+
+        if (isAuthTarget) {
+          let queryParams = new URLSearchParams();
+          let hashParams = new URLSearchParams();
+          try {
+            if (rawUrl.includes("?")) {
+              const qPart = rawUrl.split("?")[1].split("#")[0];
+              queryParams = new URLSearchParams(qPart);
+            }
+            if (rawUrl.includes("#")) {
+              const hPart = rawUrl.split("#")[1];
+              hashParams = new URLSearchParams(hPart);
+            }
+          } catch {}
+
+          const accessToken = hashParams.get("access_token") || queryParams.get("access_token");
+          const refreshToken = hashParams.get("refresh_token") || queryParams.get("refresh_token");
+          const code = queryParams.get("code") || hashParams.get("code");
+
+          if (accessToken && refreshToken) {
+            const { data } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            if (data?.session?.user?.email) {
+              handleAuthSuccess(data.session.user.email, data.session.user.id);
+            }
+            return;
+          } else if (code) {
+            const { data } = await supabase.auth.exchangeCodeForSession(code);
+            if (data?.session?.user?.email) {
+              handleAuthSuccess(data.session.user.email, data.session.user.id);
+            }
+            return;
+          }
+        }
+
         const url = new URL(rawUrl);
         const host = url.hostname.toLowerCase();
         const segments = url.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
@@ -829,6 +881,8 @@ export function App() {
     }
     setIsGuestMode(false);
     safeLocalStorageRemove("noticed_guest_mode");
+    // Ensure smooth direct navigation to Bookshelf (Home) without any onboarding check error
+    setCurrentView("bookshelf");
     showFlyout(`${t.sync.signedInAs} ${email}`, 2500);
     setTimeout(() => {
       handleCloudSync({ silent: false });
@@ -837,16 +891,82 @@ export function App() {
 
   const handleSignOut = async () => {
     try {
-      await signOutUser();
+      // 1. Terminate remote Supabase session
+      try {
+        await signOutUser();
+      } catch (authErr) {
+        console.warn("[Noticed] Sign out auth error:", authErr);
+      }
+
+      // 2. Disassociate RevenueCat / StoreKit customer identity
+      try {
+        await logoutPurchasesUser();
+      } catch (rcErr) {
+        console.warn("[Noticed] RevenueCat logout error:", rcErr);
+      }
+
+      // 3. Clear IndexedDB local database (AtelierDB)
+      try {
+        await clearAtelierDB();
+      } catch (idbErr) {
+        console.warn("[Noticed] clearAtelierDB error:", idbErr);
+      }
+
+      // 4. Wipe all local storage persistent keys completely
+      const keysToPurge = [
+        "noticed_spaces",
+        "noticed_notes",
+        "noticed_username",
+        "noticed_avatar_photo",
+        "noticed_author_bio",
+        "noticed_is_pro",
+        "noticed_user_email",
+        "noticed_pending_mutations",
+        "noticed_pending_deletes",
+        "noticed_last_synced_at",
+        "noticed_guest_mode",
+        "sidenotes_spaces",
+        "sidenotes_notes",
+        "sidenotes_username",
+        "sidenotes_avatar_photo",
+        "sidenotes_author_bio",
+        "sidenotes_is_pro",
+        "noticed_widget_snapshot_preview",
+      ];
+      keysToPurge.forEach((k) => {
+        safeLocalStorageRemove(k);
+        try {
+          localStorage.removeItem(k);
+        } catch {}
+      });
+
+      // 5. Reset WidgetKit timeline to clean empty starter snapshot
+      const emptySnapshot = buildWidgetSnapshot(
+        [DEFAULT_STARTER_SPACE],
+        [],
+        DEFAULT_STARTER_SPACE.id,
+        language as "en" | "id",
+        "dark",
+        "Author"
+      );
+      syncWidgetSnapshot(emptySnapshot).catch(() => {});
+
+      // 6. Reset in-memory React state to clean starter defaults
       setUserEmail(null);
       setCurrentUserId(null);
       setIsGuestMode(false);
-      safeLocalStorageRemove("noticed_guest_mode");
+      setUserName("Author");
+      setAvatarPhoto(null);
+      setAuthorBio("Quiet observations & daily marginalia");
+      setSpaces([DEFAULT_STARTER_SPACE]);
+      setNotes([]);
+      setActiveSpaceId(DEFAULT_STARTER_SPACE.id);
+      setCurrentView("bookshelf");
       setIsProfileOpen(false);
       setIsSettingsOpen(false);
       showFlyout(t.sync.signedOutFromCloud, 2000);
     } catch (err: any) {
-      console.error(err);
+      console.error("[Noticed] Sign-out failure:", err);
     }
   };
 

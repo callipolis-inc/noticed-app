@@ -478,8 +478,27 @@ export function OnboardingGate({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      await signInWithApple();
+      const res = await signInWithApple();
+      if (!res) {
+        // User canceled Apple sheet - silent exit without error banner
+        setIsLoading(false);
+        return;
+      }
+      if ("user" in res && res.user?.email) {
+        onAuthSuccess(res.user.email, res.user.id);
+      }
     } catch (err: any) {
+      const isCancel =
+        err?.message?.toLowerCase().includes("cancel") ||
+        err?.message?.includes("1001") ||
+        err?.code === 1001 ||
+        err?.code === "1001";
+
+      if (isCancel) {
+        setIsLoading(false);
+        return;
+      }
+
       triggerHaptic("heavy");
       console.warn("[OnboardingGate] Apple sign-in error:", err);
       setErrorMessage(

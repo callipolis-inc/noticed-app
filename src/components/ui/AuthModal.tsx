@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Capacitor } from "@capacitor/core";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
 import {
   signInWithPassword,
   signUpWithPassword,
+  signInWithApple,
   signInWithGoogle,
   sendPasswordResetEmail,
 } from "@/lib/supabase";
@@ -32,13 +32,6 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
   useLockBodyScroll(isOpen);
-
-  // Apple App Store Guideline 4.8 Protection:
-  // Hide third-party OAuth (Google) on native iOS when Sign in with Apple is not configured
-  const isNativeIOS =
-    typeof window !== "undefined" &&
-    Capacitor.isNativePlatform() &&
-    Capacitor.getPlatform() === "ios";
 
   const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "success">(
     "signin"
@@ -184,7 +177,45 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     }
   };
 
-  // Handle Google OAuth (Web & Android only)
+  // Handle Native Apple Sign-In
+  const handleAppleSignIn = async () => {
+    setErrorMessage(null);
+    setInfoMessage(null);
+    setIsLoading(true);
+    triggerHaptic("medium");
+
+    try {
+      const res = await signInWithApple();
+      if (!res) {
+        // Silent cancellation
+        setIsLoading(false);
+        return;
+      }
+      if (res && "user" in res && res.user?.email) {
+        onAuthSuccess(res.user.email);
+        onClose();
+      }
+    } catch (err: any) {
+      const isCancel =
+        err?.message?.toLowerCase().includes("cancel") ||
+        err?.message?.includes("1001") ||
+        err?.code === 1001 ||
+        err?.code === "1001";
+
+      if (isCancel) {
+        setIsLoading(false);
+        return;
+      }
+
+      triggerHaptic("heavy");
+      setErrorMessage(
+        err?.message || "Sign in with Apple failed. Please try again."
+      );
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Google OAuth
   const handleGoogleSignIn = async () => {
     setErrorMessage(null);
     setInfoMessage(null);
@@ -399,45 +430,57 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 </button>
               </form>
 
-              {/* Rule 3: Apple Guideline 4.8 Protection — Only show Google OAuth on non-iOS platforms */}
-              {!isNativeIOS && (
-                <div className="mt-4 space-y-3">
-                  <div className="relative flex items-center justify-center">
-                    <div className="border-t border-[var(--glass-border)]/50 w-full" />
-                    <span className="px-3 text-[10px] font-mono uppercase tracking-widest text-[var(--text-tertiary)] bg-transparent shrink-0">
-                      or
-                    </span>
-                    <div className="border-t border-[var(--glass-border)]/50 w-full" />
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={isLoading}
-                    className="w-full py-3 px-4 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] text-[var(--text-primary)] font-medium text-xs flex items-center justify-center gap-2.5 hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40 cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M21.35 11.1h-9.17v2.73h6.51c-.33 1.81-1.5 3.34-3.2 4.37v3.62h5.18c3.03-2.79 4.78-6.9 4.78-11.79 0-.8-.08-1.57-.23-2.31l.13.38z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M12.18 22c4.32 0 7.95-1.43 10.6-3.88l-5.18-3.62c-1.43.96-3.26 1.53-5.42 1.53-4.17 0-7.7-2.81-8.96-6.59H-.1v3.74C2.54 18.42 7.01 22 12.18 22z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M3.22 13.44c-.32-.96-.5-1.99-.5-3.05s.18-2.09.5-3.05V3.6H-.1C-1.18 5.75-1.8 8.19-1.8 10.39s.62 4.64 1.7 6.79l3.32-3.74z"
-                      />
-                      <path
-                        fill="currentColor"
-                        d="M12.18 4.75c2.35 0 4.46.81 6.12 2.4l4.59-4.59C20.12.98 16.5 0 12.18 0 7.01 0 2.54 3.58-.1 8.82l3.32 3.74c1.26-3.78 4.79-6.59 8.96-6.59z"
-                      />
-                    </svg>
-                    <span>Continue with Google</span>
-                  </button>
+              {/* Social Login: Native Apple Sign In & Google */}
+              <div className="mt-4 space-y-2.5">
+                <div className="relative flex items-center justify-center">
+                  <div className="border-t border-[var(--glass-border)]/50 w-full" />
+                  <span className="px-3 text-[10px] font-mono uppercase tracking-widest text-[var(--text-tertiary)] bg-transparent shrink-0">
+                    or
+                  </span>
+                  <div className="border-t border-[var(--glass-border)]/50 w-full" />
                 </div>
-              )}
+
+                {/* Sign in with Apple (Native on iOS, web OAuth on browser) */}
+                <button
+                  type="button"
+                  onClick={handleAppleSignIn}
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-medium text-xs flex items-center justify-center gap-2.5 hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40 cursor-pointer shadow-xs"
+                >
+                  <svg className="w-4 h-4 fill-current mb-0.5" viewBox="0 0 170 170">
+                    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.69-7.85-11.97-14.42-6.19-9.58-10.9-20.58-14.13-33-3.23-12.42-4.85-24.1-4.85-35.03 0-14.92 3.8-27.42 11.41-37.5 7.61-10.08 17.18-15.22 28.72-15.42 4.9 0 10.37 1.34 16.42 4.02 6.05 2.68 10.22 4.09 12.51 4.22 1.96 0 6.32-1.46 13.08-4.38 6.76-2.92 12.35-4.14 16.78-3.66 12.63 1.09 22.86 6.03 30.68 14.81-11.09 6.76-16.53 16.22-16.32 28.38.22 9.58 3.91 17.58 11.08 24 7.17 6.42 15.67 10.05 25.5 10.89-2.18 6.76-4.79 13.62-7.83 20.58zM119.22 33.09c0-7.39 2.61-14.28 7.83-20.67 5.22-6.39 11.75-10.45 19.59-12.18.22 1.3.33 2.41.33 3.32 0 7.39-2.73 14.43-8.19 21.12-5.46 6.69-12.08 10.59-19.86 11.7-.1-.99-.3-1.99-.7-3.29z" />
+                  </svg>
+                  <span>Sign in with Apple</span>
+                </button>
+
+                {/* Continue with Google */}
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] text-[var(--text-primary)] font-medium text-xs flex items-center justify-center gap-2.5 hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M21.35 11.1h-9.17v2.73h6.51c-.33 1.81-1.5 3.34-3.2 4.37v3.62h5.18c3.03-2.79 4.78-6.9 4.78-11.79 0-.8-.08-1.57-.23-2.31l.13.38z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12.18 22c4.32 0 7.95-1.43 10.6-3.88l-5.18-3.62c-1.43.96-3.26 1.53-5.42 1.53-4.17 0-7.7-2.81-8.96-6.59H-.1v3.74C2.54 18.42 7.01 22 12.18 22z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M3.22 13.44c-.32-.96-.5-1.99-.5-3.05s.18-2.09.5-3.05V3.6H-.1C-1.18 5.75-1.8 8.19-1.8 10.39s.62 4.64 1.7 6.79l3.32-3.74z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12.18 4.75c2.35 0 4.46.81 6.12 2.4l4.59-4.59C20.12.98 16.5 0 12.18 0 7.01 0 2.54 3.58-.1 8.82l3.32 3.74c1.26-3.78 4.79-6.59 8.96-6.59z"
+                    />
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
+              </div>
 
               {/* Sub-Action: Continue Offline */}
               <div className="mt-5 text-center">

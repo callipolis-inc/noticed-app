@@ -1,5 +1,30 @@
 import { createClient, type User, type Session } from "@supabase/supabase-js";
 import { Capacitor } from "@capacitor/core";
+import {
+  SignInWithApple,
+  type SignInWithAppleResponse,
+} from "@capacitor-community/apple-sign-in";
+
+/**
+ * Resilient promise timeout wrapper to prevent auth hanging on poor / interrupted network
+ */
+export function withTimeout<T>(
+  promise: Promise<T> | PromiseLike<T>,
+  ms = 20000,
+  timeoutMessage = "Network request timed out (20s). Please check your internet connection."
+): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(timeoutMessage));
+    }, ms);
+  });
+
+  return Promise.race([
+    Promise.resolve(promise).finally(() => clearTimeout(timer)),
+    timeoutPromise,
+  ]);
+}
 
 export function getAuthRedirectUrl(): string {
   if (typeof window === "undefined") return "http://localhost:5174";
@@ -47,10 +72,14 @@ export async function signUpWithPassword(email: string, password: string) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email: email.trim().toLowerCase(),
-    password,
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+    }),
+    20000,
+    "Sign-up request timed out. Please check your connection."
+  );
 
   if (error) {
     throw error;
@@ -67,10 +96,14 @@ export async function signInWithPassword(email: string, password: string) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password,
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    }),
+    20000,
+    "Sign-in request timed out. Please check your connection."
+  );
 
   if (error) {
     throw error;
@@ -80,21 +113,70 @@ export async function signInWithPassword(email: string, password: string) {
 }
 
 /**
- * Sign-In with Apple OAuth (Apple App Store Guideline 4.8 Compliance)
+ * Native Sign-In with Apple (Apple App Store Guideline 4.8 Compliance)
+ * On native iOS: utilizes 100% in-app Face ID / Touch ID bottom sheet with ZERO Safari redirect.
+ * If user cancels (code 1001 / 'canceled'), resolves silently with null.
  */
 export async function signInWithApple() {
   if (!isSupabaseConfigured) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
+  // 1. Native iOS flow (In-app Face ID / Passcode sheet, NO Safari redirect)
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
+    try {
+      const result: SignInWithAppleResponse = await SignInWithApple.authorize({
+        clientId: "com.syntheticae.noticed",
+        redirectURI: "https://ienbkpjldpzaewzewxfz.supabase.co/auth/v1/callback",
+        scopes: "email name",
+      });
+
+      const identityToken = result.response?.identityToken;
+      if (!identityToken) {
+        throw new Error("No identity token returned from Apple Sign-In.");
+      }
+
+      // Exchange Apple identity token directly with Supabase
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithIdToken({
+          provider: "apple",
+          token: identityToken,
+        }),
+        20000,
+        "Sign in with Apple timed out. Please check your connection."
+      );
+
+      if (error) throw error;
+      return data;
+    } catch (appleErr: any) {
+      // Detect user cancellation (ASAuthorizationError code 1001 or 'canceled')
+      const isCancel =
+        appleErr?.message?.toLowerCase().includes("cancel") ||
+        appleErr?.message?.includes("1001") ||
+        appleErr?.code === 1001 ||
+        appleErr?.code === "1001";
+
+      if (isCancel) {
+        // Silently ignore cancellation - no red banner or error throw
+        return null;
+      }
+      throw appleErr;
+    }
+  }
+
+  // 2. Web / Android fallback: standard OAuth redirect
   const redirectTo = getAuthRedirectUrl();
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "apple",
-    options: {
-      redirectTo,
-    },
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: {
+        redirectTo,
+      },
+    }),
+    20000,
+    "Apple OAuth request timed out. Please check your connection."
+  );
 
   if (error) {
     throw error;
@@ -104,7 +186,7 @@ export async function signInWithApple() {
 }
 
 /**
- * Sign-In with Google OAuth (Web & Android)
+ * Sign-In with Google OAuth (Web & Android, wrapped with 20s network timeout)
  */
 export async function signInWithGoogle() {
   if (!isSupabaseConfigured) {
@@ -113,12 +195,16 @@ export async function signInWithGoogle() {
 
   const redirectTo = getAuthRedirectUrl();
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo,
-    },
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+      },
+    }),
+    20000,
+    "Google Sign-In request timed out. Please check your connection."
+  );
 
   if (error) {
     throw error;
@@ -137,11 +223,12 @@ export async function sendPasswordResetEmail(email: string) {
 
   const redirectTo = getAuthRedirectUrl();
 
-  const { data, error } = await supabase.auth.resetPasswordForEmail(
-    email.trim().toLowerCase(),
-    {
+  const { data, error } = await withTimeout(
+    supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
       redirectTo,
-    }
+    }),
+    20000,
+    "Password reset request timed out. Please check your connection."
   );
 
   if (error) {
@@ -159,13 +246,17 @@ export async function sendEmailOtp(email: string) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
-  const { data, error } = await supabase.auth.signInWithOtp({
-    email: email.trim().toLowerCase(),
-    options: {
-      shouldCreateUser: true,
-      emailRedirectTo: getAuthRedirectUrl(),
-    },
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: getAuthRedirectUrl(),
+      },
+    }),
+    20000,
+    "OTP request timed out. Please check your connection."
+  );
 
   if (error) {
     throw error;
@@ -184,11 +275,15 @@ export async function verifyEmailOtp(email: string, token: string) {
 
   const cleanToken = token.trim().replace(/\D/g, "");
 
-  const { data, error } = await supabase.auth.verifyOtp({
-    email: email.trim().toLowerCase(),
-    token: cleanToken,
-    type: "email",
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: cleanToken,
+      type: "email",
+    }),
+    20000,
+    "OTP verification timed out. Please check your connection."
+  );
 
   if (error) {
     throw error;
@@ -209,19 +304,26 @@ export async function verifySignupOtp(email: string, token: string) {
   const cleanEmail = email.trim().toLowerCase();
 
   // Try type: "signup" first (standard Supabase registration confirmation)
-  const { data, error } = await supabase.auth.verifyOtp({
-    email: cleanEmail,
-    token: cleanToken,
-    type: "signup",
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.verifyOtp({
+      email: cleanEmail,
+      token: cleanToken,
+      type: "signup",
+    }),
+    20000,
+    "Signup OTP verification timed out. Please check your connection."
+  );
 
   if (error) {
     // Fallback to type: "email" if project OTP template is unified
-    const fallback = await supabase.auth.verifyOtp({
-      email: cleanEmail,
-      token: cleanToken,
-      type: "email",
-    });
+    const fallback = await withTimeout(
+      supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: "email",
+      }),
+      20000
+    );
 
     if (fallback.error) {
       throw error;
@@ -241,13 +343,17 @@ export async function resendSignupOtp(email: string) {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const { data, error } = await supabase.auth.resend({
-    type: "signup",
-    email: cleanEmail,
-    options: {
-      emailRedirectTo: getAuthRedirectUrl(),
-    },
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.resend({
+      type: "signup",
+      email: cleanEmail,
+      options: {
+        emailRedirectTo: getAuthRedirectUrl(),
+      },
+    }),
+    20000,
+    "Resend OTP timed out. Please check your connection."
+  );
 
   if (error) {
     // Fallback to signInWithOtp if resend fails
@@ -261,7 +367,11 @@ export async function resendSignupOtp(email: string) {
  * Signs out the current user
  */
 export async function signOutUser() {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await withTimeout(
+    supabase.auth.signOut(),
+    10000,
+    "Sign-out request timed out."
+  );
   if (error) {
     throw error;
   }
@@ -301,9 +411,13 @@ export async function updateUserPassword(newPassword: string) {
   if (!isSupabaseConfigured) {
     throw new Error("Supabase is not configured.");
   }
-  const { data, error } = await supabase.auth.updateUser({
-    password: newPassword,
-  });
+  const { data, error } = await withTimeout(
+    supabase.auth.updateUser({
+      password: newPassword,
+    }),
+    20000,
+    "Password update request timed out."
+  );
   if (error) {
     throw error;
   }
@@ -321,16 +435,19 @@ export async function deleteUserAccount(): Promise<void> {
 
   try {
     // Attempt to invoke PostgreSQL RPC function if configured on server
-    const { error: rpcError } = await supabase.rpc("delete_user_account");
-    if (rpcError) {
-      console.warn("[Noticed] Remote RPC delete_user_account failed:", rpcError);
+    const rpcRes = await withTimeout(
+      Promise.resolve(supabase.rpc("delete_user_account")),
+      20000
+    );
+    if (rpcRes && typeof rpcRes === "object" && "error" in rpcRes && rpcRes.error) {
+      console.warn("[Noticed] Remote RPC delete_user_account failed:", rpcRes.error);
     }
   } catch (err) {
     console.warn("[Noticed] Could not execute delete_user_account RPC:", err);
   } finally {
     // Always sign out the session cleanly
     try {
-      await supabase.auth.signOut();
+      await withTimeout(supabase.auth.signOut(), 8000);
     } catch (e) {
       console.error("[Noticed] Error signing out during account deletion:", e);
     }
