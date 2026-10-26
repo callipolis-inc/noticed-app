@@ -526,17 +526,17 @@ export function App() {
         if (!rawUrl || !rawUrl.startsWith("noticed://")) return;
         const url = new URL(rawUrl);
         const host = url.hostname.toLowerCase();
-        const path = url.pathname.toLowerCase().replace(/^\//, "");
+        const segments = url.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
 
         if (
-          (host === "space" && path.startsWith("join")) ||
+          (host === "space" && segments[0] === "join") ||
           host === "join" ||
-          path.startsWith("join")
+          segments[0] === "join"
         ) {
           const code =
             url.searchParams.get("code") ||
             url.searchParams.get("join") ||
-            path.split("/")[1];
+            (host === "join" ? segments[0] : segments[1]);
           if (code) {
             setJoinSpaceInitialCode(code.trim().toUpperCase());
             setIsJoinSpaceOpen(true);
@@ -544,32 +544,37 @@ export function App() {
         } else if (
           host === "notebook" ||
           host === "space" ||
-          path.startsWith("notebook/") ||
-          path.startsWith("space/")
+          segments[0] === "notebook" ||
+          segments[0] === "space"
         ) {
-          const spaceId = url.searchParams.get("id") || path.split("/")[1];
+          const spaceId =
+            url.searchParams.get("id") ||
+            (host === "space" || host === "notebook"
+              ? segments[0]
+              : segments[0] === "space" || segments[0] === "notebook"
+                ? segments[1]
+                : segments[0]);
           if (spaceId) {
             setActiveSpaceId(spaceId);
             setCurrentView("notebook");
           }
-        } else if (host === "search" || path === "search") {
+        } else if (host === "search" || segments[0] === "search") {
           setIsSearchOpen(true);
         } else if (
           host === "new" ||
-          path === "new" ||
           host === "write" ||
-          path === "write" ||
           host === "dictate" ||
-          path === "dictate"
+          host === "darkroom" ||
+          segments[0] === "new" ||
+          segments[0] === "write" ||
+          segments[0] === "dictate" ||
+          segments[0] === "darkroom"
         ) {
           setEditingNote(null);
           setIsCreateOpen(true);
-        } else if (host === "darkroom" || path === "darkroom") {
-          setEditingNote(null);
-          setIsCreateOpen(true);
-        } else if (host === "profile" || path === "profile") {
+        } else if (host === "profile" || segments[0] === "profile") {
           setIsProfileOpen(true);
-        } else if (host === "settings" || path === "settings") {
+        } else if (host === "settings" || segments[0] === "settings") {
           setIsSettingsOpen(true);
         }
       } catch (err) {
@@ -581,7 +586,12 @@ export function App() {
     if (Capacitor.isNativePlatform()) {
       getPendingWidgetAction().then((res) => {
         if (res.action) {
-          if (res.action === "write" || res.action === "dictate" || res.action === "darkroom") {
+          if (
+            res.action === "write" ||
+            res.action === "dictate" ||
+            res.action === "darkroom" ||
+            res.action === "new"
+          ) {
             setEditingNote(null);
             setIsCreateOpen(true);
           }
@@ -590,6 +600,13 @@ export function App() {
             setCurrentView("notebook");
           }
           clearPendingWidgetAction();
+        }
+      }).catch(() => {});
+
+      // Check cold-boot launch URL
+      CapApp.getLaunchUrl().then((launch) => {
+        if (launch?.url) {
+          handleDeepLink(launch.url);
         }
       }).catch(() => {});
     }

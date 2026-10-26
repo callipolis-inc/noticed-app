@@ -90,101 +90,65 @@ struct WidgetDataProvider {
     }
 
     static func placeholderSnapshot() -> NoticedWidgetSnapshot {
-        let mockHeatmap = [
-            WidgetHeatmapDay(dayLabel: "M", dayName: "Mon", dateStr: "2026-10-19", words: 0, intensity: 0, isToday: false),
-            WidgetHeatmapDay(dayLabel: "T", dayName: "Tue", dateStr: "2026-10-20", words: 180, intensity: 2, isToday: false),
-            WidgetHeatmapDay(dayLabel: "W", dayName: "Wed", dateStr: "2026-10-21", words: 420, intensity: 3, isToday: false),
-            WidgetHeatmapDay(dayLabel: "T", dayName: "Thu", dateStr: "2026-10-22", words: 210, intensity: 2, isToday: false),
-            WidgetHeatmapDay(dayLabel: "F", dayName: "Fri", dateStr: "2026-10-23", words: 530, intensity: 3, isToday: false),
-            WidgetHeatmapDay(dayLabel: "S", dayName: "Sat", dateStr: "2026-10-24", words: 890, intensity: 4, isToday: true),
-            WidgetHeatmapDay(dayLabel: "S", dayName: "Sun", dateStr: "2026-10-25", words: 0, intensity: 0, isToday: false),
+        let emptyHeatmap = [
+            WidgetHeatmapDay(dayLabel: "M", dayName: "Mon", dateStr: "", words: 0, intensity: 0, isToday: false),
+            WidgetHeatmapDay(dayLabel: "T", dayName: "Tue", dateStr: "", words: 0, intensity: 0, isToday: false),
+            WidgetHeatmapDay(dayLabel: "W", dayName: "Wed", dateStr: "", words: 0, intensity: 0, isToday: false),
+            WidgetHeatmapDay(dayLabel: "T", dayName: "Thu", dateStr: "", words: 0, intensity: 0, isToday: false),
+            WidgetHeatmapDay(dayLabel: "F", dayName: "Fri", dateStr: "", words: 0, intensity: 0, isToday: false),
+            WidgetHeatmapDay(dayLabel: "S", dayName: "Sat", dateStr: "", words: 0, intensity: 0, isToday: true),
+            WidgetHeatmapDay(dayLabel: "S", dayName: "Sun", dateStr: "", words: 0, intensity: 0, isToday: false),
         ]
 
-        let mockSpines = [
+        let emptySpines = [
             WidgetBookSpine(
-                id: "sp-1",
-                title: "Field Notes 2026",
+                id: "default",
+                title: "Field Notes",
                 volumeNumber: "VOL. I",
                 coverStyle: "kraft",
                 colorHex: "#C2410C",
                 foilColor: "gold",
-                notesCount: 28,
-                latestNoteTitle: "On Autumn Solitude",
-                latestNoteExcerpt: "Silence between two sentences holds more truth than twenty pages of prose.",
-                latestNoteDate: "Today, 18:24"
-            ),
-            WidgetBookSpine(
-                id: "sp-2",
-                title: "Poetry & Marginalia",
-                volumeNumber: "VOL. II",
-                coverStyle: "marble",
-                colorHex: "#4A1521",
-                foilColor: "rose",
-                notesCount: 19,
-                latestNoteTitle: "Fragments of Echo",
-                latestNoteExcerpt: "A word spoken softly in the corridor of memory reverberates louder than thunder.",
-                latestNoteDate: "Yesterday"
-            ),
-            WidgetBookSpine(
-                id: "sp-3",
-                title: "Kyoto Solitude",
-                volumeNumber: "VOL. III",
-                coverStyle: "linen",
-                colorHex: "#064E3B",
-                foilColor: "emerald",
-                notesCount: 14,
-                latestNoteTitle: "Raking Gravel",
-                latestNoteExcerpt: "Raking the pebble garden leaves patterns that the wind dissolves by sunset.",
-                latestNoteDate: "Oct 22"
-            ),
-            WidgetBookSpine(
-                id: "sp-4",
-                title: "Private Chronicle",
-                volumeNumber: "VOL. IV",
-                coverStyle: "obsidian",
-                colorHex: "#1C1917",
-                foilColor: "gold",
-                notesCount: 25,
-                latestNoteTitle: "Sanctuary",
-                latestNoteExcerpt: "Things guarded in quiet secrecy stay untarnished by the world's restless noise.",
-                latestNoteDate: "Oct 19"
+                notesCount: 0,
+                latestNoteTitle: "No notes yet",
+                latestNoteExcerpt: "Begin capturing your thoughts in Noticed.",
+                latestNoteDate: ""
             )
         ]
 
         return NoticedWidgetSnapshot(
             language: "en",
             theme: "dark",
-            authorName: "Aji Fras Aditya",
-            activeSpaceId: "sp-1",
-            activeSpaceTitle: "Field Notes 2026",
+            authorName: "Author",
+            activeSpaceId: "default",
+            activeSpaceTitle: "Field Notes",
             activeSpaceCoverColor: "#C2410C",
             activeSpaceFoil: "gold",
-            totalSpacesCount: 4,
-            totalNotesCount: 86,
-            totalWordsCount: 14200,
-            streakDays: 18,
-            weeklyWordsCount: 2230,
-            weeklyHeatmap: mockHeatmap,
-            bookshelves: mockSpines,
+            totalSpacesCount: 1,
+            totalNotesCount: 0,
+            totalWordsCount: 0,
+            streakDays: 0,
+            weeklyWordsCount: 0,
+            weeklyHeatmap: emptyHeatmap,
+            bookshelves: emptySpines,
             latestNote: WidgetNoteSnippet(
-                id: "n-1",
-                title: "On Autumn Solitude",
-                excerpt: "Silence between two sentences holds more truth than twenty pages of prose.",
-                dateFormatted: "Today, 18:24",
-                spaceTitle: "Field Notes 2026",
+                id: "empty",
+                title: "Field Notes",
+                excerpt: "Begin capturing your thoughts in Noticed.",
+                dateFormatted: "",
+                spaceTitle: "Field Notes",
                 marginalia: "Every thought noticed is a preservation against forgetfulness.",
-                hasAudio: true,
-                audioDurationFormatted: "01:42",
-                hasPhoto: true,
+                hasAudio: false,
+                audioDurationFormatted: nil,
+                hasPhoto: false,
                 photoUrl: nil,
-                locationName: "Kyoto Atelier"
+                locationName: nil
             ),
             dailyWhisper: WidgetDailyWhisper(
-                title: "On Autumn Solitude",
-                quote: "Every thought noticed is a preservation against forgetfulness.",
+                title: "Noticed Atelier",
+                quote: "Silence between two sentences holds more truth than twenty pages of prose.",
                 sourceOrSpace: "Field Notes",
-                progressPercent: 75,
-                wordCount: 142
+                progressPercent: 0,
+                wordCount: 0
             ),
             lastSyncedTimestamp: Date().timeIntervalSince1970
         )

@@ -247,7 +247,7 @@ export function buildWidgetSnapshot(
   activeSpaceId: string | null,
   language: 'en' | 'id' = 'en',
   theme: 'light' | 'dark' = 'dark',
-  authorName: string = 'Aji Fras Aditya'
+  authorName: string = 'Author'
 ): NoticedWidgetSnapshot {
   const nonArchivedSpaces = spaces.filter((s) => !s.archived);
   const nonArchivedNotes = notes.filter((n) => !n.archived);
@@ -335,32 +335,39 @@ export function buildWidgetSnapshot(
     audioDurationFormatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   }
 
+  const defaultNoteTitle = language === 'id' ? 'Catatan Lapangan' : 'Field Notes';
+  const defaultNoteExcerpt = language === 'id'
+    ? 'Setiap pemikiran yang diperhatikan adalah perlindungan dari kelupaan.'
+    : 'Every thought noticed is a preservation against forgetfulness.';
+
   const latestNote: WidgetNoteSnippet = {
     id: mostRecent?.id || 'empty',
-    title: mostRecent?.title || (language === 'id' ? 'Catatan Lapangan' : 'Field Notes 2026'),
-    excerpt: mostRecent?.content?.slice(0, 140) || (language === 'id' ? 'Setiap pemikiran yang diperhatikan adalah perlindungan dari kelupaan.' : 'Every thought noticed is a preservation against forgetfulness.'),
-    dateFormatted: formatShortDate(mostRecent?.updatedAt || mostRecent?.createdAt, language),
+    title: mostRecent?.title || defaultNoteTitle,
+    excerpt: mostRecent?.content?.slice(0, 140) || defaultNoteExcerpt,
+    dateFormatted: mostRecent ? formatShortDate(mostRecent.updatedAt || mostRecent.createdAt, language) : '',
     spaceTitle: mostRecentSpace?.name || currentSpace.name,
     marginalia: activeMarginalia,
     hasAudio: Boolean(mostRecent?.voiceMemo),
-    audioDurationFormatted: audioDurationFormatted || '01:42',
+    audioDurationFormatted: audioDurationFormatted || '',
     hasPhoto: Boolean(mostRecent?.photos && mostRecent.photos.length > 0),
     photoUrl: mostRecent?.photos?.[0],
-    locationName: mostRecent?.locationName || (language === 'id' ? 'Atelier Kyoto' : 'Kyoto Atelier')
+    locationName: mostRecent?.locationName || undefined
   };
 
   const dailyWhisper = {
-    title: mostRecent?.title || (language === 'id' ? 'Keheningan Musim Gugur' : 'On Autumn Solitude'),
+    title: mostRecent?.title || (language === 'id' ? 'Bisikan Harian' : 'Daily Whisper'),
     quote: activeMarginalia,
     sourceOrSpace: mostRecentSpace?.name || currentSpace.name,
     progressPercent: Math.min(100, Math.round((totalWordsCount % 1000) / 10)),
-    wordCount: mostRecent?.content ? mostRecent.content.trim().split(/\s+/).filter(Boolean).length : 142
+    wordCount: mostRecent?.content ? mostRecent.content.trim().split(/\s+/).filter(Boolean).length : 0
   };
+
+  const cleanAuthorName = authorName?.trim() || (language === 'id' ? 'Penulis' : 'Author');
 
   return {
     language,
     theme,
-    authorName: authorName || 'Aji Fras Aditya',
+    authorName: cleanAuthorName,
     activeSpaceId: currentSpace.id,
     activeSpaceTitle: currentSpace.name,
     activeSpaceCoverColor: resolveCoverHex(currentSpace.coverStyle, currentSpace.customColor),
