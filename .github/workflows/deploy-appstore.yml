@@ -101,6 +101,11 @@ jobs:
             console.log('Verified CURRENT_PROJECT_VERSION set to:', buildNum);
           "
 
+          # Explicitly synchronize CFBundleVersion on both App and Widget plists
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/NoticedWidget/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" ios/App/App/Info.plist 2>/dev/null || true
+          echo "Synchronized CFBundleVersion to $BUILD_NUM across all targets"
+
       - name: Install Apple Distribution Certificate in Temporary Keychain
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}

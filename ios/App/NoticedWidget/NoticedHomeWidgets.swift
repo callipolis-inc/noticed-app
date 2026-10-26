@@ -1,6 +1,20 @@
 import WidgetKit
 import SwiftUI
 
+// MARK: - View Extension for iOS 17+ Full-Bleed Widget Backgrounds
+extension View {
+    @ViewBuilder
+    func noticedWidgetBackground<V: View>(@ViewBuilder background: () -> V) -> some View {
+        if #available(iOS 17.0, *) {
+            self.containerBackground(for: .widget) {
+                background()
+            }
+        } else {
+            self.background(background())
+        }
+    }
+}
+
 // MARK: - 1. FULL LARGE: Curated Bookshelf Showcase
 struct BookshelfShowcaseWidget: Widget {
     let kind: String = "NoticedBookshelfShowcase"
@@ -12,6 +26,7 @@ struct BookshelfShowcaseWidget: Widget {
         .configurationDisplayName("Curated Bookshelf")
         .description("Explore your atelier's manuscript spines and active drafts directly from your Home Screen.")
         .supportedFamilies([.systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
@@ -147,7 +162,7 @@ struct BookshelfShowcaseView: View {
             )
         }
         .padding(16)
-        .background(Color(hex: "#111215"))
+        .noticedWidgetBackground { Color(hex: "#111215") }
         .widgetURL(URL(string: "noticed://space/\(s.activeSpaceId)"))
     }
 }
@@ -163,6 +178,7 @@ struct DarkroomDiaryWidget: Widget {
         .configurationDisplayName("Darkroom Diary")
         .description("An analog Polaroid showcase with tactile acoustic voice memos and film metadata.")
         .supportedFamilies([.systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
@@ -289,7 +305,7 @@ struct DarkroomDiaryView: View {
             .padding(.top, 8)
         }
         .padding(16)
-        .background(Color(hex: "#0D0E11"))
+        .noticedWidgetBackground { Color(hex: "#0D0E11") }
         .widgetURL(URL(string: "noticed://darkroom"))
     }
 }
@@ -305,6 +321,7 @@ struct WritingMarginaliaWidget: Widget {
         .configurationDisplayName("Words & Marginalia")
         .description("Track your weekly writing streak, word density matrix, and anchored marginalia thoughts.")
         .supportedFamilies([.systemLarge])
+        .contentMarginsDisabled()
     }
 }
 
@@ -447,7 +464,7 @@ struct WritingMarginaliaView: View {
             )
         }
         .padding(16)
-        .background(Color(hex: "#141518"))
+        .noticedWidgetBackground { Color(hex: "#141518") }
         .widgetURL(URL(string: "noticed://write"))
     }
 
@@ -473,6 +490,7 @@ struct QuickCaptureDeskWidget: Widget {
         .configurationDisplayName("Quick Capture Desk")
         .description("Current folio status with one-tap actions for writing, darkroom film, and dictation.")
         .supportedFamilies([.systemMedium])
+        .contentMarginsDisabled()
     }
 }
 
@@ -556,7 +574,7 @@ struct QuickCaptureDeskView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "#14161A"))
+        .noticedWidgetBackground { Color(hex: "#14161A") }
         .widgetURL(URL(string: "noticed://space/\(s.activeSpaceId)"))
     }
 }
@@ -572,6 +590,7 @@ struct ActiveFolioTriBandWidget: Widget {
         .configurationDisplayName("Active Folio Tri-Band")
         .description("Classic Penguin Tri-Band editorial folio cover for your active notebook.")
         .supportedFamilies([.systemSmall])
+        .contentMarginsDisabled()
     }
 }
 
@@ -583,24 +602,25 @@ struct ActiveFolioTriBandView: View {
         VStack(spacing: 0) {
             // Top Band
             Text("NOTICED")
-                .font(.system(size: 6.5, weight: .bold, design: .monospaced))
-                .foregroundColor(Color.white.opacity(0.9))
-                .tracking(1.5)
+                .font(.system(size: 7.5, weight: .bold, design: .monospaced))
+                .foregroundColor(Color.white.opacity(0.95))
+                .tracking(2.0)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
+                .padding(.top, 10)
+                .padding(.bottom, 8)
                 .background(Color(hex: s.activeSpaceCoverColor))
 
             // Middle Ivory Band
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 Text(s.activeSpaceTitle)
-                    .font(.custom("CormorantGaramond-Bold", size: 12))
+                    .font(.custom("CormorantGaramond-Bold", size: 13))
                     .foregroundColor(Color(hex: "#1C1917"))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 10)
 
                 Text(s.authorName)
-                    .font(.system(size: 7.5, weight: .medium))
+                    .font(.system(size: 8, weight: .medium))
                     .foregroundColor(Color(hex: "#78716C"))
                     .tracking(0.5)
             }
@@ -610,24 +630,23 @@ struct ActiveFolioTriBandView: View {
             // Bottom Band
             HStack {
                 Text("CLASSICS")
-                    .font(.system(size: 6, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color.white.opacity(0.85))
-                    .tracking(1.0)
+                    .font(.system(size: 6.5, weight: .bold, design: .monospaced))
+                    .foregroundColor(Color.white.opacity(0.9))
+                    .tracking(1.2)
                 Spacer()
                 Text("\(s.totalNotesCount) N")
-                    .font(.system(size: 6, weight: .medium, design: .monospaced))
-                    .foregroundColor(Color.white.opacity(0.85))
+                    .font(.system(size: 6.5, weight: .medium, design: .monospaced))
+                    .foregroundColor(Color.white.opacity(0.9))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
+            .padding(.bottom, 10)
             .frame(maxWidth: .infinity)
             .background(Color(hex: s.activeSpaceCoverColor))
         }
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.black.opacity(0.2), lineWidth: 1)
-        )
+        .noticedWidgetBackground {
+            Color(hex: s.activeSpaceCoverColor)
+        }
         .widgetURL(URL(string: "noticed://space/\(s.activeSpaceId)"))
     }
 }
@@ -643,6 +662,7 @@ struct DailyMarginaliaWidget: Widget {
         .configurationDisplayName("Daily Marginalia")
         .description("Daily quiet thought excerpt with writing progress ring on tactile ivory paper.")
         .supportedFamilies([.systemSmall])
+        .contentMarginsDisabled()
     }
 }
 
@@ -698,8 +718,8 @@ struct DailyMarginaliaView: View {
                 alignment: .top
             )
         }
-        .padding(12)
-        .background(Color(hex: "#FAF8F5"))
+        .padding(14)
+        .noticedWidgetBackground { Color(hex: "#FAF8F5") }
         .widgetURL(URL(string: "noticed://write"))
     }
 }
@@ -715,6 +735,7 @@ struct BookshelfStackWidget: Widget {
         .configurationDisplayName("Bookshelf Stack")
         .description("Layered folio stack showing your atelier manuscript volume count.")
         .supportedFamilies([.systemSmall])
+        .contentMarginsDisabled()
     }
 }
 
@@ -761,8 +782,8 @@ struct BookshelfStackView: View {
 
             Spacer()
         }
-        .padding(12)
-        .background(Color(hex: "#121417"))
+        .padding(14)
+        .noticedWidgetBackground { Color(hex: "#121417") }
         .widgetURL(URL(string: "noticed://space/\(s.activeSpaceId)"))
     }
 }
