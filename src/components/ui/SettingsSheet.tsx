@@ -117,10 +117,15 @@ export function SettingsSheet({
   const [restoreFeedback, setRestoreFeedback] = useState<string | null>(null);
 
   // Habit Notifications State
-  const [habitSettings, setHabitSettings] = useState<HabitNotificationSettings>(() => getSavedHabitSettings());
+  const [habitSettings, setHabitSettings] = useState<HabitNotificationSettings>(
+    () => getSavedHabitSettings(),
+  );
   const [permissionDeniedAlert, setPermissionDeniedAlert] = useState(false);
 
-  const handleTogglePrompt = async (type: "morning" | "evening", enabled: boolean) => {
+  const handleTogglePrompt = async (
+    type: "morning" | "evening",
+    enabled: boolean,
+  ) => {
     triggerHaptic("medium");
     setPermissionDeniedAlert(false);
 
@@ -143,7 +148,10 @@ export function SettingsSheet({
     triggerSuccessHaptic();
   };
 
-  const handleTimeChange = async (type: "morning" | "evening", timeStr: string) => {
+  const handleTimeChange = async (
+    type: "morning" | "evening",
+    timeStr: string,
+  ) => {
     if (!timeStr) return;
     const updated: HabitNotificationSettings = {
       ...habitSettings,
@@ -350,7 +358,9 @@ export function SettingsSheet({
                         }
                       }}
                       className={`min-w-0 flex items-center gap-2 ${
-                        onOpenThemeSelector ? "cursor-pointer active:opacity-75 transition-opacity" : ""
+                        onOpenThemeSelector
+                          ? "cursor-pointer active:opacity-75 transition-opacity"
+                          : ""
                       }`}
                     >
                       <div className="w-6 h-6 rounded-lg bg-[var(--text-primary)]/5 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] shrink-0">
@@ -419,9 +429,6 @@ export function SettingsSheet({
                         </div>
                         <span>{t.settings.shelfLayout}</span>
                       </div>
-                      <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
-                        {t.settings.defaultDisplay}
-                      </div>
                     </div>
 
                     {/* Tactile Segmented Control */}
@@ -465,9 +472,6 @@ export function SettingsSheet({
                           <Globe className="w-3.5 h-3.5 opacity-80" />
                         </div>
                         <span>{t.settings.language}</span>
-                      </div>
-                      <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
-                        {t.settings.languageDesc}
                       </div>
                     </div>
 
@@ -518,9 +522,6 @@ export function SettingsSheet({
                               <Type className="w-3.5 h-3.5 opacity-80" />
                             </div>
                             <span>{t.settings.textSize}</span>
-                          </div>
-                          <div className="text-[10px] text-[var(--text-tertiary)] pl-8">
-                            {activeSizeLabel} · {scalePercent}% ({fontSize}px)
                           </div>
                         </div>
 
@@ -592,18 +593,17 @@ export function SettingsSheet({
                       <div>
                         <div className="text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
                           <span>{t.settings.atelierPro}</span>
-                          <span className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-mono uppercase font-semibold ${
-                            isPro
-                              ? "bg-[var(--text-primary)] text-[var(--accent-ink)]"
-                              : "inner-pseudo-glass text-[var(--text-tertiary)]"
-                          }`}>
-                            {isPro ? t.settings.statusActive : t.settings.statusStandard}
+                          <span
+                            className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-mono uppercase font-semibold ${
+                              isPro
+                                ? "bg-[var(--text-primary)] text-[var(--accent-ink)]"
+                                : "inner-pseudo-glass text-[var(--text-tertiary)]"
+                            }`}
+                          >
+                            {isPro
+                              ? t.settings.statusActive
+                              : t.settings.statusStandard}
                           </span>
-                        </div>
-                        <div className="text-[10px] text-[var(--text-tertiary)]">
-                          {isPro
-                            ? t.settings.proActiveDesc
-                            : t.settings.proStandardDesc}
                         </div>
                       </div>
                     </div>
@@ -626,23 +626,6 @@ export function SettingsSheet({
                         <span>{t.settings.unlocked}</span>
                       </div>
                     )}
-                  </div>
-
-                  {/* Feature Showcase Link */}
-                  <div className="p-3 flex items-center justify-between">
-                    <span className="text-[11px] text-[var(--text-secondary)] pl-8">
-                      {t.settings.privilegeDetails}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        triggerHaptic("light");
-                        setIsProModalOpen(true);
-                      }}
-                      className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[10.5px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer"
-                    >
-                      {t.settings.viewPrivileges}
-                    </button>
                   </div>
 
                   {/* Restore In-App Purchases Row */}
@@ -772,7 +755,12 @@ export function SettingsSheet({
                       {/* iOS Switch */}
                       <button
                         type="button"
-                        onClick={() => handleTogglePrompt("morning", !habitSettings.morningEnabled)}
+                        onClick={() =>
+                          handleTogglePrompt(
+                            "morning",
+                            !habitSettings.morningEnabled,
+                          )
+                        }
                         className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] ${
                           habitSettings.morningEnabled
                             ? "bg-[var(--text-primary)]"
@@ -783,7 +771,9 @@ export function SettingsSheet({
                       >
                         <div
                           className={`w-5 h-5 rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,0.2),0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 ${
-                            habitSettings.morningEnabled ? "translate-x-5" : "translate-x-0"
+                            habitSettings.morningEnabled
+                              ? "translate-x-5"
+                              : "translate-x-0"
                           }`}
                         />
                       </button>
@@ -798,7 +788,9 @@ export function SettingsSheet({
                         <input
                           type="time"
                           value={habitSettings.morningTime}
-                          onChange={(e) => handleTimeChange("morning", e.target.value)}
+                          onChange={(e) =>
+                            handleTimeChange("morning", e.target.value)
+                          }
                           className="px-2.5 py-1 rounded-lg inner-pseudo-glass text-xs font-mono font-medium text-[var(--text-primary)] border border-[var(--glass-border)] bg-transparent focus:outline-none"
                         />
                       </div>
@@ -825,7 +817,12 @@ export function SettingsSheet({
                       {/* iOS Switch */}
                       <button
                         type="button"
-                        onClick={() => handleTogglePrompt("evening", !habitSettings.eveningEnabled)}
+                        onClick={() =>
+                          handleTogglePrompt(
+                            "evening",
+                            !habitSettings.eveningEnabled,
+                          )
+                        }
                         className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 cursor-pointer shadow-[inset_0_1px_2px_rgba(0,0,0,0.12)] ${
                           habitSettings.eveningEnabled
                             ? "bg-[var(--text-primary)]"
@@ -836,7 +833,9 @@ export function SettingsSheet({
                       >
                         <div
                           className={`w-5 h-5 rounded-full bg-white shadow-[0_2px_5px_rgba(0,0,0,0.2),0_1px_2px_rgba(0,0,0,0.1)] transform transition-transform duration-200 ${
-                            habitSettings.eveningEnabled ? "translate-x-5" : "translate-x-0"
+                            habitSettings.eveningEnabled
+                              ? "translate-x-5"
+                              : "translate-x-0"
                           }`}
                         />
                       </button>
@@ -851,7 +850,9 @@ export function SettingsSheet({
                         <input
                           type="time"
                           value={habitSettings.eveningTime}
-                          onChange={(e) => handleTimeChange("evening", e.target.value)}
+                          onChange={(e) =>
+                            handleTimeChange("evening", e.target.value)
+                          }
                           className="px-2.5 py-1 rounded-lg inner-pseudo-glass text-xs font-mono font-medium text-[var(--text-primary)] border border-[var(--glass-border)] bg-transparent focus:outline-none"
                         />
                       </div>
@@ -863,8 +864,12 @@ export function SettingsSheet({
                   <div className="p-3 rounded-xl bg-[var(--text-primary)]/5 border border-[var(--glass-border)] text-[var(--text-secondary)] text-xs flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-[var(--text-primary)] shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-[var(--text-primary)]">{t.reminders.permissionDeniedTitle}</div>
-                      <div className="text-[11px] opacity-90">{t.reminders.permissionDeniedDesc}</div>
+                      <div className="font-semibold text-[var(--text-primary)]">
+                        {t.reminders.permissionDeniedTitle}
+                      </div>
+                      <div className="text-[11px] opacity-90">
+                        {t.reminders.permissionDeniedDesc}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -913,7 +918,7 @@ export function SettingsSheet({
                               4,
                               (storageData.notesTextBytes /
                                 storageData.totalAppBytes) *
-                                100
+                                100,
                             )}%`,
                           }}
                           className="h-full bg-[var(--text-primary)] opacity-85"
@@ -926,7 +931,7 @@ export function SettingsSheet({
                               0,
                               (storageData.photosBytes /
                                 storageData.totalAppBytes) *
-                                100
+                                100,
                             )}%`,
                           }}
                           className="h-full bg-[var(--text-primary)] opacity-55"
@@ -939,7 +944,7 @@ export function SettingsSheet({
                               0,
                               (storageData.audioBytes /
                                 storageData.totalAppBytes) *
-                                100
+                                100,
                             )}%`,
                           }}
                           className="h-full bg-[var(--text-primary)] opacity-35"
@@ -953,7 +958,7 @@ export function SettingsSheet({
                                 0,
                                 (storageData.videosBytes /
                                   storageData.totalAppBytes) *
-                                  100
+                                  100,
                               )}%`,
                             }}
                             className="h-full bg-[var(--text-primary)] opacity-20"
@@ -994,7 +999,11 @@ export function SettingsSheet({
                       className="px-3 py-1.5 rounded-full inner-pseudo-glass text-[11px] font-semibold text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0 disabled:opacity-50"
                     >
                       <Sparkles className="w-3 h-3 stroke-[2] text-[var(--text-primary)]" />
-                      <span>{isOptimizing ? t.settings.compactingSpace : t.settings.optimizeSpace}</span>
+                      <span>
+                        {isOptimizing
+                          ? t.settings.compactingSpace
+                          : t.settings.optimizeSpace}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -1143,6 +1152,6 @@ export function SettingsSheet({
         </div>
       )}
     </AnimatePresence>,
-    document.body
+    document.body,
   );
 }

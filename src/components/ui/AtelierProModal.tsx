@@ -8,7 +8,6 @@ import {
   Image as ImageIcon,
   Cloud,
   X,
-  Check,
   BookOpen,
   Printer,
   RotateCw,
@@ -54,7 +53,9 @@ export function AtelierProModal({
 
   const isPro = useProStatus();
   const [selectedPlan, setSelectedPlan] = useState<PricingPlanId>("lifetime");
-  const [storeOffering, setStoreOffering] = useState<PurchasesOffering | null>(null);
+  const [storeOffering, setStoreOffering] = useState<PurchasesOffering | null>(
+    null,
+  );
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>("terms");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -66,55 +67,55 @@ export function AtelierProModal({
     if (currentLang === "en") {
       return [
         {
-          id: "lifetime",
-          name: "All-Time Patron",
-          price: "Rp 499.000",
-          period: "one-time payment",
-          subtext: "Subscription-free forever · Yours eternally",
-          badge: "Patron Pass",
-          isPopular: true,
+          id: "monthly",
+          name: "Monthly",
+          price: "Rp 39.000",
+          period: "/ month",
+          subtext: "Flexible cadence, cancel anytime",
         },
         {
           id: "annual",
-          name: "Annual Folio",
+          name: "Annual",
           price: "Rp 299.000",
           period: "/ year",
-          subtext: "Equivalent to Rp 24,900 / mo (Save 36%)",
+          subtext: "Equivalent to Rp 24,900 / mo",
           badge: "Save 36%",
         },
         {
-          id: "monthly",
-          name: "Monthly Scribe",
-          price: "Rp 39.000",
-          period: "/ month",
-          subtext: "Flexible without long-term commitment",
+          id: "lifetime",
+          name: "Patron",
+          price: "Rp 499.000",
+          period: "one-time",
+          subtext: "Subscription-free forever · Yours eternally",
+          badge: "Lifetime",
+          isPopular: true,
         },
       ];
     }
     return [
       {
-        id: "lifetime",
-        name: "All-Time Patron",
-        price: "Rp 499.000",
-        period: "sekali bayar",
-        subtext: "Bebas langganan selamanya · Milik Anda abadi",
-        badge: "Patron Pass",
-        isPopular: true,
-      },
-      {
-        id: "annual",
-        name: "Annual Folio",
-        price: "Rp 299.000",
-        period: "/ tahun",
-        subtext: "Setara Rp 24.900 / bulan (Hemat 36%)",
-        badge: "Hemat 36%",
-      },
-      {
         id: "monthly",
-        name: "Monthly Scribe",
+        name: "Bulanan",
         price: "Rp 39.000",
         period: "/ bulan",
         subtext: "Fleksibel tanpa komitmen jangka panjang",
+      },
+      {
+        id: "annual",
+        name: "Tahunan",
+        price: "Rp 299.000",
+        period: "/ tahun",
+        subtext: "Setara Rp 24.900 / bulan",
+        badge: "Hemat 36%",
+      },
+      {
+        id: "lifetime",
+        name: "Patron",
+        price: "Rp 499.000",
+        period: "sekali bayar",
+        subtext: "Bebas langganan selamanya · Milik Anda abadi",
+        badge: "Permanen",
+        isPopular: true,
       },
     ];
   }, [currentLang]);
@@ -142,9 +143,12 @@ export function AtelierProModal({
       const pkg = storeOffering.availablePackages.find((p) => {
         const id = p.identifier.toLowerCase();
         const type = String(p.packageType || "").toLowerCase();
-        if (plan.id === "monthly") return id.includes("monthly") || type.includes("monthly");
-        if (plan.id === "annual") return id.includes("annual") || type.includes("annual");
-        if (plan.id === "lifetime") return id.includes("lifetime") || type.includes("lifetime");
+        if (plan.id === "monthly")
+          return id.includes("monthly") || type.includes("monthly");
+        if (plan.id === "annual")
+          return id.includes("annual") || type.includes("annual");
+        if (plan.id === "lifetime")
+          return id.includes("lifetime") || type.includes("lifetime");
         return false;
       });
 
@@ -180,27 +184,27 @@ export function AtelierProModal({
       return {
         notes_limit: {
           title: "Volume Capacity Reached (100 Pages)",
-          desc: "This volume has reached the 100-page limit. Unlock Atelier Pro to continue writing without limits or create new volumes on your shelf.",
+          desc: "Unlock Atelier Pro to continue writing without limits or create new volumes on your shelf.",
         },
         spaces_limit: {
           title: "Bookshelf Capacity Reached (3 Volumes)",
-          desc: "Your bookshelf currently holds 3 journal editions. Upgrade to Atelier Pro to curate an unlimited library of bespoke notebooks.",
+          desc: "Upgrade to Atelier Pro to curate an unlimited library of bespoke notebooks.",
         },
         manuscript_export: {
           title: "Export Complete Folio Manuscript",
-          desc: "Publish and print your entire collection into high-resolution, print-ready PDF book formats (A4 / A5).",
+          desc: "Publish and print your entire collection into high-resolution, print-ready PDF book formats.",
         },
         luxury_foil: {
           title: "Letterpress Luxury Foil",
-          desc: "Adorn your notebook spines and covers with metallic foil stamping (Antique Gold, Rose Gold, Platinum, or Emerald).",
+          desc: "Adorn your notebook spines and covers with metallic foil stamping.",
         },
         video: {
           title: "Cinematic Video Vignettes",
-          desc: "Capture and preserve moving memory clips up to 30 seconds within your notices.",
+          desc: "Capture and preserve moving memory clips up to 30 seconds within your notes.",
         },
         audio_import: {
           title: "External Studio Audio Import",
-          desc: "Import audio files, voice recordings, or soundtrack memos up to 3 minutes.",
+          desc: "Import audio recordings or soundtrack memos up to 3 minutes.",
         },
         unlimited_photos: {
           title: "Unlimited Photographic Gallery",
@@ -210,20 +214,20 @@ export function AtelierProModal({
     }
     return {
       notes_limit: {
-        title: "Volume Telah Genap (100 Halaman)",
-        desc: "Volume ini telah mencapai batas 100 lembar catatan. Buka Atelier Pro untuk melanjutkan bab tanpa batas atau menambah volume baru di rak buku Anda.",
+        title: "Kapasitas Halaman Penuh (100 Lembar)",
+        desc: "Buka Atelier Pro untuk melanjutkan bab tanpa batas atau menambah volume baru di rak buku Anda.",
       },
       spaces_limit: {
-        title: "Rak Buku Telah Penuh (3 Edisi)",
-        desc: "Rak buku Anda telah memuat 3 edisi volume. Upgrade ke Atelier Pro untuk menyusun koleksi buku jurnal tanpa batas.",
+        title: "Rak Buku Penuh (3 Edisi)",
+        desc: "Upgrade ke Atelier Pro untuk menyusun koleksi buku jurnal tanpa batas.",
       },
       manuscript_export: {
         title: "Ekspor Manuskrip Folio Lengkap",
-        desc: "Cetak seluruh bab tulisan Anda ke dalam buku digital PDF resolusi tinggi siap cetak (A4 / A5).",
+        desc: "Cetak seluruh bab tulisan Anda ke dalam buku PDF resolusi tinggi siap cetak.",
       },
       luxury_foil: {
         title: "Letterpress Luxury Foil",
-        desc: "Hiasi punggung dan sampul buku Anda dengan kilau daun emas (Antique Gold, Rose Gold, Platinum, atau Emerald).",
+        desc: "Hiasi punggung dan sampul buku Anda dengan kilau daun emas premium.",
       },
       video: {
         title: "Cinematic Video Vignettes",
@@ -231,7 +235,7 @@ export function AtelierProModal({
       },
       audio_import: {
         title: "Impor Audio Eksternal",
-        desc: "Impor file audio, wawancara, atau rekaman suara luar hingga 3 menit.",
+        desc: "Impor file audio atau rekaman suara luar berkualitas hingga 3 menit.",
       },
       unlimited_photos: {
         title: "Galeri Foto Tanpa Batas",
@@ -308,46 +312,40 @@ export function AtelierProModal({
 
   return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-[75] flex items-start justify-center p-3 sm:p-4 pointer-events-none">
-        {/* Dimming Backdrop */}
+      <div className="fixed inset-0 z-[75] flex items-center justify-center p-3.5 sm:p-4 pointer-events-none">
+        {/* Adaptive Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: 0.22 }}
           onClick={() => {
             triggerHaptic("light");
             onClose();
           }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-md pointer-events-auto"
+          className="fixed inset-0 bg-black/35 backdrop-blur-xl pointer-events-auto"
         />
 
-        {/* Modal Sheet */}
+        {/* Liquid Glass Modal */}
         <motion.div
-          initial={{ y: -24, opacity: 0, scale: 0.96 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: -16, opacity: 0, scale: 0.96 }}
+          initial={{ scale: 0.95, opacity: 0, y: 10 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 10 }}
           transition={{ type: "spring", stiffness: 420, damping: 32 }}
           onClick={(e) => e.stopPropagation()}
           className="
-            pointer-events-auto relative w-full max-w-sm sm:max-w-md
-            rounded-[32px] overflow-hidden z-10 flex flex-col
-            bg-[var(--sheet-bg)]
-            backdrop-blur-[40px] saturate-[190%]
+            pointer-events-auto relative w-full max-w-[380px]
+            rounded-[34px] overflow-hidden z-10 flex flex-col
+            bg-[var(--sheet-bg)]/90
+            backdrop-blur-3xl saturate-[190%]
             border border-[var(--glass-border)]
-            shadow-[0_28px_64px_-12px_rgba(0,0,0,0.32),0_8px_24px_-4px_rgba(0,0,0,0.12)]
+            shadow-[0_16px_40px_-10px_rgba(0,0,0,0.14),0_0_1px_1px_rgba(255,255,255,0.15)]
             text-[var(--text-primary)]
-            p-5 sm:p-6
+            p-5 space-y-3.5
           "
-          style={{
-            marginTop: "max(calc(env(safe-area-inset-top, 0px) + 20px), 28px)",
-            maxHeight:
-              "calc(100dvh - max(calc(env(safe-area-inset-top, 0px) + 20px), 28px) - max(env(safe-area-inset-bottom, 0px), 20px))",
-            paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 4px), 16px)",
-          }}
         >
-          {/* Top Specular Rim */}
-          <div className="dynamic-island-specular-rim" />
+          {/* Subtle Glass Rim Reflection */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--text-primary)]/20 to-transparent pointer-events-none" />
 
           {/* Close Button */}
           <button
@@ -356,183 +354,165 @@ export function AtelierProModal({
               triggerHaptic("light");
               onClose();
             }}
-            className="absolute top-4 right-4 w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs z-20"
-            title="Close"
+            aria-label="Close"
+            className="
+              absolute top-3.5 right-3.5 w-7 h-7 rounded-full
+              bg-[var(--text-primary)]/[0.06] hover:bg-[var(--text-primary)]/12
+              border border-[var(--glass-border)]/60
+              active:scale-90 transition-all flex items-center justify-center
+              text-[var(--text-secondary)] hover:text-[var(--text-primary)]
+              cursor-pointer z-30
+            "
           >
             <X className="w-3.5 h-3.5 stroke-[2.2]" />
           </button>
 
-          {/* Scrollable Container */}
-          <div className="overflow-y-auto no-scrollbar flex-1 pr-0.5 space-y-4">
-            {/* Header Seal */}
-            <div className="text-center pt-1 space-y-1.5">
-              <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] shadow-sm mb-1 text-[var(--text-primary)]">
-                <Sparkles className="w-5 h-5 stroke-[1.25] text-[var(--accent-ink)]" />
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[var(--text-primary)]/5 to-transparent pointer-events-none" />
-              </div>
-              <div className="text-[9.5px] font-mono uppercase tracking-[0.22em] text-[var(--text-tertiary)] font-semibold">
-                {t.atelierPro.membership}
-              </div>
-              <h2 className="font-serif text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-                {t.atelierPro.title}
-              </h2>
-              <p className="font-serif italic text-xs text-[var(--text-secondary)] max-w-xs mx-auto leading-relaxed">
-                {activeContext
-                  ? activeContext.desc
-                  : t.atelierPro.defaultDesc}
+          {/* Header */}
+          <div className="text-center pt-0.5 space-y-1">
+            <div className="inline-flex items-center justify-center w-9 h-9 rounded-2xl bg-[var(--text-primary)]/[0.06] border border-[var(--glass-border)] shadow-xs mb-0.5">
+              <Sparkles className="w-4 h-4 text-[var(--text-primary)] stroke-[1.8]" />
+            </div>
+            <div className="text-[9px] font-mono uppercase tracking-[0.24em] text-[var(--text-tertiary)] font-semibold">
+              {t.atelierPro.membership}
+            </div>
+            <h2 className="font-serif text-[23px] font-semibold tracking-tight text-[var(--text-primary)] leading-tight">
+              {t.atelierPro.title}
+            </h2>
+          </div>
+
+          {/* Context Alert (jika limit tercapai) */}
+          {activeContext && (
+            <div className="px-3 py-2 rounded-2xl bg-[var(--text-primary)]/[0.04] border border-[var(--glass-border)] text-center space-y-0.5">
+              <span className="text-[11px] font-semibold text-[var(--text-primary)] block">
+                {activeContext.title}
+              </span>
+              <p className="text-[10px] text-[var(--text-secondary)] leading-snug">
+                {activeContext.desc}
               </p>
             </div>
+          )}
 
-            {/* Contextual Trigger Alert Banner if feature triggered */}
-            {activeContext && (
-              <div className="p-3 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)] text-center space-y-0.5">
-                <span className="text-[11px] font-semibold text-[var(--text-primary)] block">
-                  {activeContext.title}
+          {/* Apple Segmented Pill Dock */}
+          <div className="p-1 rounded-full bg-[var(--text-primary)]/[0.05] border border-[var(--glass-border)]/80 flex items-center justify-between gap-1 shadow-inner">
+            {localizedPlans.map((plan) => {
+              const isSelected = selectedPlan === plan.id;
+              return (
+                <button
+                  key={plan.id}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("light");
+                    setSelectedPlan(plan.id);
+                  }}
+                  className="relative flex-1 py-1.5 px-2 rounded-full text-center transition-all cursor-pointer z-10 select-none"
+                >
+                  {isSelected && (
+                    <motion.div
+                      layoutId="liquidGlaze"
+                      transition={{
+                        type: "spring",
+                        stiffness: 480,
+                        damping: 36,
+                      }}
+                      className="absolute inset-0 rounded-full bg-[var(--sheet-bg)] border border-[var(--glass-border)] shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                    />
+                  )}
+                  <span
+                    className={`relative text-[11px] tracking-tight block transition-colors ${
+                      isSelected
+                        ? "text-[var(--text-primary)] font-semibold"
+                        : "text-[var(--text-tertiary)] font-medium hover:text-[var(--text-secondary)]"
+                    }`}
+                  >
+                    {plan.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Adaptive Spotlight Card */}
+          <div className="rounded-[22px] py-3 px-4 bg-[var(--text-primary)]/[0.03] border border-[var(--glass-border)] shadow-xs text-center space-y-1">
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[11.5px] font-semibold text-[var(--text-secondary)] tracking-tight">
+                {activePlanObj.name}
+              </span>
+              {activePlanObj.badge && (
+                <span className="text-[8.5px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
+                  {activePlanObj.badge}
                 </span>
-                <span className="text-[10px] text-[var(--text-secondary)]">
-                  {currentLang === "id"
-                    ? "Pilih paket di bawah untuk membuka akses tanpa batas."
-                    : "Select a membership tier below to unlock unlimited access."}
-                </span>
+              )}
+            </div>
+
+            <div className="flex items-baseline justify-center gap-1.5 pt-0.5">
+              <span className="text-[24px] font-bold font-mono tracking-tight text-[var(--text-primary)] leading-none">
+                {activePlanObj.price}
+              </span>
+              <span className="text-[11px] text-[var(--text-tertiary)] font-sans">
+                {activePlanObj.period}
+              </span>
+            </div>
+
+            {activePlanObj.secondaryPrice && (
+              <div className="text-[9px] font-mono text-[var(--text-tertiary)] tabular-nums">
+                {activePlanObj.secondaryPrice}
               </div>
             )}
 
-            {/* 3-Tier Pricing Plan Cards */}
-            <div className="space-y-2 pt-1">
-              <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)] font-semibold px-1">
-                {t.atelierPro.planSelection}
-              </div>
+            <p className="text-[10px] text-[var(--text-secondary)] font-sans leading-tight opacity-90 max-w-[270px] mx-auto pt-0.5">
+              {activePlanObj.subtext}
+            </p>
+          </div>
 
-              {localizedPlans.map((plan) => {
-                const isSelected = selectedPlan === plan.id;
+          {/* Clean 2-Column Feature List (Tanpa elipsis, teks bernapas rapi) */}
+          <div className="rounded-[20px] p-3 bg-[var(--text-primary)]/[0.02] border border-[var(--glass-border)]/60">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+              {[
+                {
+                  icon: BookOpen,
+                  text: t.atelierPro.privileges.unlimitedVolumes,
+                },
+                { icon: Cloud, text: t.atelierPro.privileges.cloudSync },
+                { icon: Video, text: t.atelierPro.privileges.motionClips },
+                { icon: Music, text: t.atelierPro.privileges.audioStudio },
+                {
+                  icon: ImageIcon,
+                  text: t.atelierPro.privileges.unlimitedPhotos,
+                },
+                { icon: Printer, text: t.atelierPro.privileges.printPdf },
+              ].map((item, idx) => {
+                const Icon = item.icon;
                 return (
-                  <button
-                    key={plan.id}
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic("light");
-                      setSelectedPlan(plan.id);
-                    }}
-                    className={`
-                      w-full p-3 rounded-2xl text-left transition-all relative cursor-pointer
-                      flex items-center justify-between gap-3 border
-                      ${
-                        isSelected
-                          ? "bg-[var(--text-primary)]/8 border-[var(--text-primary)]/60 shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
-                          : "apple-card border-[var(--glass-border)]/40 hover:border-[var(--glass-border)] opacity-85 hover:opacity-100"
-                      }
-                    `}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Radio Dot */}
-                      <div
-                        className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                          isSelected
-                            ? "border-[var(--text-primary)] bg-[var(--text-primary)] text-[var(--accent-ink)]"
-                            : "border-[var(--glass-border)]"
-                        }`}
-                      >
-                        {isSelected && (
-                          <Check className="w-2.5 h-2.5 stroke-[3]" />
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="text-xs font-bold text-[var(--text-primary)] tracking-tight">
-                            {plan.name}
-                          </span>
-                          {plan.badge && (
-                            <span className="text-[9px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
-                              {plan.badge}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-[var(--text-tertiary)] font-sans truncate mt-0.5">
-                          {plan.subtext}
-                        </p>
-                      </div>
+                  <div key={idx} className="flex items-start gap-2 min-w-0">
+                    <div className="w-4 h-4 rounded-full bg-[var(--text-primary)]/[0.08] flex items-center justify-center shrink-0 mt-0.5">
+                      <Icon className="w-2.5 h-2.5 text-[var(--text-primary)] stroke-[2]" />
                     </div>
-
-                    {/* Price Tag */}
-                    <div className="text-right shrink-0">
-                      <div className="text-xs font-bold font-mono text-[var(--text-primary)]">
-                        {plan.price}
-                      </div>
-                      {plan.secondaryPrice && (
-                        <div className="text-[9.5px] font-mono text-[var(--text-tertiary)] tabular-nums">
-                          {plan.secondaryPrice}
-                        </div>
-                      )}
-                      <div className="text-[9px] text-[var(--text-tertiary)] font-mono">
-                        {plan.period}
-                      </div>
-                    </div>
-                  </button>
+                    <span className="text-[10px] font-medium text-[var(--text-secondary)] leading-tight break-words">
+                      {item.text}
+                    </span>
+                  </div>
                 );
               })}
             </div>
-
-            {/* Core Pro Privileges Highlight */}
-            <div className="pt-2">
-              <div className="text-[10px] font-mono uppercase tracking-[0.16em] text-[var(--text-tertiary)] font-semibold px-1 mb-2">
-                {t.atelierPro.privilegesTitle}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-left">
-                {[
-                  { icon: BookOpen, text: t.atelierPro.privileges.unlimitedVolumes },
-                  { icon: Cloud, text: t.atelierPro.privileges.cloudSync },
-                  { icon: Video, text: t.atelierPro.privileges.motionClips },
-                  { icon: Music, text: t.atelierPro.privileges.audioStudio },
-                  { icon: ImageIcon, text: t.atelierPro.privileges.unlimitedPhotos },
-                  { icon: Printer, text: t.atelierPro.privileges.printPdf },
-                ].map((item, idx) => {
-                  const Icon = item.icon;
-                  return (
-                    <div
-                      key={idx}
-                      className="p-2.5 rounded-2xl inner-pseudo-glass border border-[var(--glass-border)]/50 flex items-center gap-2.5"
-                    >
-                      <div className="w-6 h-6 rounded-xl bg-[var(--text-primary)]/5 flex items-center justify-center shrink-0">
-                        <Icon className="w-3.5 h-3.5 text-[var(--text-primary)] opacity-80 stroke-[1.6]" />
-                      </div>
-                      <span className="text-[10.5px] font-medium text-[var(--text-secondary)] leading-tight">
-                        {item.text}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
 
-          {/* Action Footer */}
-          <div className="pt-3 mt-auto space-y-2 border-t border-[var(--glass-border)]/40">
+          {/* Action Button & Status */}
+          <div className="space-y-1.5 pt-0.5">
             {purchaseStatusMsg && (
-              <div className="p-2 rounded-xl text-center text-[10.5px] font-sans font-medium bg-[var(--text-primary)]/5 border border-[var(--glass-border)] text-[var(--text-secondary)]">
+              <div className="py-1 px-2.5 rounded-xl text-center text-[10px] font-sans font-medium bg-[var(--text-primary)]/5 border border-[var(--glass-border)] text-[var(--text-secondary)]">
                 {purchaseStatusMsg}
               </div>
             )}
-
-            {/* Apple Guideline 3.1.2 Auto-Renewal Disclosure */}
-            <div className="px-1 text-center">
-              {selectedPlan === "lifetime" ? (
-                <p className="text-[10px] text-[var(--text-tertiary)] leading-tight">
-                  {t.atelierPro.oneTimeNotice}
-                </p>
-              ) : (
-                <p className="text-[9.5px] text-[var(--text-tertiary)] leading-normal">
-                  {t.atelierPro.subscriptionDisclosure.replace("{price}", activePlanObj.price).replace("{period}", activePlanObj.period)}
-                </p>
-              )}
-            </div>
 
             <button
               type="button"
               onClick={handleUnlockPro}
               disabled={isProcessing}
-              className="w-full py-3 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-xs font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform cursor-pointer shadow-[0_4px_14px_rgba(0,0,0,0.14)] disabled:opacity-60"
+              className="
+                w-full h-11 px-4 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)]
+                text-[12.5px] font-semibold tracking-wide flex items-center justify-center gap-2
+                shadow-[0_4px_14px_rgba(0,0,0,0.1)] active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-50
+              "
             >
               {isProcessing ? (
                 <>
@@ -544,12 +524,10 @@ export function AtelierProModal({
                   <Sparkles className="w-3.5 h-3.5 stroke-[2.2]" />
                   <span>
                     {isPro
-                      ? "Atelier Pro Pass Active"
+                      ? "Atelier Pro Active"
                       : selectedPlan === "lifetime"
                         ? `${currentLang === "id" ? "Buka Akses Permanen" : "Unlock All-Time Pass"} · ${activePlanObj.price}`
-                        : selectedPlan === "annual"
-                          ? `${currentLang === "id" ? "Berlangganan Tahunan" : "Subscribe Annual"} · ${activePlanObj.price} / ${currentLang === "id" ? "thn" : "yr"}`
-                          : `${currentLang === "id" ? "Berlangganan Bulanan" : "Subscribe Monthly"} · ${activePlanObj.price} / ${currentLang === "id" ? "bln" : "mo"}`}
+                        : `${currentLang === "id" ? "Berlangganan" : "Subscribe"} ${activePlanObj.name} · ${activePlanObj.price}`}
                   </span>
                 </>
               )}
@@ -562,20 +540,30 @@ export function AtelierProModal({
                 onClose();
               }}
               disabled={isProcessing}
-              className="w-full py-1 text-center text-[11px] font-sans font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="w-full text-center text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer py-0.5"
             >
               {t.atelierPro.continueStandard}
             </button>
+          </div>
 
-            {/* Legal Footnote for Store Compliance (Apple Guideline 3.1.2) */}
-            <div className="pt-0.5 text-center text-[10px] text-[var(--text-tertiary)] flex items-center justify-center gap-1.5 flex-wrap">
+          {/* Minimal Legal & Store Compliance */}
+          <div className="pt-1 border-t border-[var(--glass-border)]/50 space-y-1.5 text-center">
+            <p className="text-[9px] text-[var(--text-tertiary)]/80 leading-tight px-1">
+              {selectedPlan === "lifetime"
+                ? t.atelierPro.oneTimeNotice
+                : t.atelierPro.subscriptionDisclosure
+                    .replace("{price}", activePlanObj.price)
+                    .replace("{period}", activePlanObj.period)}
+            </p>
+
+            <div className="text-[9px] text-[var(--text-tertiary)] flex items-center justify-center gap-1.5 flex-wrap">
               <button
                 type="button"
                 onClick={handleRestorePurchases}
                 disabled={isProcessing}
                 className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
               >
-                Restore Purchases
+                Restore
               </button>
               <span>·</span>
               <button
@@ -587,7 +575,7 @@ export function AtelierProModal({
                 }}
                 className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
               >
-                Terms of Service
+                Terms
               </button>
               <span>·</span>
               <button
@@ -599,7 +587,7 @@ export function AtelierProModal({
                 }}
                 className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
               >
-                Privacy Policy
+                Privacy
               </button>
               <span>·</span>
               <a
@@ -608,15 +596,14 @@ export function AtelierProModal({
                 rel="noopener noreferrer"
                 className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
               >
-                Apple Standard EULA
+                EULA
               </a>
             </div>
 
-            {/* Apple Payment Compliance & Indonesian E-Wallet Note */}
-            <div className="text-[10px] text-[var(--text-tertiary)] text-center max-w-xs mx-auto leading-relaxed pt-1 opacity-80">
+            <div className="text-[8.5px] text-[var(--text-tertiary)]/65 leading-tight">
               {currentLang === "id"
-                ? "Pembayaran resmi melalui Apple In-App Purchase. Mendukung GoPay, DANA, ShopeePay, dan Kartu Debit terhubung Apple ID."
-                : "Official Apple In-App Purchase. Supports GoPay, DANA, ShopeePay & Debit Cards linked to your Apple ID."}
+                ? "Pembayaran Apple IAP · GoPay, DANA, ShopeePay & Kartu Debit."
+                : "Official Apple IAP · Supports GoPay, DANA, ShopeePay & Debit Cards."}
             </div>
           </div>
 

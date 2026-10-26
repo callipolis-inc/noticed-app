@@ -13,10 +13,16 @@ export function getSavedAppLanguage(): AppLanguage {
     if (saved === "id" || saved === "en") return saved;
 
     // Fallback to browser/system language if available
-    if (navigator.language && navigator.language.toLowerCase().startsWith("id")) {
+    if (
+      navigator.language &&
+      navigator.language.toLowerCase().startsWith("id")
+    ) {
       return "id";
     }
-    if (navigator.language && navigator.language.toLowerCase().startsWith("en")) {
+    if (
+      navigator.language &&
+      navigator.language.toLowerCase().startsWith("en")
+    ) {
       return "en";
     }
   } catch {}
@@ -29,9 +35,7 @@ export function setSavedAppLanguage(lang: AppLanguage): void {
     localStorage.setItem(APP_LANG_STORAGE_KEY, lang);
     // Also synchronize speech dictation engine language
     setSavedDictationLang(lang === "id" ? "id-ID" : "en-US");
-    window.dispatchEvent(
-      new CustomEvent(LANG_CHANGE_EVENT, { detail: lang }),
-    );
+    window.dispatchEvent(new CustomEvent(LANG_CHANGE_EVENT, { detail: lang }));
   } catch {}
 }
 
@@ -276,7 +280,7 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       atTime: "pukul",
     },
     bookshelf: {
-      spinesLayout: "Punggung Buku",
+      spinesLayout: "Samping Buku",
       coversLayout: "Sampul 3D",
       activeTab: "Aktif",
       archivedTab: "Diarsipkan",
@@ -306,7 +310,7 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       theme: "Tema",
       shelfLayout: "Tata Letak Rak",
       defaultDisplay: "Tampilan bawaan rak",
-      spines: "Punggung",
+      spines: "Samping",
       covers: "Sampul",
       textSize: "Ukuran Teks",
       language: "Bahasa",
@@ -355,17 +359,22 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       sectionTitle: "Pengingat & Kebiasaan",
       sectionSubtitle: "Pengingat hening untuk merawat rutinitas menulis",
       morningPrompt: "Intensi Pagi",
-      morningPromptDesc: "Pertanyaan reflektif untuk memulai hari dengan penuh kesadaran",
+      morningPromptDesc:
+        "Pertanyaan reflektif untuk memulai hari dengan penuh kesadaran",
       eveningPrompt: "Refleksi Malam",
-      eveningPromptDesc: "Momen hening untuk mengendapkan hal-hal bermakna hari ini",
+      eveningPromptDesc:
+        "Momen hening untuk mengendapkan hal-hal bermakna hari ini",
       morningTime: "Waktu Pagi",
       eveningTime: "Waktu Malam",
       permissionDeniedTitle: "Izin Notifikasi Ditolak",
-      permissionDeniedDesc: "Aktifkan izin notifikasi di Pengaturan Sistem perangkat untuk menerima pengingat hening ini.",
+      permissionDeniedDesc:
+        "Aktifkan izin notifikasi di Pengaturan Sistem perangkat untuk menerima pengingat hening ini.",
       morningDefaultTitle: "Niat Hari Ini",
-      morningDefaultBody: "Apa satu hal bermakna yang ingin kamu perhatikan hari ini?",
+      morningDefaultBody:
+        "Apa satu hal bermakna yang ingin kamu perhatikan hari ini?",
       eveningDefaultTitle: "Refleksi Hening",
-      eveningDefaultBody: "Apa momen kecil atau rasa syukur yang hadir hari ini?",
+      eveningDefaultBody:
+        "Apa momen kecil atau rasa syukur yang hadir hari ini?",
     },
     spaceShare: {
       collaborationAndExport: "Kolaborasi & Ekspor",
@@ -592,15 +601,19 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       sectionTitle: "Habits & Reminders",
       sectionSubtitle: "Quiet prompts to nurture your daily writing practice",
       morningPrompt: "Morning Intention",
-      morningPromptDesc: "Reflective question to begin your day with mindfulness",
+      morningPromptDesc:
+        "Reflective question to begin your day with mindfulness",
       eveningPrompt: "Evening Reflection",
-      eveningPromptDesc: "Quiet moment to distill meaningful thoughts from today",
+      eveningPromptDesc:
+        "Quiet moment to distill meaningful thoughts from today",
       morningTime: "Morning Time",
       eveningTime: "Evening Time",
       permissionDeniedTitle: "Notification Permission Denied",
-      permissionDeniedDesc: "Please enable notification permissions in device settings to receive quiet reminders.",
+      permissionDeniedDesc:
+        "Please enable notification permissions in device settings to receive quiet reminders.",
       morningDefaultTitle: "Today's Intention",
-      morningDefaultBody: "What is one meaningful thing you wish to notice today?",
+      morningDefaultBody:
+        "What is one meaningful thing you wish to notice today?",
       eveningDefaultTitle: "Evening Reflection",
       eveningDefaultBody: "What small moment or gratitude was present today?",
     },
@@ -732,17 +745,28 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
   },
 };
 
-export function getTranslation(lang: AppLanguage = getSavedAppLanguage()): TranslationDictionary {
+export function getTranslation(
+  lang: AppLanguage = getSavedAppLanguage(),
+): TranslationDictionary {
   return DICTIONARY[lang] || DICTIONARY.id;
 }
 
-export function useAppLanguage(): [AppLanguage, (lang: AppLanguage) => void, TranslationDictionary] {
-  const [lang, setLangState] = useState<AppLanguage>(() => getSavedAppLanguage());
+export function useAppLanguage(): [
+  AppLanguage,
+  (lang: AppLanguage) => void,
+  TranslationDictionary,
+] {
+  const [lang, setLangState] = useState<AppLanguage>(() =>
+    getSavedAppLanguage(),
+  );
 
   useEffect(() => {
     const handleLangChange = (e: Event) => {
       const customEvent = e as CustomEvent<AppLanguage>;
-      if (customEvent.detail && (customEvent.detail === "id" || customEvent.detail === "en")) {
+      if (
+        customEvent.detail &&
+        (customEvent.detail === "id" || customEvent.detail === "en")
+      ) {
         setLangState(customEvent.detail);
       } else {
         setLangState(getSavedAppLanguage());
