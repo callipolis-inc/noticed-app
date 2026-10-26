@@ -110,7 +110,7 @@ export function CreateNoteSheet({
     return s?.fontChoice || defaultFontChoice || "editorial";
   });
   const [imagePosition, setImagePosition] = useState<ImagePosition>(
-    () => editingNote?.imagePosition || defaultImagePosition || "bottom",
+    () => defaultImagePosition || editingNote?.imagePosition || "bottom",
   );
   const [selectionText, setSelectionText] = useState("");
   const [formatStates, setFormatStates] = useState({

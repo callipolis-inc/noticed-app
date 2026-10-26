@@ -12,6 +12,47 @@
 }
 
 /* ============================================================
+   NATIVE APP TEXT SELECTION & TOUCH CALLOUT LOCKDOWN
+   Prevents unpolished browser highlight boxes & iOS copy callouts
+   across all UI chrome, cards, buttons, and views.
+   ============================================================ */
+*,
+*::before,
+*::after {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html,
+body,
+#root {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Allow text editing strictly in inputs, textareas, and editable editors */
+input,
+textarea,
+[contenteditable="true"],
+.select-text,
+.selectable-content {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+/* Disable image dragging and callout */
+img {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+  pointer-events: auto;
+}
+
+/* ============================================================
    1. WARM OBSIDIAN (Dark Mode) — Apple Monochrome Luxury
    ============================================================ */
 :root,

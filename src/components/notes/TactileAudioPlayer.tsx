@@ -114,69 +114,14 @@ export function TactileAudioPlayer({
     };
   }, []);
 
-  // Zero-idle memory: release audio element buffer when collapsed
-  useEffect(() => {
-    if (!isExpanded && audioRef.current && !isPlaying) {
-      audioRef.current.pause();
-      audioRef.current.src = "";
-      audioRef.current = null;
-    }
-  }, [isExpanded, isPlaying]);
-
-  const initAudioIfNeeded = useCallback(() => {
-    if (!audioRef.current && audioUrl) {
-      const audio = new Audio(audioUrl);
-      audio.preload = "metadata";
-      audio.playbackRate = playbackSpeed;
-
-      if (currentTime > 0 && currentTime < effectiveDuration) {
-        audio.currentTime = currentTime;
-      }
-
-      audio.ontimeupdate = () => {
-        if (!isScrubbing && audioRef.current) {
-          setCurrentTime(audioRef.current.currentTime);
-        }
-      };
-
-      audio.onerror = (e) => {
-        console.error("[TactileAudioPlayer] Audio playback error:", audio.error, e);
-        setIsPlaying(false);
-      };
-
-      audio.onended = () => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        triggerHaptic("light");
-        // Smoothly collapse back to idle pill after a brief pause
-        collapseTimeoutRef.current = window.setTimeout(() => {
-          setIsExpanded(false);
-        }, 1200);
-      };
-
-      audio.onpause = () => {
-        setIsPlaying(false);
-      };
-
-      audio.onplay = () => {
-        setIsPlaying(true);
-      };
-
-      audioRef.current = audio;
-    }
-  }, [audioUrl, playbackSpeed, isScrubbing, currentTime, effectiveDuration]);
-
   const togglePlay = async (e?: React.MouseEvent | React.KeyboardEvent) => {
     e?.stopPropagation();
-    if (!audioUrl) return;
+    if (!audioUrl || !audioRef.current) return;
 
     if (collapseTimeoutRef.current) {
       clearTimeout(collapseTimeoutRef.current);
       collapseTimeoutRef.current = null;
     }
-
-    initAudioIfNeeded();
-    if (!audioRef.current) return;
 
     triggerHaptic("light");
 
@@ -247,8 +192,7 @@ export function TactileAudioPlayer({
 
   const handlePointerDown = (e: React.PointerEvent) => {
     e.stopPropagation();
-    if (!audioUrl) return;
-    initAudioIfNeeded();
+    if (!audioUrl || !audioRef.current) return;
 
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     setIsScrubbing(true);
@@ -276,7 +220,6 @@ export function TactileAudioPlayer({
 
   const handleSeekDelta = useCallback(
     (deltaSeconds: number) => {
-      initAudioIfNeeded();
       const nextTime = Math.max(
         0,
         Math.min(effectiveDuration, currentTime + deltaSeconds)
@@ -287,7 +230,7 @@ export function TactileAudioPlayer({
       }
       triggerHaptic("light");
     },
-    [currentTime, effectiveDuration, initAudioIfNeeded]
+    [currentTime, effectiveDuration]
   );
 
   const currentProgressRatio = Math.min(
@@ -301,6 +244,34 @@ export function TactileAudioPlayer({
       transition={{ type: "spring", stiffness: 450, damping: 32 }}
       className={`relative select-none ${className}`}
     >
+      {/* Native In-DOM Audio Element for reliable iOS WKWebView & Android playback */}
+      <audio
+        ref={audioRef}
+        src={audioUrl}
+        preload="metadata"
+        playsInline
+        onTimeUpdate={() => {
+          if (!isScrubbing && audioRef.current) {
+            setCurrentTime(audioRef.current.currentTime);
+          }
+        }}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+          triggerHaptic("light");
+          collapseTimeoutRef.current = window.setTimeout(() => {
+            setIsExpanded(false);
+          }, 1200);
+        }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onError={(e) => {
+          console.error("[TactileAudioPlayer] Audio playback error:", audioRef.current?.error, e);
+          setIsPlaying(false);
+        }}
+        className="hidden"
+      />
+
       <AnimatePresence mode="wait" initial={false}>
         {!isExpanded ? (
           /* ============================================================

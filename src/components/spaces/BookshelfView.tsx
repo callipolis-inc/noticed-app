@@ -1570,11 +1570,6 @@ export function BookshelfView({
                     <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
                       Title Foil Color
                     </label>
-                    {!isPro && (
-                      <span className="text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
-                        PRO
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
@@ -1612,12 +1607,6 @@ export function BookshelfView({
                         key={foilItem.id}
                         type="button"
                         onClick={() => {
-                          if (!isPro) {
-                            triggerHaptic("medium");
-                            setProTriggerFeature("luxury_foil");
-                            setIsProModalOpen(true);
-                            return;
-                          }
                           triggerHaptic("light");
                           setEditFoilColor(foilItem.color);
                         }}
@@ -1935,11 +1924,6 @@ export function BookshelfView({
                     <label className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
                       Title Foil Color
                     </label>
-                    {!isPro && (
-                      <span className="text-[8.5px] px-1.5 py-0.2 rounded-full font-mono font-bold bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
-                        PRO
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10.5px] font-semibold text-[var(--text-primary)]">
@@ -1982,12 +1966,6 @@ export function BookshelfView({
                         key={foilItem.id}
                         type="button"
                         onClick={() => {
-                          if (!isPro) {
-                            triggerHaptic("medium");
-                            setProTriggerFeature("luxury_foil");
-                            setIsProModalOpen(true);
-                            return;
-                          }
                           triggerHaptic("light");
                           setNewFoilColor(foilItem.color);
                         }}

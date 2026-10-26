@@ -201,13 +201,13 @@ export function DarkroomModal({
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 pb-28 space-y-4 sm:space-y-5 no-scrollbar">
             {/* Live Preview Display Stage */}
-            <div className="flex justify-center items-center py-2 bg-black/[0.03] dark:bg-white/[0.02] rounded-2xl p-3 border border-[var(--glass-border)]/50 min-h-[220px]">
+            <div className="flex justify-center items-center py-2 bg-black/[0.03] dark:bg-white/[0.02] rounded-2xl p-2.5 sm:p-3 border border-[var(--glass-border)]/50 min-h-[180px] sm:min-h-[220px]">
               {frameMode === "polaroid" ? (
                 /* Polaroid Paper Frame */
-                <div className="polaroid-frame-card p-3 pb-5 rounded-2xl w-full max-w-[280px] sm:max-w-[300px]">
-                  <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-lg overflow-hidden bg-black/10`}>
+                <div className="polaroid-frame-card p-2.5 sm:p-3 pb-4 sm:pb-5 rounded-2xl w-full max-w-[260px] sm:max-w-[300px]">
+                  <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[170px] sm:max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-lg overflow-hidden bg-black/10`}>
                     <img
                       src={photoUrl}
                       alt="Darkroom plate preview"
@@ -228,9 +228,9 @@ export function DarkroomModal({
                 </div>
               ) : frameMode === "archival" ? (
                 /* Archival Museum Mat Frame */
-                <div className="w-full max-w-[280px] sm:max-w-[300px]">
+                <div className="w-full max-w-[260px] sm:max-w-[300px]">
                   <div className="p-2.5 rounded-2xl bg-[var(--bg-elevated)] border border-[var(--glass-border)] shadow-md">
-                    <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-xl overflow-hidden bg-black/10`}>
+                    <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[170px] sm:max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-xl overflow-hidden bg-black/10`}>
                       <img
                         src={photoUrl}
                         alt="Darkroom plate preview"
@@ -247,8 +247,8 @@ export function DarkroomModal({
                 </div>
               ) : (
                 /* Classic Borderless Frame */
-                <div className="w-full max-w-[280px] sm:max-w-[300px] space-y-2">
-                  <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-2xl overflow-hidden shadow-md border border-[var(--glass-border)]`}>
+                <div className="w-full max-w-[260px] sm:max-w-[300px] space-y-2">
+                  <div className={`relative ${aspectRatio === "original" ? "aspect-auto max-h-[170px] sm:max-h-[220px]" : aspectRatio === "1/1" ? "aspect-square" : aspectRatio === "16/9" ? "aspect-video" : "aspect-[4/3]"} rounded-2xl overflow-hidden shadow-md border border-[var(--glass-border)]`}>
                     <img
                       src={photoUrl}
                       alt="Darkroom plate preview"
@@ -459,25 +459,25 @@ export function DarkroomModal({
             </div>
           </div>
 
-          {/* Footer Action */}
+          {/* Minimalist Apple Footer Action */}
           <div
-            className="p-4 border-t border-[var(--glass-border)] bg-[var(--bg-elevated)]/90 backdrop-blur-sm flex items-center justify-end gap-2.5 shrink-0"
+            className="px-4 py-3 border-t border-[var(--glass-border)]/50 bg-[var(--bg-elevated)]/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0"
             style={{
               paddingBottom:
-                "max(calc(env(safe-area-inset-bottom, 0px) + 14px), 16px)",
+                "max(calc(env(safe-area-inset-bottom, 0px) + 10px), 12px)",
             }}
           >
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-full text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+              className="px-4 py-2 rounded-full text-xs font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleApply}
-              className="px-5 py-2.5 rounded-full bg-[var(--text-primary)] text-[var(--bg-base)] text-xs font-semibold flex items-center gap-1.5 hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-sm"
+              className="px-4.5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-base)] text-xs font-semibold flex items-center gap-1.5 hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-xs"
             >
               <Check className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Apply to Photo</span>

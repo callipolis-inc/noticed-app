@@ -178,15 +178,13 @@ export const NoteEntry = memo(function NoteEntry({
     onUpdateHighlights?.(note.id, updated);
   };
 
-  // Right-Edge End-of-Paragraph Triggers (" and ...) pushed to the far right of the last line
-  const renderInlineEndControls = (isStandalone = false) => {
+  // Action triggers (" and ...) positioned cleanly at bottom right of the note
+  const renderInlineEndControls = () => {
     if (isReadingMode) return null;
 
     return (
       <span
-        className={`relative ${
-          isStandalone ? "ml-auto" : "float-right ml-3"
-        } inline-flex items-center gap-1 align-baseline select-none transition-opacity ${
+        className={`relative inline-flex items-center gap-1.5 align-middle select-none transition-opacity ${
           showMenu ? "z-50 opacity-100" : "z-20"
         }`}
       >
@@ -495,7 +493,7 @@ export const NoteEntry = memo(function NoteEntry({
     );
   };
 
-  const effectiveImagePosition = note.imagePosition || defaultImagePosition;
+  const effectiveImagePosition = defaultImagePosition || note.imagePosition || "bottom";
   const effectiveLineSpacing = note.lineSpacing || defaultLineSpacing;
   const leadingClass =
     effectiveLineSpacing === "compact"
@@ -892,7 +890,6 @@ export const NoteEntry = memo(function NoteEntry({
                 />
               )}
               {renderParagraphEndSuperscripts()}
-              {renderInlineEndControls(false)}
             </div>
           )}
 
@@ -957,7 +954,6 @@ export const NoteEntry = memo(function NoteEntry({
               </span>
               <span className="inline-flex items-center gap-1 ml-auto">
                 {renderParagraphEndSuperscripts()}
-                {renderInlineEndControls(true)}
               </span>
             </div>
           )}
@@ -1314,6 +1310,13 @@ export const NoteEntry = memo(function NoteEntry({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Note Bottom Action Controls: Always anchored at the bottom of the note */}
+          {!isReadingMode && (
+            <div className="flex items-center justify-end pt-1.5 select-none">
+              {renderInlineEndControls()}
+            </div>
+          )}
         </div>
 
         {/* Right Column: Desktop Margin Footnotes (Gutter) */}

@@ -154,7 +154,9 @@ export function InlineVideoPlayer({
       );
       video.play().then(() => {
         setIsPlaying(true);
-      }).catch(console.error);
+      }).catch((err) => {
+        console.warn("[InlineVideoPlayer] Play interrupted or blocked:", err);
+      });
     } else {
       video.pause();
       setIsPlaying(false);
@@ -214,13 +216,15 @@ export function InlineVideoPlayer({
       {/* HTML5 Video element with iOS playsInline & metadata preload */}
       <video
         ref={videoRef}
-        src={isNearViewport ? src : undefined}
+        src={src}
         poster={poster}
-        preload={isNearViewport ? "metadata" : "none"}
+        preload="metadata"
         playsInline
         webkit-playsinline="true"
         loop
         muted={isMuted}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}
         className="w-full h-full object-cover rounded-2xl block"
       />
