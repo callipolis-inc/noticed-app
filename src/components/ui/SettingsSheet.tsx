@@ -268,11 +268,6 @@ export function SettingsSheet({
   const currentThemeLabel =
     themeOptions.find((t) => t.id === currentTheme)?.name || "Alabaster";
 
-  const activeSizeLabel =
-    FONT_SIZE_PRESETS.find((p) => Math.abs(p.size - fontSize) < 0.25)?.label ||
-    "Custom";
-  const scalePercent = Math.round((fontSize / 15.5) * 100);
-
   if (typeof document === "undefined") return null;
 
   return createPortal(
