@@ -204,19 +204,27 @@ export async function signInWithGoogle() {
         clientId: "3178689480-cpe53gd57jhr7t73vcgi5r4jfj96v9fu.apps.googleusercontent.com",
       });
 
-      // Launch native Google Sign-In sheet without client-side timeout so interactive user flow is never interrupted
-      const result = await GoogleSignIn.signIn();
+      // Generate secure cryptographic nonce (Accrual production standard)
+      const rawNonce =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+      const result = await GoogleSignIn.signIn({
+        nonce: rawNonce,
+      });
 
       const idToken = result?.idToken;
       if (!idToken) {
         throw new Error("No identity token returned from Google Sign-In.");
       }
 
-      // Exchange Google ID Token directly with Supabase (omit nonce on iOS native SDK flow to prevent nonces mismatch)
+      // Exchange Google ID Token with Supabase (Accrual standard with rawNonce)
       const { data, error } = await withTimeout(
         supabase.auth.signInWithIdToken({
           provider: "google",
           token: idToken,
+          nonce: rawNonce,
         }),
         25000,
         "Google authentication timed out. Please check your connection."
@@ -442,8 +450,12 @@ export async function getCurrentSession(): Promise<Session | null> {
  */
 export async function getCurrentUser(): Promise<User | null> {
   if (!isSupabaseConfigured) return null;
-  const { data } = await supabase.auth.getUser();
-  return data.user;
+  try {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.user ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /**

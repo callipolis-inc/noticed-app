@@ -451,28 +451,34 @@ export function App() {
   // Listen to Supabase session state & initialize RevenueCat purchases
   useEffect(() => {
     getCurrentUser()
-      .then(async (user) => {
+      .then((user) => {
         if (user?.email) {
           setUserEmail(user.email);
           setCurrentUserId(user.id);
           initPurchases(user.id);
 
-          // Cross-platform Pro Entitlement sync: check if profile already has is_pro
-          const { data: prof } = await supabase
-            .from("profiles")
-            .select("is_pro")
-            .eq("id", user.id)
-            .maybeSingle();
-          if (prof?.is_pro) {
-            setProUser(true);
-          }
+          // Non-blocking background sync for profile pro status
+          (async () => {
+            try {
+              const { data: prof } = await supabase
+                .from("profiles")
+                .select("is_pro")
+                .eq("id", user.id)
+                .maybeSingle();
+              if (prof?.is_pro) {
+                setProUser(true);
+              }
+            } catch {
+              // ignore background sync error
+            }
+          })();
         } else {
           setCurrentUserId(null);
           initPurchases(null);
         }
-        setIsAuthChecking(false);
       })
-      .catch(() => {
+      .catch(() => {})
+      .finally(() => {
         setIsAuthChecking(false);
       });
 
