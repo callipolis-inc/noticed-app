@@ -97,31 +97,18 @@ export function OnboardingGate({
     return () => clearInterval(interval);
   }, [authStep, resendTimer]);
 
-  // Anti-hang safety timeout & window focus listener for Google / Apple OAuth
+  // Safety timeout for network auth operations (aligned with 2x retry timeout in supabase.ts)
   useEffect(() => {
-    let safetyTimeout: any;
+    let safetyTimeout: ReturnType<typeof setTimeout> | undefined;
 
     if (isLoading) {
       safetyTimeout = setTimeout(() => {
         setIsLoading(false);
-      }, 10000);
+      }, 35000);
     }
-
-    const handleFocus = () => {
-      if (isLoading) {
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 1500);
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
 
     return () => {
       if (safetyTimeout) clearTimeout(safetyTimeout);
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
     };
   }, [isLoading]);
 
@@ -483,8 +470,12 @@ export function OnboardingGate({
         // User canceled Apple sheet - silent exit without error banner
         return;
       }
-      if (res && "user" in res && res.user?.email) {
-        onAuthSuccess(res.user.email, res.user.id);
+      if (res && "user" in res && res.user?.id) {
+        const resolvedEmail =
+          res.user.email ||
+          res.user.user_metadata?.email ||
+          `apple_${res.user.id.slice(0, 8)}@privaterelay.appleid.com`;
+        onAuthSuccess(resolvedEmail, res.user.id);
       }
     } catch (err: any) {
       const isCancel =
@@ -520,8 +511,12 @@ export function OnboardingGate({
         // Silent cancellation (user dismissed sheet)
         return;
       }
-      if (res && "user" in res && res.user?.email) {
-        onAuthSuccess(res.user.email, res.user.id);
+      if (res && "user" in res && res.user?.id) {
+        const resolvedEmail =
+          res.user.email ||
+          res.user.user_metadata?.email ||
+          `apple_${res.user.id.slice(0, 8)}@privaterelay.appleid.com`;
+        onAuthSuccess(resolvedEmail, res.user.id);
       }
     } catch (err: any) {
       const isCancel =
@@ -699,11 +694,13 @@ export function OnboardingGate({
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <span className="text-sm">🇬🇧</span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--text-primary)]/10 text-[var(--text-secondary)]">
+                      EN
+                    </span>
                     <span>English</span>
                   </span>
                   {currentLang === "en" && (
-                    <Check className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
+                    <Check className="w-3.5 h-3.5 text-[var(--text-primary)] stroke-[2.5]" />
                   )}
                 </button>
 
@@ -721,11 +718,13 @@ export function OnboardingGate({
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <span className="text-sm">🇮🇩</span>
+                    <span className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--text-primary)]/10 text-[var(--text-secondary)]">
+                      ID
+                    </span>
                     <span>Bahasa Indonesia</span>
                   </span>
                   {currentLang === "id" && (
-                    <Check className="w-3.5 h-3.5 text-amber-400 stroke-[2.5]" />
+                    <Check className="w-3.5 h-3.5 text-[var(--text-primary)] stroke-[2.5]" />
                   )}
                 </button>
               </motion.div>
@@ -953,8 +952,8 @@ export function OnboardingGate({
               </div>
             )}
             {infoMessage && (
-              <div className="mb-2.5 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-sans flex items-start gap-2">
-                <Check className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+              <div className="mb-2.5 p-2.5 rounded-2xl bg-[var(--text-primary)]/[0.06] border border-[var(--glass-border)] text-[var(--text-primary)] text-xs font-sans flex items-start gap-2">
+                <Check className="w-4 h-4 shrink-0 text-[var(--text-primary)] mt-0.5" />
                 <span>{infoMessage}</span>
               </div>
             )}

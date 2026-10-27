@@ -26,7 +26,8 @@ begin
     null;
   end;
 
-  -- 2. Explicitly clean up all user-owned notes, spaces, and profiles
+  -- 2. Explicitly clean up all user memberships, notes, spaces, and profiles
+  delete from public.space_members where user_id = v_user_id;
   delete from public.field_notes where user_id = v_user_id;
   delete from public.spaces where user_id = v_user_id;
   delete from public.profiles where id = v_user_id;

@@ -22,6 +22,7 @@ interface ManageSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
   details?: SubscriptionDetails | null;
+  userEmail?: string | null;
   onRestoreSuccess?: (details: SubscriptionDetails | null) => void;
 }
 
@@ -29,6 +30,7 @@ export function ManageSubscriptionModal({
   isOpen,
   onClose,
   details,
+  userEmail,
   onRestoreSuccess,
 }: ManageSubscriptionModalProps) {
   useLockBodyScroll(isOpen);
@@ -76,7 +78,7 @@ export function ManageSubscriptionModal({
     setIsRestoring(true);
     setRestoreFeedback(null);
     try {
-      const res = await restoreAtelierPurchases();
+      const res = await restoreAtelierPurchases(userEmail);
       if (res.isPro) {
         triggerSuccessHaptic();
         setRestoreFeedback(

@@ -57,19 +57,21 @@ function buildSubscriptionDetailsFromCustomerInfo(
   const prodId = String(activeEntitlement?.productIdentifier || "").toLowerCase();
   let planId: AtelierPlanId = preferredPlanId;
 
-  if (hasLifetimeNonSub || prodId.includes("lifetime") || prodId.includes("patron") || preferredPlanId === "lifetime") {
+  if (hasLifetimeNonSub || prodId.includes("lifetime") || prodId.includes("patron")) {
     planId = "lifetime";
-  } else if (prodId.includes("monthly") || preferredPlanId === "monthly") {
+  } else if (prodId.includes("monthly") || prodId.includes("month")) {
     planId = "monthly";
-  } else if (prodId.includes("annual") || prodId.includes("year") || preferredPlanId === "annual") {
+  } else if (prodId.includes("annual") || prodId.includes("year")) {
     planId = "annual";
+  } else if (preferredPlanId === "monthly" || preferredPlanId === "annual" || preferredPlanId === "lifetime") {
+    planId = preferredPlanId;
   }
 
-  // Check stored plan preference if still uncertain
-  if (planId === "annual" && typeof localStorage !== "undefined") {
+  // Only consult stored plan preference when StoreKit productIdentifier is empty
+  if (!prodId && !hasLifetimeNonSub && typeof localStorage !== "undefined") {
     const savedPlan = localStorage.getItem("noticed_pro_plan") as AtelierPlanId | null;
-    if (savedPlan === "lifetime") {
-      planId = "lifetime";
+    if (savedPlan === "lifetime" || savedPlan === "monthly" || savedPlan === "annual") {
+      planId = savedPlan;
     }
   }
 
@@ -79,21 +81,22 @@ function buildSubscriptionDetailsFromCustomerInfo(
   const willRenew = isLifetime ? false : Boolean(activeEntitlement?.willRenew);
   const purchaseDate = activeEntitlement?.latestPurchaseDate || new Date().toISOString();
 
+  const resolvedPlanId: AtelierPlanId = isLifetime ? "lifetime" : planId;
   const planName =
     isLifetime
       ? "Patron (Lifetime)"
-      : planId === "monthly"
+      : resolvedPlanId === "monthly"
       ? "Monthly Edition"
       : "Annual Folio";
 
-  if (isLifetime && typeof localStorage !== "undefined") {
+  if (typeof localStorage !== "undefined") {
     try {
-      localStorage.setItem("noticed_pro_plan", "lifetime");
+      localStorage.setItem("noticed_pro_plan", resolvedPlanId);
     } catch {}
   }
 
   return {
-    planId: isLifetime ? "lifetime" : planId,
+    planId: resolvedPlanId,
     planName,
     isLifetime,
     expiresAt,
@@ -139,14 +142,16 @@ function buildSimulatedSubscriptionDetails(
   };
 }
 
-async function syncProToSupabase(isPro: boolean, appUserId?: string | null): Promise<void> {
+export async function syncProToSupabase(isPro: boolean, appUserId?: string | null): Promise<void> {
   try {
     const uid = appUserId || (await supabase.auth.getUser()).data.user?.id;
     if (uid) {
       await supabase
         .from("profiles")
-        .update({ is_pro: isPro, updated_at: new Date().toISOString() })
-        .eq("id", uid);
+        .upsert(
+          { id: uid, is_pro: isPro, updated_at: new Date().toISOString() },
+          { onConflict: "id" }
+        );
     }
   } catch (err) {
     console.warn("[Purchases] Failed to sync Pro status to Supabase profiles:", err);
@@ -200,16 +205,20 @@ export async function initPurchases(appUserId?: string | null): Promise<void> {
     // Listen for customer entitlement updates from RevenueCat
     await Purchases.addCustomerInfoUpdateListener((customerInfo) => {
       const isPro = checkCustomerHasPro(customerInfo);
-      setProUser(isPro);
-      syncProToSupabase(isPro, appUserId);
+      if (isPro) {
+        setProUser(true);
+        void syncProToSupabase(true, appUserId);
+      }
     });
 
     // Check initial entitlement status on boot
     const { customerInfo } = await Purchases.getCustomerInfo();
     const hasActivePro = checkCustomerHasPro(customerInfo);
-    setProUser(hasActivePro);
-    if (appUserId) {
-      syncProToSupabase(hasActivePro, appUserId);
+    if (hasActivePro) {
+      setProUser(true);
+      if (appUserId) {
+        await syncProToSupabase(true, appUserId);
+      }
     }
   } catch (err) {
     console.warn("[Purchases] RevenueCat configuration warning (using fallback):", err);
@@ -261,6 +270,12 @@ export async function purchaseAtelierPlan(
     // Development / Web fallback: activate local Pro pass immediately
     await new Promise((resolve) => setTimeout(resolve, 400));
     setProUser(true);
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.setItem("noticed_pro_plan", planId);
+      } catch {}
+    }
+    await syncProToSupabase(true);
     const details = buildSimulatedSubscriptionDetails(planId, userEmail);
     return {
       success: true,
@@ -283,7 +298,7 @@ export async function purchaseAtelierPlan(
     }
 
     // Match package by identifier or packageType
-    let targetPackage: PurchasesPackage | undefined = current.availablePackages.find(
+    const targetPackage: PurchasesPackage | undefined = current.availablePackages.find(
       (pkg) => {
         const id = pkg.identifier.toLowerCase();
         const type = String(pkg.packageType || "").toLowerCase();
@@ -294,9 +309,12 @@ export async function purchaseAtelierPlan(
       },
     );
 
-    // Secondary fallback: select first package if exact match is pending config
     if (!targetPackage) {
-      targetPackage = current.availablePackages[0];
+      return {
+        success: false,
+        isPro: isProUser(),
+        message: "Paket yang dipilih belum tersedia di katalog App Store saat ini. Silakan coba sesaat lagi.",
+      };
     }
 
     const { customerInfo } = await Purchases.purchasePackage({
@@ -305,7 +323,7 @@ export async function purchaseAtelierPlan(
 
     const isPro = checkCustomerHasPro(customerInfo);
     setProUser(isPro);
-    syncProToSupabase(isPro);
+    await syncProToSupabase(isPro);
 
     const details = isPro
       ? buildSubscriptionDetailsFromCustomerInfo(customerInfo, planId, userEmail)
@@ -367,7 +385,9 @@ export async function restoreAtelierPurchases(
     const { customerInfo } = await Purchases.restorePurchases();
     const isPro = checkCustomerHasPro(customerInfo);
     setProUser(isPro);
-    syncProToSupabase(isPro);
+    if (isPro) {
+      await syncProToSupabase(true);
+    }
 
     const details = isPro
       ? buildSubscriptionDetailsFromCustomerInfo(customerInfo, preferredPlanId, userEmail)
@@ -457,8 +477,10 @@ export async function loginPurchasesUser(userId: string): Promise<void> {
   try {
     const { customerInfo } = await Purchases.logIn({ appUserID: userId });
     const isPro = checkCustomerHasPro(customerInfo);
-    setProUser(isPro);
-    syncProToSupabase(isPro, userId);
+    if (isPro) {
+      setProUser(true);
+      await syncProToSupabase(true, userId);
+    }
   } catch (err) {
     console.warn("[Purchases] logIn warning:", err);
   }

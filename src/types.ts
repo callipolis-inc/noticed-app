@@ -92,6 +92,7 @@ export interface PhotoMeta {
 export interface FieldNote {
   id: string;
   spaceId: string;
+  userId?: string;
   title?: string;
   content: string;
   textAlign?: TextAlign;

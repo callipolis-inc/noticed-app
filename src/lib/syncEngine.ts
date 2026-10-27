@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured, getCurrentUser } from "./supabase";
 import { Space, FieldNote } from "@/types";
-import { setProUser } from "./proManager";
+import { isProUser, setProUser } from "./proManager";
 import { saveToAtelierDB, safeLocalStorageSet } from "./storage";
 import {
   ensureRemoteMediaUrls,
@@ -317,7 +317,7 @@ export function noteToDb(note: FieldNote, userId: string) {
   return {
     id: note.id,
     space_id: note.spaceId,
-    user_id: userId,
+    user_id: note.userId || note.author?.userId || userId,
     title: note.title || null,
     content: note.content || "",
     text_align: note.textAlign || "left",
@@ -345,6 +345,7 @@ export function dbToNote(row: any): FieldNote {
   return {
     id: row.id,
     spaceId: row.space_id,
+    userId: row.user_id || row.author?.userId || undefined,
     title: row.title || undefined,
     content: row.content || "",
     textAlign: row.text_align || "left",
@@ -413,8 +414,8 @@ export async function syncWithCloud(
       .eq("id", user.id)
       .maybeSingle();
 
-    // Pro entitlement status: derived strictly from verified remote profile or active StoreKit receipt, never from unverified local cache
-    const finalIsPro = Boolean(remoteProfile?.is_pro);
+    // Pro entitlement status: preserve active local StoreKit/Pro entitlement or remote profile Pro status
+    const finalIsPro = Boolean(remoteProfile?.is_pro) || isProUser();
     setProUser(finalIsPro);
 
     let resolvedUserName = userName?.trim() || "Author";
@@ -451,7 +452,7 @@ export async function syncWithCloud(
       await supabase.from("spaces").select("*");
     if (initialPullSpacesError) throw initialPullSpacesError;
 
-    const { data: userMemberships } = await supabase
+    const { data: userMemberships, error: membershipsError } = await supabase
       .from("space_members")
       .select("space_id, role")
       .eq("user_id", user.id);
@@ -783,7 +784,8 @@ export async function syncWithCloud(
         if (
           !remoteSpace.userId ||
           remoteSpace.userId === user.id ||
-          membershipRoleMap.has(id)
+          membershipRoleMap.has(id) ||
+          Boolean(membershipsError && remoteSpace.isShared)
         ) {
           mergedSpaces.push(remoteSpace);
           addedSpaceIds.add(id);

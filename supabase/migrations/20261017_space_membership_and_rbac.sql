@@ -56,6 +56,35 @@ from public.spaces
 where user_id is not null
 on conflict (space_id, user_id) do nothing;
 
+-- 4.2 Non-recursive SECURITY DEFINER helpers for RLS
+create or replace function public.is_space_owner(p_space_id text, p_user_id uuid)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.spaces
+    where id = p_space_id and user_id = p_user_id
+  );
+$$;
+
+create or replace function public.is_space_member(p_space_id text, p_user_id uuid, p_roles text[] default null)
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.space_members
+    where space_id = p_space_id
+      and user_id = p_user_id
+      and (p_roles is null or role = any(p_roles))
+  );
+$$;
+
 -- 4.5 RPC: preview_space_by_invite (SECURITY DEFINER)
 -- Safe preview lookup for non-members before joining
 create or replace function public.preview_space_by_invite(p_invite_code text)
@@ -259,124 +288,124 @@ begin
 end;
 $$;
 
--- 9. ZERO-LEAK RLS HARDENING
+-- 9. ZERO-LEAK RLS HARDENING (Strictly TO authenticated)
 
--- A. Spaces
+-- A. Profiles
+alter table public.profiles enable row level security;
+
+drop policy if exists "Public profiles are viewable by everyone" on public.profiles;
+drop policy if exists "Profiles are viewable by authenticated users" on public.profiles;
+create policy "Profiles are viewable by authenticated users"
+  on public.profiles for select
+  to authenticated
+  using (true);
+
+drop policy if exists "Users can insert their own profile" on public.profiles;
+create policy "Users can insert their own profile"
+  on public.profiles for insert
+  to authenticated
+  with check (auth.uid() = id);
+
+drop policy if exists "Users can update their own profile" on public.profiles;
+create policy "Users can update their own profile"
+  on public.profiles for update
+  to authenticated
+  using (auth.uid() = id)
+  with check (auth.uid() = id);
+
+-- B. Spaces
 alter table public.spaces enable row level security;
 
 drop policy if exists "Users can view their own spaces" on public.spaces;
 drop policy if exists "Users can view accessible spaces" on public.spaces;
 create policy "Users can view accessible spaces"
   on public.spaces for select
+  to authenticated
   using (
     auth.uid() = user_id
-    or exists (
-      select 1 from public.space_members sm
-      where sm.space_id = spaces.id and sm.user_id = auth.uid()
-    )
+    or public.is_space_member(id, auth.uid(), null)
   );
 
 drop policy if exists "Users can insert their own spaces" on public.spaces;
 create policy "Users can insert their own spaces"
   on public.spaces for insert
+  to authenticated
   with check (auth.uid() = user_id);
 
 drop policy if exists "Users can update their own spaces" on public.spaces;
 create policy "Users can update their own spaces"
   on public.spaces for update
-  using (auth.uid() = user_id);
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
 
 drop policy if exists "Users can delete their own spaces" on public.spaces;
 create policy "Users can delete their own spaces"
   on public.spaces for delete
+  to authenticated
   using (auth.uid() = user_id);
 
--- B. Space Members
+-- C. Space Members
 alter table public.space_members enable row level security;
 
 drop policy if exists "Members and owners can view memberships" on public.space_members;
 create policy "Members and owners can view memberships"
   on public.space_members for select
+  to authenticated
   using (
     user_id = auth.uid()
-    or exists (
-      select 1 from public.spaces s
-      where s.id = space_members.space_id and s.user_id = auth.uid()
-    )
+    or public.is_space_owner(space_id, auth.uid())
+    or public.is_space_member(space_id, auth.uid(), null)
   );
 
 drop policy if exists "Owners can modify memberships" on public.space_members;
 create policy "Owners can modify memberships"
   on public.space_members for all
-  using (
-    exists (
-      select 1 from public.spaces s
-      where s.id = space_members.space_id and s.user_id = auth.uid()
-    )
-  );
+  to authenticated
+  using (public.is_space_owner(space_id, auth.uid()))
+  with check (public.is_space_owner(space_id, auth.uid()));
 
--- C. Field Notes
+-- D. Field Notes
 alter table public.field_notes enable row level security;
 
 drop policy if exists "Users can view notes in accessible spaces" on public.field_notes;
 create policy "Users can view notes in accessible spaces"
   on public.field_notes for select
+  to authenticated
   using (
     auth.uid() = user_id
-    or exists (
-      select 1 from public.spaces s
-      where s.id = field_notes.space_id and s.user_id = auth.uid()
-    )
-    or exists (
-      select 1 from public.space_members sm
-      where sm.space_id = field_notes.space_id and sm.user_id = auth.uid()
-    )
+    or public.is_space_owner(space_id, auth.uid())
+    or public.is_space_member(space_id, auth.uid(), null)
   );
 
 drop policy if exists "Users can insert notes in accessible spaces" on public.field_notes;
 create policy "Users can insert notes in accessible spaces"
   on public.field_notes for insert
+  to authenticated
   with check (
-    exists (
-      select 1 from public.spaces s
-      where s.id = field_notes.space_id and s.user_id = auth.uid()
-    )
-    or exists (
-      select 1 from public.space_members sm
-      where sm.space_id = field_notes.space_id
-        and sm.user_id = auth.uid()
-        and sm.role in ('owner', 'editor')
-    )
+    public.is_space_owner(space_id, auth.uid())
+    or public.is_space_member(space_id, auth.uid(), array['owner', 'editor'])
   );
 
 drop policy if exists "Users can update notes in accessible spaces" on public.field_notes;
 create policy "Users can update notes in accessible spaces"
   on public.field_notes for update
+  to authenticated
   using (
-    (
+    public.is_space_owner(space_id, auth.uid())
+    or (
       auth.uid() = user_id
-      and exists (
-        select 1 from public.space_members sm
-        where sm.space_id = field_notes.space_id
-          and sm.user_id = auth.uid()
-          and sm.role in ('owner', 'editor')
-      )
-    )
-    or exists (
-      select 1 from public.spaces s
-      where s.id = field_notes.space_id and s.user_id = auth.uid()
+      and public.is_space_member(space_id, auth.uid(), array['owner', 'editor'])
     )
   );
 
 drop policy if exists "Users can delete notes in accessible spaces" on public.field_notes;
 create policy "Users can delete notes in accessible spaces"
   on public.field_notes for delete
+  to authenticated
   using (
     auth.uid() = user_id
-    or exists (
-      select 1 from public.spaces s
-      where s.id = field_notes.space_id and s.user_id = auth.uid()
-    )
+    or public.is_space_owner(space_id, auth.uid())
   );
 
 -- 10. Enable Supabase Realtime for space_members

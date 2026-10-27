@@ -50,10 +50,14 @@ export function SpaceShareModal({
   const [members, setMembers] = useState<SpaceMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [localSpace, setLocalSpace] = useState<Space | null>(space);
+  const [confirmingRevokeUserId, setConfirmingRevokeUserId] = useState<string | null>(null);
+  const [isConfirmingLeave, setIsConfirmingLeave] = useState(false);
 
   useEffect(() => {
     if (space) {
       setLocalSpace(space);
+      setConfirmingRevokeUserId(null);
+      setIsConfirmingLeave(false);
     }
   }, [space]);
 
@@ -163,13 +167,10 @@ export function SpaceShareModal({
     }
   }, [isOpen, currentSpace?.isShared, loadMembers]);
 
-  const handleRevokeMember = async (
-    targetUserId: string,
-    targetName: string,
-  ) => {
+  const handleRevokeMember = async (targetUserId: string) => {
     triggerHaptic("heavy");
     if (!currentSpace?.id) return;
-    if (!window.confirm(t.spaceShare.removeMemberConfirm.replace("{name}", targetName))) return;
+    setConfirmingRevokeUserId(null);
     try {
       const { error } = await supabase.rpc("revoke_space_member", {
         p_space_id: currentSpace.id,
@@ -543,19 +544,39 @@ export function SpaceShareModal({
                               </div>
 
                               {isCurrentSpaceOwner && !isMemberOwner && !isMe && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleRevokeMember(
-                                      m.userId,
-                                      m.displayName || "Member",
-                                    )
-                                  }
-                                  className="p-1.5 rounded-lg text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                                  title="Remove member"
-                                >
-                                  <UserMinus className="w-3.5 h-3.5" />
-                                </button>
+                                confirmingRevokeUserId === m.userId ? (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRevokeMember(m.userId)}
+                                      className="px-2 py-1 rounded-lg bg-rose-500 text-white text-[10px] font-semibold cursor-pointer active:scale-95 transition-transform"
+                                    >
+                                      {t.common.delete}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        triggerHaptic("light");
+                                        setConfirmingRevokeUserId(null);
+                                      }}
+                                      className="px-2 py-1 rounded-lg inner-pseudo-glass text-[var(--text-secondary)] text-[10px] font-medium cursor-pointer"
+                                    >
+                                      {t.common.cancel}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      triggerHaptic("light");
+                                      setConfirmingRevokeUserId(m.userId);
+                                    }}
+                                    className="p-1.5 rounded-lg text-rose-500/70 hover:text-rose-500 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                    title="Remove member"
+                                  >
+                                    <UserMinus className="w-3.5 h-3.5" />
+                                  </button>
+                                )
                               )}
                             </div>
                           );
@@ -574,24 +595,49 @@ export function SpaceShareModal({
             {/* Leave Space Button (For Non-Owner Collaborators) */}
             {!isCurrentSpaceOwner && currentSpace.isShared && (
               <div className="pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    triggerHaptic("heavy");
-                    if (
-                      window.confirm(
-                        t.spaceShare.leaveNotebookConfirm,
-                      )
-                    ) {
-                      onLeaveSpace?.(currentSpace.id);
-                      onClose();
-                    }
-                  }}
-                  className="w-full py-2.5 px-3 rounded-2xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>{t.spaceShare.leaveNotebook}</span>
-                </button>
+                {isConfirmingLeave ? (
+                  <div className="p-3 rounded-2xl border border-rose-500/30 bg-rose-500/5 space-y-2.5">
+                    <p className="text-[11px] text-[var(--text-primary)] leading-snug text-center">
+                      {t.spaceShare.leaveNotebookConfirm}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("light");
+                          setIsConfirmingLeave(false);
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl inner-pseudo-glass text-[var(--text-secondary)] text-xs font-medium cursor-pointer"
+                      >
+                        {t.common.cancel}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic("heavy");
+                          setIsConfirmingLeave(false);
+                          onLeaveSpace?.(currentSpace.id);
+                          onClose();
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-rose-500 text-white text-xs font-semibold cursor-pointer active:scale-95 transition-transform"
+                      >
+                        {t.spaceShare.leaveNotebook}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setIsConfirmingLeave(true);
+                    }}
+                    className="w-full py-2.5 px-3 rounded-2xl border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>{t.spaceShare.leaveNotebook}</span>
+                  </button>
+                )}
               </div>
             )}
 

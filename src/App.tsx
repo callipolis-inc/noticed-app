@@ -450,10 +450,20 @@ export function App() {
 
   // Listen to Supabase session state & initialize RevenueCat purchases
   useEffect(() => {
+    const resolveUserEmail = (u: { id?: string; email?: string; user_metadata?: Record<string, any> } | null | undefined): string | null => {
+      if (!u?.id) return null;
+      return (
+        u.email ||
+        u.user_metadata?.email ||
+        `apple_${u.id.slice(0, 8)}@privaterelay.appleid.com`
+      );
+    };
+
     getCurrentUser()
       .then((user) => {
-        if (user?.email) {
-          setUserEmail(user.email);
+        const resolvedEmail = resolveUserEmail(user);
+        if (user?.id && resolvedEmail) {
+          setUserEmail(resolvedEmail);
           setCurrentUserId(user.id);
           initPurchases(user.id);
 
@@ -465,7 +475,7 @@ export function App() {
                 .select("is_pro")
                 .eq("id", user.id)
                 .maybeSingle();
-              setProUser(Boolean(prof?.is_pro));
+              setProUser(Boolean(prof?.is_pro) || isProUser());
             } catch {
               // ignore background sync error
             }
@@ -484,8 +494,9 @@ export function App() {
       });
 
     const { data: authListener } = onAuthStateChange(async (event, session) => {
-      if (session?.user?.email) {
-        setUserEmail(session.user.email);
+      const resolvedEmail = resolveUserEmail(session?.user);
+      if (session?.user?.id && resolvedEmail) {
+        setUserEmail(resolvedEmail);
         setCurrentUserId(session.user.id);
         loginPurchasesUser(session.user.id);
 
@@ -494,12 +505,14 @@ export function App() {
           .select("is_pro")
           .eq("id", session.user.id)
           .maybeSingle();
-        setProUser(Boolean(prof?.is_pro));
+        setProUser(Boolean(prof?.is_pro) || isProUser());
 
         if (event === "PASSWORD_RECOVERY") {
           setIsProfileOpen(true);
           showFlyout(
-            "Password recovery active — tap Change Password in Profile",
+            language === "id"
+              ? "Pemulihan kata sandi aktif — ketuk Ubah Kata Sandi di Profil"
+              : "Password recovery active — tap Change Password in Profile",
             4500,
           );
         }
@@ -1091,14 +1104,19 @@ export function App() {
   const handleUpdateUserName = (name: string) => {
     setUserName(name);
     localStorage.setItem("sidenotes_username", name);
-    showFlyout(`Author set to ${name}`, 2000);
+    showFlyout(
+      language === "id" ? `Nama penulis: ${name}` : `Author set to ${name}`,
+      2000,
+    );
   };
 
   const handleUpdateDefaultShelfLayout = (layout: "spines" | "covers") => {
     setDefaultShelfLayout(layout);
     localStorage.setItem("sidenotes_default_shelf_layout", layout);
     showFlyout(
-      `Default view: ${layout === "spines" ? "Spines" : "Covers"}`,
+      language === "id"
+        ? `Tampilan rak: ${layout === "spines" ? "Punggung Buku" : "Sampul"}`
+        : `Default view: ${layout === "spines" ? "Spines" : "Covers"}`,
       2000,
     );
   };
@@ -1106,7 +1124,16 @@ export function App() {
   const handleToggleHaptics = (enabled: boolean) => {
     setHapticsEnabled(enabled);
     setGlobalHapticsEnabled(enabled);
-    showFlyout(enabled ? "Tactile haptics enabled" : "Haptics disabled", 2000);
+    showFlyout(
+      enabled
+        ? language === "id"
+          ? "Getaran haptik aktif"
+          : "Tactile haptics enabled"
+        : language === "id"
+          ? "Getaran haptik nonaktif"
+          : "Haptics disabled",
+      2000,
+    );
   };
 
   const handleExportArchive = async () => {
@@ -1136,7 +1163,10 @@ export function App() {
             title: "Noticed Archive Backup",
             files: [file],
           });
-          showFlyout("Archive exported", 2500);
+          showFlyout(
+            language === "id" ? "Arsip berhasil diekspor" : "Archive exported",
+            2500,
+          );
           return;
         } catch (err: unknown) {
           if (err instanceof Error && err.name === "AbortError") {
@@ -1156,7 +1186,12 @@ export function App() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 200);
-    showFlyout("Archive exported (JSON)", 2500);
+    showFlyout(
+      language === "id"
+        ? "Arsip berhasil diekspor (JSON)"
+        : "Archive exported (JSON)",
+      2500,
+    );
   };
 
   const handleImportArchive = (file: File) => {
@@ -1174,33 +1209,100 @@ export function App() {
           setSpaces(sanitized.spaces);
           setNotes(sanitized.notes);
           if (data.user) handleUpdateUserName(data.user);
-          showFlyout(`Restored ${sanitized.notes.length} notices`, 2500);
+          showFlyout(
+            language === "id"
+              ? `Memulihkan ${sanitized.notes.length} catatan`
+              : `Restored ${sanitized.notes.length} notices`,
+            2500,
+          );
         } else {
-          showFlyout("Invalid backup format", 2500);
+          showFlyout(
+            language === "id"
+              ? "Format cadangan tidak valid"
+              : "Invalid backup format",
+            2500,
+          );
         }
       } catch {
-        showFlyout("Could not parse JSON archive", 2500);
+        showFlyout(
+          language === "id"
+            ? "Gagal membaca berkas JSON"
+            : "Could not parse JSON archive",
+          2500,
+        );
       }
     };
     reader.readAsText(file);
   };
 
-  const handleResetAllData = () => {
+  const handleResetAllData = async () => {
+    setProUser(false);
+    try {
+      await signOutUser();
+    } catch {}
+    try {
+      await logoutPurchasesUser();
+    } catch {}
+
+    const keysToPurge = [
+      "noticed_spaces",
+      "noticed_notes",
+      "noticed_username",
+      "noticed_avatar_photo",
+      "noticed_author_bio",
+      "noticed_is_pro",
+      "noticed_pro_plan",
+      "noticed_subscription_details",
+      "noticed_user_email",
+      "noticed_pending_mutations",
+      "noticed_pending_deletes",
+      "noticed_last_synced_at",
+      "noticed_guest_mode",
+      "sidenotes_spaces",
+      "sidenotes_notes",
+      "sidenotes_username",
+      "sidenotes_avatar_photo",
+      "sidenotes_author_bio",
+      "sidenotes_is_pro",
+      "sidenotes_last_synced_at",
+      "noticed_widget_snapshot_preview",
+    ];
+    keysToPurge.forEach((k) => {
+      safeLocalStorageRemove(k);
+      try {
+        localStorage.removeItem(k);
+      } catch {}
+    });
+
+    await clearAtelierDB();
+
+    const emptySnapshot = buildWidgetSnapshot(
+      [DEFAULT_STARTER_SPACE],
+      [],
+      DEFAULT_STARTER_SPACE.id,
+      language as "en" | "id",
+      "dark",
+      "Author",
+    );
+    syncWidgetSnapshot(emptySnapshot).catch(() => {});
+
     setSpaces([DEFAULT_STARTER_SPACE]);
     setNotes([]);
     setActiveSpaceId(DEFAULT_STARTER_SPACE.id);
     setCurrentView("bookshelf");
-    safeLocalStorageRemove("sidenotes_spaces");
-    safeLocalStorageRemove("sidenotes_notes");
-    safeLocalStorageRemove("noticed_spaces");
-    safeLocalStorageRemove("noticed_notes");
-    safeLocalStorageRemove("noticed_guest_mode");
     setIsGuestMode(false);
     setUserEmail(null);
     setCurrentUserId(null);
-    clearAtelierDB();
+    setUserName("Author");
+    setAvatarPhoto(null);
+    setAuthorBio("Quiet observations & daily marginalia");
     setIsSettingsOpen(false);
-    showFlyout("All data reset to defaults", 2500);
+    showFlyout(
+      language === "id"
+        ? "Seluruh data telah direset ke awal"
+        : "All data reset to defaults",
+      2500,
+    );
   };
 
   // Zen Reading Mode State
@@ -1230,7 +1332,13 @@ export function App() {
       localStorage.setItem("sidenotes_sort_order", next);
     }
     showFlyout(
-      next === "newest" ? "Stream: Newest first" : "Stream: Chronological",
+      next === "newest"
+        ? language === "id"
+          ? "Urutan: Terbaru dahulu"
+          : "Stream: Newest first"
+        : language === "id"
+          ? "Urutan: Kronologis"
+          : "Stream: Chronological",
       2000,
     );
   };
@@ -1558,7 +1666,9 @@ export function App() {
           // If user is currently editing this note, notify without breaking active draft
           if (editingNoteRef.current?.id === remoteNote.id) {
             showFlyout(
-              `${authorName} baru saja memperbarui catatan ini di cloud`,
+              language === "id"
+                ? `${authorName} baru saja memperbarui catatan ini di cloud`
+                : `${authorName} just updated this note in the cloud`,
               3500,
             );
             shouldShowDefaultFlyout = false;
@@ -1577,13 +1687,17 @@ export function App() {
       if (shouldShowDefaultFlyout) {
         showFlyout(
           isNew
-            ? `${authorName} menambahkan catatan baru`
-            : `${authorName} memperbarui catatan`,
+            ? language === "id"
+              ? `${authorName} menambahkan catatan baru`
+              : `${authorName} added a new notice`
+            : language === "id"
+              ? `${authorName} memperbarui catatan`
+              : `${authorName} updated a notice`,
           2800,
         );
       }
     },
-    [showFlyout],
+    [showFlyout, language],
   );
 
   const handleRemoteNoteDeleted = useCallback(
@@ -1597,10 +1711,15 @@ export function App() {
       });
 
       if (authorName) {
-        showFlyout(`${authorName} menghapus catatan`, 2800);
+        showFlyout(
+          language === "id"
+            ? `${authorName} menghapus catatan`
+            : `${authorName} deleted a notice`,
+          2800,
+        );
       }
     },
-    [showFlyout],
+    [showFlyout, language],
   );
 
   const { broadcastNoteSaved, broadcastNoteDeleted } = useSpaceRealtime({
@@ -1647,7 +1766,12 @@ export function App() {
 
     setActiveSpaceId(joinedSpace.id);
     setCurrentView("notebook");
-    showFlyout(`Berhasil bergabung ke "${joinedSpace.name}"`, 3500);
+    showFlyout(
+      language === "id"
+        ? `Berhasil bergabung ke "${joinedSpace.name}"`
+        : `Joined "${joinedSpace.name}"`,
+      3500,
+    );
 
     if (isProUser()) {
       handleCloudSync({ silent: true });
@@ -1664,7 +1788,12 @@ export function App() {
     foilColor?: string,
   ) => {
     if (!canUseFeature("spaces_limit", spaces.length)) {
-      showFlyout("Batas maksimum 3 notebook untuk akun standar telah tercapai.", 3000);
+      showFlyout(
+        language === "id"
+          ? "Batas maksimum 3 notebook untuk akun standar telah tercapai."
+          : "Maximum limit of 3 notebooks for standard accounts reached.",
+        3000,
+      );
       return;
     }
 
@@ -1688,7 +1817,10 @@ export function App() {
     setSpaces((prev) => [...prev, newSpace]);
     setActiveSpaceId(newSpace.id);
     setCurrentView("notebook");
-    showFlyout(`Opened notebook: ${name}`, 2500);
+    showFlyout(
+      language === "id" ? `Membuka notebook: ${name}` : `Opened notebook: ${name}`,
+      2500,
+    );
 
     if (currentUserId && isProUser()) {
       handleCloudSync({ silent: true });
@@ -1706,7 +1838,10 @@ export function App() {
     setSharingSpace((prev) =>
       prev && prev.id === updated.id ? spaceWithTimestamp : prev,
     );
-    showFlyout(`Updated: ${updated.name}`, 2500);
+    showFlyout(
+      language === "id" ? `Diperbarui: ${updated.name}` : `Updated: ${updated.name}`,
+      2500,
+    );
   };
 
   const handleDeleteSpace = (spaceId: string) => {
@@ -1721,7 +1856,10 @@ export function App() {
     setSpaces(remaining);
     setNotes((prev) => prev.filter((n) => n.spaceId !== spaceId));
     queueCloudDeleteSpace(spaceId, spaceNotes);
-    showFlyout("Notebook deleted", 2200);
+    showFlyout(
+      language === "id" ? "Notebook dihapus" : "Notebook deleted",
+      2200,
+    );
   };
 
   const handleLeaveSpace = useCallback(
@@ -1754,9 +1892,14 @@ export function App() {
         return next;
       });
 
-      showFlyout("Anda telah meninggalkan notebook", 2500);
+      showFlyout(
+        language === "id"
+          ? "Anda telah meninggalkan notebook"
+          : "You have left the notebook",
+        2500,
+      );
     },
-    [spaces, activeSpaceId, showFlyout],
+    [spaces, activeSpaceId, showFlyout, language],
   );
 
   const handleSaveNote = (newNote: FieldNote) => {
@@ -1781,7 +1924,10 @@ export function App() {
     };
     setNotes((prev) => [noteToSave, ...prev]);
     broadcastNoteSaved(noteToSave, true);
-    showFlyout("Notice added", 2500);
+    showFlyout(
+      language === "id" ? "Catatan ditambahkan" : "Notice added",
+      2500,
+    );
   };
 
   const handleUpdateNote = (
@@ -1806,7 +1952,10 @@ export function App() {
       }, 5000);
     }
 
-    showFlyout("Notice updated", 2200);
+    showFlyout(
+      language === "id" ? "Catatan diperbarui" : "Notice updated",
+      2200,
+    );
   };
 
   const handleSaveMarginalia = (
@@ -1830,7 +1979,10 @@ export function App() {
           : n,
       ),
     );
-    showFlyout("Sidenote updated", 2200);
+    showFlyout(
+      language === "id" ? "Catatan tepi diperbarui" : "Sidenote updated",
+      2200,
+    );
   };
 
   const handleUpdateNoteHighlights = useCallback(
@@ -1894,8 +2046,12 @@ export function App() {
             const isArchivedNow = !n.archived;
             showFlyout(
               isArchivedNow
-                ? "Notice moved to Archive Vault"
-                : "Notice restored to notebook",
+                ? language === "id"
+                  ? "Catatan dipindahkan ke Arsip"
+                  : "Notice moved to Archive Vault"
+                : language === "id"
+                  ? "Catatan dikembalikan ke notebook"
+                  : "Notice restored to notebook",
               3000,
             );
             return {
@@ -1991,27 +2147,34 @@ export function App() {
         timerId,
       };
 
-      showFlyout("Notice removed", 5000, {
-        label: "Undo",
-        onClick: () => {
-          if (pendingDeleteRef.current?.note.id === targetNote.id) {
-            window.clearTimeout(pendingDeleteRef.current.timerId);
-            const restored = pendingDeleteRef.current.note;
-            const restoreIdx = pendingDeleteRef.current.index;
-            pendingDeleteRef.current = null;
-            setNotes((current) => {
-              if (current.some((n) => n.id === restored.id)) return current;
-              const next = [...current];
-              next.splice(Math.min(restoreIdx, next.length), 0, restored);
-              return next;
-            });
-            broadcastNoteSaved(restored, true);
-            showFlyout("Notice restored", 2200);
-          }
+      showFlyout(
+        language === "id" ? "Catatan dihapus" : "Notice removed",
+        5000,
+        {
+          label: language === "id" ? "Urungkan" : "Undo",
+          onClick: () => {
+            if (pendingDeleteRef.current?.note.id === targetNote.id) {
+              window.clearTimeout(pendingDeleteRef.current.timerId);
+              const restored = pendingDeleteRef.current.note;
+              const restoreIdx = pendingDeleteRef.current.index;
+              pendingDeleteRef.current = null;
+              setNotes((current) => {
+                if (current.some((n) => n.id === restored.id)) return current;
+                const next = [...current];
+                next.splice(Math.min(restoreIdx, next.length), 0, restored);
+                return next;
+              });
+              broadcastNoteSaved(restored, true);
+              showFlyout(
+                language === "id" ? "Catatan dipulihkan" : "Notice restored",
+                2200,
+              );
+            }
+          },
         },
-      });
+      );
     },
-    [commitPendingDelete, showFlyout, broadcastNoteDeleted, broadcastNoteSaved],
+    [commitPendingDelete, showFlyout, broadcastNoteDeleted, broadcastNoteSaved, language],
   );
 
   const handleSelectFont = (font: FontChoice) => {
@@ -2104,11 +2267,11 @@ export function App() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed top-4 right-4 z-50 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full bg-stone-900/85 dark:bg-stone-100/90 text-stone-100 dark:text-stone-900 backdrop-blur-md shadow-lg border border-white/10"
+            className="fixed top-4 right-4 z-50 pointer-events-none flex items-center gap-2 px-3 py-1.5 rounded-full dynamic-island-shell text-[var(--text-primary)] backdrop-blur-md shadow-lg border border-[var(--glass-border)]"
           >
-            <Cloud className="w-3.5 h-3.5 animate-pulse text-amber-400 dark:text-amber-600" />
+            <Cloud className="w-3.5 h-3.5 animate-pulse text-[var(--text-secondary)]" />
             <span className="text-[11px] font-sans font-medium tracking-tight">
-              Mencadangkan media...
+              {language === "id" ? "Mencadangkan media..." : "Backing up media..."}
             </span>
           </motion.div>
         )}
@@ -2144,7 +2307,7 @@ export function App() {
             transition={{ duration: 0.15 }}
             className="w-full min-h-screen flex items-center justify-center bg-[var(--bg-base)]"
           >
-            <div className="w-6 h-6 rounded-full border-2 border-stone-600/30 border-t-amber-400 animate-spin" />
+            <div className="w-6 h-6 rounded-full border-2 border-[var(--glass-border)] border-t-[var(--text-primary)] animate-spin" />
           </motion.div>
         ) : !userEmail && !isGuestMode ? (
           <motion.div
@@ -2523,7 +2686,12 @@ export function App() {
                             triggerHaptic("medium");
                             setIsTopFlyoutOpen(false);
                             setIsReadingMode(true);
-                            showFlyout("Zen Mode · Press Esc to exit", 2500);
+                            showFlyout(
+                              language === "id"
+                                ? "Mode Zen Aktif"
+                                : "Zen Mode · Press Esc to exit",
+                              2500,
+                            );
                           }}
                           aria-label="Masuk ke Mode Zen (fokus baca)"
                           className="relative w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer shadow-xs before:absolute before:-inset-1.5 before:content-['']"
@@ -2604,7 +2772,10 @@ export function App() {
                   onClick={() => {
                     triggerHaptic("light");
                     setIsReadingMode(false);
-                    showFlyout("Exited Zen Mode", 2000);
+                    showFlyout(
+                      language === "id" ? "Keluar dari Mode Zen" : "Exited Zen Mode",
+                      2000,
+                    );
                   }}
                   aria-label="Keluar dari Mode Zen (Esc)"
                   className="
@@ -2830,6 +3001,7 @@ export function App() {
             notes={notes}
             currentLanguage={language}
             onSelectLanguage={setLanguage}
+            userEmail={userEmail}
             onStorageOptimized={(msg) => {
               showFlyout(msg, 3000);
             }}

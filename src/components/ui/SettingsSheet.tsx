@@ -64,6 +64,7 @@ interface SettingsSheetProps {
   onStorageOptimized?: (message: string) => void;
   currentLanguage?: AppLanguage;
   onSelectLanguage?: (lang: AppLanguage) => void;
+  userEmail?: string | null;
 }
 
 const FONT_SIZE_PRESETS = [
@@ -91,6 +92,7 @@ export function SettingsSheet({
   onStorageOptimized,
   currentLanguage,
   onSelectLanguage,
+  userEmail,
 }: SettingsSheetProps) {
   useLockBodyScroll(isOpen);
 
@@ -178,7 +180,7 @@ export function SettingsSheet({
     triggerHaptic("medium");
 
     try {
-      const res = await restoreAtelierPurchases();
+      const res = await restoreAtelierPurchases(userEmail);
       if (res.isPro) {
         triggerSuccessHaptic();
         if (res.details) {
@@ -634,7 +636,7 @@ export function SettingsSheet({
                         type="button"
                         onClick={async () => {
                           triggerHaptic("light");
-                          const details = await getActiveSubscriptionDetails();
+                          const details = await getActiveSubscriptionDetails(userEmail);
                           setSelectedSubscriptionDetails(details);
                           setIsMembershipCardOpen(true);
                         }}
@@ -662,7 +664,7 @@ export function SettingsSheet({
                         type="button"
                         onClick={async () => {
                           triggerHaptic("medium");
-                          const details = await getActiveSubscriptionDetails();
+                          const details = await getActiveSubscriptionDetails(userEmail);
                           setSelectedSubscriptionDetails(details);
                           setIsManageModalOpen(true);
                         }}
@@ -1187,6 +1189,7 @@ export function SettingsSheet({
           <AtelierProModal
             isOpen={isProModalOpen}
             onClose={() => setIsProModalOpen(false)}
+            userEmail={userEmail}
           />
 
           {/* Atelier Pro Membership Details Modal (Privileges & Benefits) */}
@@ -1201,6 +1204,7 @@ export function SettingsSheet({
             isOpen={isManageModalOpen}
             onClose={() => setIsManageModalOpen(false)}
             details={selectedSubscriptionDetails}
+            userEmail={userEmail}
             onRestoreSuccess={(details) => {
               setSelectedSubscriptionDetails(details);
             }}
