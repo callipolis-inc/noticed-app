@@ -1047,6 +1047,7 @@ export function ProfileSheet({
           <AtelierProModal
             isOpen={isProModalOpen}
             onClose={() => setIsProModalOpen(false)}
+            userEmail={userEmail}
           />
         </div>
       )}

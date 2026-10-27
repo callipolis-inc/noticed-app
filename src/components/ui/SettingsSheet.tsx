@@ -22,8 +22,13 @@ import {
   Clock,
 } from "lucide-react";
 import { useProStatus } from "@/lib/proManager";
-import { restoreAtelierPurchases } from "@/lib/purchases";
+import {
+  restoreAtelierPurchases,
+  getActiveSubscriptionDetails,
+  SubscriptionDetails,
+} from "@/lib/purchases";
 import { AtelierProModal } from "./AtelierProModal";
+import { SubscriptionSuccessModal } from "./SubscriptionSuccessModal";
 import { LegalModal, LegalTab } from "./LegalModal";
 import {
   calculateStorageBreakdown,
@@ -104,6 +109,9 @@ export function SettingsSheet({
   const [confirmInput, setConfirmInput] = useState("");
   const isPro = useProStatus();
   const [isProModalOpen, setIsProModalOpen] = useState(false);
+  const [isMembershipCardOpen, setIsMembershipCardOpen] = useState(false);
+  const [selectedSubscriptionDetails, setSelectedSubscriptionDetails] =
+    useState<SubscriptionDetails | null>(null);
   const [isLegalOpen, setIsLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<LegalTab>("privacy");
 
@@ -171,6 +179,10 @@ export function SettingsSheet({
       const res = await restoreAtelierPurchases();
       if (res.isPro) {
         triggerSuccessHaptic();
+        if (res.details) {
+          setSelectedSubscriptionDetails(res.details);
+          setIsMembershipCardOpen(true);
+        }
       } else {
         triggerHaptic("light");
       }
@@ -616,10 +628,20 @@ export function SettingsSheet({
                         <span>{t.settings.upgrade}</span>
                       </button>
                     ) : (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--text-primary)]/10 text-[var(--text-primary)] text-[10.5px] font-semibold">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          triggerHaptic("light");
+                          const details = await getActiveSubscriptionDetails();
+                          setSelectedSubscriptionDetails(details);
+                          setIsMembershipCardOpen(true);
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--text-primary)]/10 hover:bg-[var(--text-primary)]/15 text-[var(--text-primary)] text-[10.5px] font-semibold active:scale-95 transition-transform cursor-pointer"
+                        title={t.settings.viewPrivileges}
+                      >
                         <Check className="w-3 h-3 stroke-[2.5]" />
                         <span>{t.settings.unlocked}</span>
-                      </div>
+                      </button>
                     )}
                   </div>
 
@@ -1136,6 +1158,13 @@ export function SettingsSheet({
           <AtelierProModal
             isOpen={isProModalOpen}
             onClose={() => setIsProModalOpen(false)}
+          />
+
+          {/* Atelier Pro Membership Details Modal */}
+          <SubscriptionSuccessModal
+            isOpen={isMembershipCardOpen}
+            onClose={() => setIsMembershipCardOpen(false)}
+            details={selectedSubscriptionDetails}
           />
 
           {/* Legal Modal (Privacy Policy & Terms of Service) */}

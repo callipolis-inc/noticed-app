@@ -19,15 +19,19 @@ import {
   purchaseAtelierPlan,
   restoreAtelierPurchases,
   getAtelierOfferings,
+  SubscriptionDetails,
 } from "@/lib/purchases";
 import { PurchasesOffering } from "@revenuecat/purchases-capacitor";
 import { LegalModal, LegalTab } from "./LegalModal";
+import { SubscriptionSuccessModal } from "./SubscriptionSuccessModal";
 import { useAppLanguage } from "@/lib/i18n";
 
 interface AtelierProModalProps {
   isOpen: boolean;
   onClose: () => void;
   triggerFeature?: ProFeature | null;
+  userEmail?: string | null;
+  onSuccessDetails?: (details: SubscriptionDetails) => void;
 }
 
 type PricingPlanId = "monthly" | "annual" | "lifetime";
@@ -47,6 +51,8 @@ export function AtelierProModal({
   isOpen,
   onClose,
   triggerFeature,
+  userEmail,
+  onSuccessDetails,
 }: AtelierProModalProps) {
   useLockBodyScroll(isOpen);
   const [currentLang, , t] = useAppLanguage();
@@ -62,6 +68,8 @@ export function AtelierProModal({
   const [purchaseStatusMsg, setPurchaseStatusMsg] = useState<string | null>(
     null,
   );
+  const [successDetails, setSuccessDetails] = useState<SubscriptionDetails | null>(null);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const basePlans: PricingPlan[] = useMemo(() => {
     if (currentLang === "en") {
@@ -264,13 +272,19 @@ export function AtelierProModal({
     triggerHaptic("medium");
 
     try {
-      const res = await purchaseAtelierPlan(selectedPlan);
+      const res = await purchaseAtelierPlan(selectedPlan, userEmail);
       if (res.isPro) {
         triggerSuccessHaptic();
-        setPurchaseStatusMsg(res.message || "Selamat datang di Atelier Pro.");
-        setTimeout(() => {
-          onClose();
-        }, 1200);
+        if (res.details) {
+          setSuccessDetails(res.details);
+          setIsSuccessModalOpen(true);
+          onSuccessDetails?.(res.details);
+        } else {
+          setPurchaseStatusMsg(res.message || "Selamat datang di Atelier Pro.");
+          setTimeout(() => {
+            onClose();
+          }, 1200);
+        }
       } else {
         triggerHaptic("medium");
         if (res.message && res.message !== "Pembelian dibatalkan.") {
@@ -291,13 +305,19 @@ export function AtelierProModal({
     triggerHaptic("medium");
 
     try {
-      const res = await restoreAtelierPurchases();
+      const res = await restoreAtelierPurchases(userEmail);
       if (res.isPro) {
         triggerSuccessHaptic();
-        setPurchaseStatusMsg(res.message || "Pembelian berhasil dipulihkan.");
-        setTimeout(() => {
-          onClose();
-        }, 1500);
+        if (res.details) {
+          setSuccessDetails(res.details);
+          setIsSuccessModalOpen(true);
+          onSuccessDetails?.(res.details);
+        } else {
+          setPurchaseStatusMsg(res.message || "Pembelian berhasil dipulihkan.");
+          setTimeout(() => {
+            onClose();
+          }, 1500);
+        }
       } else {
         triggerHaptic("light");
         setPurchaseStatusMsg(res.message || "Tidak ada transaksi aktif.");
@@ -309,6 +329,19 @@ export function AtelierProModal({
       setIsProcessing(false);
     }
   };
+
+  if (isSuccessModalOpen && successDetails) {
+    return (
+      <SubscriptionSuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => {
+          setIsSuccessModalOpen(false);
+          onClose();
+        }}
+        details={successDetails}
+      />
+    );
+  }
 
   return createPortal(
     <AnimatePresence>

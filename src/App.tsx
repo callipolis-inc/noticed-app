@@ -2707,6 +2707,7 @@ export function App() {
               setProTriggerFeature(null);
             }}
             triggerFeature={proTriggerFeature}
+            userEmail={userEmail}
           />
         )}
 

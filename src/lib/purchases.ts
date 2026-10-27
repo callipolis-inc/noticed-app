@@ -18,13 +18,99 @@ export function checkCustomerHasPro(customerInfo?: {
 
 export type AtelierPlanId = "monthly" | "annual" | "lifetime";
 
-interface PurchaseResult {
+export interface SubscriptionDetails {
+  planId: AtelierPlanId;
+  planName: string;
+  isLifetime: boolean;
+  expiresAt: string | null;      // ISO string date of expiration, null for lifetime
+  purchaseDate: string;          // ISO string date of purchase
+  willRenew: boolean;            // Whether subscription auto-renews
+  userEmail?: string | null;     // Linked account email
+  store: "apple" | "google" | "web";
+}
+
+export interface PurchaseResult {
   success: boolean;
   isPro: boolean;
   message?: string;
+  details?: SubscriptionDetails;
 }
 
 let isInitialized = false;
+
+function buildSubscriptionDetailsFromCustomerInfo(
+  customerInfo: any,
+  preferredPlanId: AtelierPlanId = "annual",
+  userEmail?: string | null
+): SubscriptionDetails {
+  const activeEntitlement =
+    customerInfo?.entitlements?.active?.[RC_ENTITLEMENT_ID] ||
+    customerInfo?.entitlements?.active?.[RC_FALLBACK_ENTITLEMENT_ID];
+
+  const prodId = String(activeEntitlement?.productIdentifier || "").toLowerCase();
+  let planId: AtelierPlanId = preferredPlanId;
+  if (prodId.includes("monthly")) planId = "monthly";
+  else if (prodId.includes("lifetime") || prodId.includes("patron")) planId = "lifetime";
+  else if (prodId.includes("annual") || prodId.includes("year")) planId = "annual";
+
+  const isLifetime = planId === "lifetime" || !activeEntitlement?.expirationDate;
+  const expiresAt = isLifetime ? null : activeEntitlement?.expirationDate || null;
+  const willRenew = Boolean(activeEntitlement?.willRenew);
+  const purchaseDate = activeEntitlement?.latestPurchaseDate || new Date().toISOString();
+
+  const planName =
+    planId === "monthly"
+      ? "Monthly Edition"
+      : planId === "annual"
+      ? "Annual Folio"
+      : "Patron (Lifetime)";
+
+  return {
+    planId,
+    planName,
+    isLifetime,
+    expiresAt,
+    purchaseDate,
+    willRenew,
+    userEmail: userEmail || undefined,
+    store: Capacitor.getPlatform() === "ios" ? "apple" : "google",
+  };
+}
+
+function buildSimulatedSubscriptionDetails(
+  planId: AtelierPlanId = "annual",
+  userEmail?: string | null
+): SubscriptionDetails {
+  const now = new Date();
+  let expiresAt: string | null = null;
+  if (planId === "monthly") {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() + 1);
+    expiresAt = d.toISOString();
+  } else if (planId === "annual") {
+    const d = new Date(now);
+    d.setFullYear(d.getFullYear() + 1);
+    expiresAt = d.toISOString();
+  }
+
+  const planName =
+    planId === "monthly"
+      ? "Monthly Edition"
+      : planId === "annual"
+      ? "Annual Folio"
+      : "Patron (Lifetime)";
+
+  return {
+    planId,
+    planName,
+    isLifetime: planId === "lifetime",
+    expiresAt,
+    purchaseDate: now.toISOString(),
+    willRenew: planId !== "lifetime",
+    userEmail: userEmail || undefined,
+    store: Capacitor.getPlatform() === "ios" ? "apple" : "web",
+  };
+}
 
 async function syncProToSupabase(isPro: boolean, appUserId?: string | null): Promise<void> {
   try {
@@ -142,15 +228,18 @@ function sanitizePurchaseErrorMessage(rawMessage?: string): string {
  */
 export async function purchaseAtelierPlan(
   planId: AtelierPlanId,
+  userEmail?: string | null,
 ): Promise<PurchaseResult> {
   if (!isInitialized || !Capacitor.isNativePlatform()) {
     // Development / Web fallback: activate local Pro pass immediately
     await new Promise((resolve) => setTimeout(resolve, 400));
     setProUser(true);
+    const details = buildSimulatedSubscriptionDetails(planId, userEmail);
     return {
       success: true,
       isPro: true,
       message: "Atelier Pro aktif (Preview Mode).",
+      details,
     };
   }
 
@@ -161,10 +250,12 @@ export async function purchaseAtelierPlan(
     if (!current || !current.availablePackages.length) {
       // Fallback if offerings not yet approved/published on store console
       setProUser(true);
+      const details = buildSimulatedSubscriptionDetails(planId, userEmail);
       return {
         success: true,
         isPro: true,
         message: "Atelier Pro diaktifkan dalam mode pratinjau.",
+        details,
       };
     }
 
@@ -193,12 +284,17 @@ export async function purchaseAtelierPlan(
     setProUser(isPro);
     syncProToSupabase(isPro);
 
+    const details = isPro
+      ? buildSubscriptionDetailsFromCustomerInfo(customerInfo, planId, userEmail)
+      : undefined;
+
     return {
       success: isPro,
       isPro,
       message: isPro
         ? "Selamat datang di Atelier Pro."
         : "Transaksi selesai namun status belum aktif.",
+      details,
     };
   } catch (err: unknown) {
     const errorObj = err as { userCancelled?: boolean; message?: string; code?: number };
@@ -221,15 +317,21 @@ export async function purchaseAtelierPlan(
 /**
  * Restores previous in-app purchases (Mandatory for Apple App Store Review Guideline 3.1.1).
  */
-export async function restoreAtelierPurchases(): Promise<PurchaseResult> {
+export async function restoreAtelierPurchases(
+  userEmail?: string | null,
+): Promise<PurchaseResult> {
   if (!isInitialized || !Capacitor.isNativePlatform()) {
     const current = isProUser();
+    const details = current
+      ? buildSimulatedSubscriptionDetails("annual", userEmail)
+      : undefined;
     return {
       success: true,
       isPro: current,
       message: current
         ? "Status keanggotaan Atelier Pro aktif."
         : "Tidak ditemukan pembelian sebelumnya pada akun perangkat ini.",
+      details,
     };
   }
 
@@ -239,12 +341,17 @@ export async function restoreAtelierPurchases(): Promise<PurchaseResult> {
     setProUser(isPro);
     syncProToSupabase(isPro);
 
+    const details = isPro
+      ? buildSubscriptionDetailsFromCustomerInfo(customerInfo, "annual", userEmail)
+      : undefined;
+
     return {
       success: true,
       isPro,
       message: isPro
         ? "Pembelian berhasil dipulihkan. Atelier Pro aktif."
         : "Tidak ditemukan transaksi aktif pada akun store ini. Pastikan Anda masuk dengan akun yang sama saat pembelian pertama.",
+      details,
     };
   } catch (err: unknown) {
     console.error("[Purchases] Restore failed:", err);
@@ -255,6 +362,29 @@ export async function restoreAtelierPurchases(): Promise<PurchaseResult> {
       message: msg,
     };
   }
+}
+
+/**
+ * Retrieves current active subscription details from RevenueCat or local fallback.
+ */
+export async function getActiveSubscriptionDetails(
+  userEmail?: string | null,
+): Promise<SubscriptionDetails | null> {
+  if (!isProUser()) return null;
+
+  if (isInitialized && Capacitor.isNativePlatform()) {
+    try {
+      const { customerInfo } = await Purchases.getCustomerInfo();
+      if (checkCustomerHasPro(customerInfo)) {
+        return buildSubscriptionDetailsFromCustomerInfo(customerInfo, "annual", userEmail);
+      }
+    } catch (err) {
+      console.warn("[Purchases] getActiveSubscriptionDetails warning:", err);
+    }
+  }
+
+  // Fallback for verified Pro user
+  return buildSimulatedSubscriptionDetails("annual", userEmail);
 }
 
 /**

@@ -236,6 +236,22 @@ export interface TranslationDictionary {
     privacy: string;
     eula: string;
   };
+  subscriptionSuccess: {
+    title: string;
+    subtitle: string;
+    badge: string;
+    tierLabel: string;
+    validityLabel: string;
+    lifetimeValidity: string;
+    renewsOn: string;
+    expiresOn: string;
+    statusLabel: string;
+    verifiedByStore: string;
+    accountLabel: string;
+    privilegesTitle: string;
+    ctaButton: string;
+    manageNotice: string;
+  };
   common: {
     cancel: string;
     save: string;
@@ -480,6 +496,22 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       privacy: "Privacy Policy",
       eula: "Apple Standard EULA",
     },
+    subscriptionSuccess: {
+      title: "Selamat Datang di Atelier Pro",
+      subtitle: "Keanggotaan eksklusif Anda telah aktif secara resmi.",
+      badge: "Anggota Terverifikasi",
+      tierLabel: "Paket Keanggotaan",
+      validityLabel: "Masa Berlaku",
+      lifetimeValidity: "Akses Seumur Hidup · Tanpa Batas Waktu",
+      renewsOn: "Diperpanjang otomatis pada {date}",
+      expiresOn: "Aktif hingga {date}",
+      statusLabel: "Status Transaksi",
+      verifiedByStore: "Terverifikasi Resmi oleh App Store",
+      accountLabel: "Akun Terhubung",
+      privilegesTitle: "Hak Istimewa yang Terbuka",
+      ctaButton: "Mulai Menulis di Atelier",
+      manageNotice: "Kelola atau batalkan langganan kapan saja di Pengaturan Apple ID Anda.",
+    },
     common: {
       cancel: "Batal",
       save: "Simpan",
@@ -720,6 +752,22 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       terms: "Terms of Service",
       privacy: "Privacy Policy",
       eula: "Apple Standard EULA",
+    },
+    subscriptionSuccess: {
+      title: "Welcome to Atelier Pro",
+      subtitle: "Your bespoke membership is officially active.",
+      badge: "Verified Member",
+      tierLabel: "Membership Tier",
+      validityLabel: "Validity Period",
+      lifetimeValidity: "Lifetime · Eternal Access",
+      renewsOn: "Renews automatically on {date}",
+      expiresOn: "Active until {date}",
+      statusLabel: "Transaction Status",
+      verifiedByStore: "Officially Verified by Apple App Store",
+      accountLabel: "Linked Account",
+      privilegesTitle: "Unlocked Privileges",
+      ctaButton: "Begin Writing in Atelier",
+      manageNotice: "Manage or cancel your subscription anytime in your Apple ID settings.",
     },
     common: {
       cancel: "Cancel",
