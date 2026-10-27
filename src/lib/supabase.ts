@@ -27,6 +27,49 @@ export function withTimeout<T>(
   ]);
 }
 
+/**
+ * Resilient timeout + auto-retry wrapper specifically designed for volatile mobile WiFi / IPv6 routing drops
+ */
+export async function withRetryTimeout<T>(
+  operation: () => Promise<T>,
+  ms = 12000,
+  maxRetries = 1,
+  timeoutMessage = "Network request timed out. Please check your internet connection."
+): Promise<T> {
+  let attempt = 0;
+  while (true) {
+    let timer: any;
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(timeoutMessage));
+        }, ms);
+      });
+
+      const result = await Promise.race([
+        operation().finally(() => clearTimeout(timer)),
+        timeoutPromise,
+      ]);
+      return result;
+    } catch (err: any) {
+      clearTimeout(timer);
+      attempt++;
+      const isNetworkOrTimeout =
+        err?.message?.includes("timed out") ||
+        err?.message?.toLowerCase().includes("network") ||
+        err?.message?.toLowerCase().includes("failed to fetch") ||
+        err?.message?.toLowerCase().includes("abort");
+
+      if (attempt <= maxRetries && isNetworkOrTimeout) {
+        console.warn(`[Supabase] Network attempt ${attempt} interrupted, retrying immediately...`);
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 export function getAuthRedirectUrl(): string {
   if (typeof window === "undefined") return "http://localhost:5174";
 
@@ -73,12 +116,14 @@ export async function signUpWithPassword(email: string, password: string) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
-  const { data, error } = await withTimeout(
-    supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-    }),
-    20000,
+  const { data, error } = await withRetryTimeout(
+    () =>
+      supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+      }),
+    14000,
+    1,
     "Sign-up request timed out. Please check your connection."
   );
 
@@ -97,12 +142,14 @@ export async function signInWithPassword(email: string, password: string) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
-  const { data, error } = await withTimeout(
-    supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    }),
-    20000,
+  const { data, error } = await withRetryTimeout(
+    () =>
+      supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      }),
+    14000,
+    1,
     "Sign-in request timed out. Please check your connection."
   );
 
@@ -137,13 +184,15 @@ export async function signInWithApple() {
         throw new Error("No identity token returned from Apple Sign-In.");
       }
 
-      // Exchange Apple identity token directly with Supabase
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithIdToken({
-          provider: "apple",
-          token: identityToken,
-        }),
-        20000,
+      // Exchange Apple identity token directly with Supabase with resilient retry
+      const { data, error } = await withRetryTimeout(
+        () =>
+          supabase.auth.signInWithIdToken({
+            provider: "apple",
+            token: identityToken,
+          }),
+        15000,
+        1,
         "Sign in with Apple timed out. Please check your connection."
       );
 
@@ -219,14 +268,16 @@ export async function signInWithGoogle() {
         throw new Error("No identity token returned from Google Sign-In.");
       }
 
-      // Exchange Google ID Token with Supabase (Accrual standard with rawNonce)
-      const { data, error } = await withTimeout(
-        supabase.auth.signInWithIdToken({
-          provider: "google",
-          token: idToken,
-          nonce: rawNonce,
-        }),
-        25000,
+      // Exchange Google ID Token with Supabase (Accrual standard with rawNonce) with resilient retry
+      const { data, error } = await withRetryTimeout(
+        () =>
+          supabase.auth.signInWithIdToken({
+            provider: "google",
+            token: idToken,
+            nonce: rawNonce,
+          }),
+        18000,
+        1,
         "Google authentication timed out. Please check your connection."
       );
 
@@ -334,13 +385,15 @@ export async function verifyEmailOtp(email: string, token: string) {
 
   const cleanToken = token.trim().replace(/\D/g, "");
 
-  const { data, error } = await withTimeout(
-    supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: cleanToken,
-      type: "email",
-    }),
-    20000,
+  const { data, error } = await withRetryTimeout(
+    () =>
+      supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        token: cleanToken,
+        type: "email",
+      }),
+    15000,
+    1,
     "OTP verification timed out. Please check your connection."
   );
 
@@ -497,16 +550,15 @@ export async function deleteUserAccount(): Promise<void> {
   }
 
   try {
-    // Attempt to invoke PostgreSQL RPC function if configured on server
+    // Invoke hardened PostgreSQL RPC function on server
     const rpcRes = await withTimeout(
       Promise.resolve(supabase.rpc("delete_user_account")),
       20000
     );
     if (rpcRes && typeof rpcRes === "object" && "error" in rpcRes && rpcRes.error) {
-      console.warn("[Noticed] Remote RPC delete_user_account failed:", rpcRes.error);
+      console.error("[Noticed] Remote RPC delete_user_account failed:", rpcRes.error);
+      throw new Error(rpcRes.error.message || "Failed to delete account on server.");
     }
-  } catch (err) {
-    console.warn("[Noticed] Could not execute delete_user_account RPC:", err);
   } finally {
     // Always sign out the session cleanly
     try {

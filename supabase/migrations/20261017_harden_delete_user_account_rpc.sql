@@ -1,6 +1,6 @@
 -- ============================================================================
 -- MIGRATION: HARDEN ACCOUNT DELETION RPC (APPLE GUIDELINE 5.1.1(v) & GDPR)
--- Date: 2026-10-17
+-- Date: 2026-10-17 (Updated: 2026-10-27)
 -- ============================================================================
 
 create or replace function public.delete_user_account()
@@ -19,13 +19,9 @@ begin
   -- 1. Purge all physical storage files belonging to user in 'noticed-media' bucket
   delete from storage.objects
   where bucket_id = 'noticed-media'
-    and (storage.foldername(name))[2] = v_user_id::text;
+    and (owner = v_user_id::text or name like '%' || v_user_id::text || '%');
 
-  -- 2. Explicitly remove all space memberships for this user
-  delete from public.space_members
-  where user_id = v_user_id;
-
-  -- 3. Explicitly clean up all user-owned notes, spaces (cascading child notes), and profiles
+  -- 2. Explicitly clean up all user-owned notes, spaces, and profiles
   delete from public.field_notes
   where user_id = v_user_id;
 
@@ -35,7 +31,7 @@ begin
   delete from public.profiles
   where id = v_user_id;
 
-  -- 4. Delete user identity from auth.users (cascades sessions, refresh tokens)
+  -- 3. Delete user identity from auth.users (cascades sessions, refresh tokens)
   delete from auth.users
   where id = v_user_id;
 end;

@@ -984,6 +984,13 @@ export function App() {
       await deleteUserAccount();
     } catch (err) {
       console.error("[Noticed] Error deleting account:", err);
+      showFlyout(
+        language === "id"
+          ? "Gagal menghapus akun di server. Periksa koneksi Anda."
+          : "Failed to delete account on server. Please check your connection.",
+        3500
+      );
+      throw err;
     }
 
     // Reset Purchases / RevenueCat identity
@@ -1013,15 +1020,23 @@ export function App() {
     safeLocalStorageRemove("noticed_avatar_photo");
     safeLocalStorageRemove("noticed_author_bio");
     safeLocalStorageRemove("noticed_is_pro");
+    safeLocalStorageRemove("noticed_pro_plan");
+    safeLocalStorageRemove("noticed_subscription_details");
     safeLocalStorageRemove("noticed_user_email");
     safeLocalStorageRemove("noticed_pending_mutations");
     safeLocalStorageRemove("noticed_pending_deletes");
     safeLocalStorageRemove("noticed_last_synced_at");
+    safeLocalStorageRemove("sidenotes_last_synced_at");
     await clearAtelierDB();
 
     setIsProfileOpen(false);
     setIsSettingsOpen(false);
-    showFlyout("Account and personal data deleted", 3000);
+    showFlyout(
+      language === "id"
+        ? "Akun dan seluruh data berhasil dihapus permanen"
+        : "Account and personal data deleted permanently",
+      3500
+    );
   };
 
   // Hydrate spaces & notes from IndexedDB and purge any legacy dummy records

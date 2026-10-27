@@ -40,33 +40,60 @@ let isInitialized = false;
 
 function buildSubscriptionDetailsFromCustomerInfo(
   customerInfo: any,
-  preferredPlanId: AtelierPlanId = "annual",
+  preferredPlanId: AtelierPlanId = "lifetime",
   userEmail?: string | null
 ): SubscriptionDetails {
   const activeEntitlement =
     customerInfo?.entitlements?.active?.[RC_ENTITLEMENT_ID] ||
     customerInfo?.entitlements?.active?.[RC_FALLBACK_ENTITLEMENT_ID];
 
+  // Inspect non-subscription transactions (Standard representation of Lifetime in StoreKit/RevenueCat)
+  const nonSubTransactions = customerInfo?.nonSubscriptionTransactions || [];
+  const hasLifetimeNonSub = nonSubTransactions.some((tx: any) => {
+    const id = String(tx?.productIdentifier || "").toLowerCase();
+    return id.includes("lifetime") || id.includes("patron");
+  });
+
   const prodId = String(activeEntitlement?.productIdentifier || "").toLowerCase();
   let planId: AtelierPlanId = preferredPlanId;
-  if (prodId.includes("monthly")) planId = "monthly";
-  else if (prodId.includes("lifetime") || prodId.includes("patron")) planId = "lifetime";
-  else if (prodId.includes("annual") || prodId.includes("year")) planId = "annual";
 
-  const isLifetime = planId === "lifetime" || !activeEntitlement?.expirationDate;
+  if (hasLifetimeNonSub || prodId.includes("lifetime") || prodId.includes("patron") || preferredPlanId === "lifetime") {
+    planId = "lifetime";
+  } else if (prodId.includes("monthly") || preferredPlanId === "monthly") {
+    planId = "monthly";
+  } else if (prodId.includes("annual") || prodId.includes("year") || preferredPlanId === "annual") {
+    planId = "annual";
+  }
+
+  // Check stored plan preference if still uncertain
+  if (planId === "annual" && typeof localStorage !== "undefined") {
+    const savedPlan = localStorage.getItem("noticed_pro_plan") as AtelierPlanId | null;
+    if (savedPlan === "lifetime") {
+      planId = "lifetime";
+    }
+  }
+
+  const isLifetime = planId === "lifetime" || hasLifetimeNonSub || !activeEntitlement?.expirationDate;
+  // If lifetime, expiresAt MUST be null. Never a date string!
   const expiresAt = isLifetime ? null : activeEntitlement?.expirationDate || null;
-  const willRenew = Boolean(activeEntitlement?.willRenew);
+  const willRenew = isLifetime ? false : Boolean(activeEntitlement?.willRenew);
   const purchaseDate = activeEntitlement?.latestPurchaseDate || new Date().toISOString();
 
   const planName =
-    planId === "monthly"
+    isLifetime
+      ? "Patron (Lifetime)"
+      : planId === "monthly"
       ? "Monthly Edition"
-      : planId === "annual"
-      ? "Annual Folio"
-      : "Patron (Lifetime)";
+      : "Annual Folio";
+
+  if (isLifetime && typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem("noticed_pro_plan", "lifetime");
+    } catch {}
+  }
 
   return {
-    planId,
+    planId: isLifetime ? "lifetime" : planId,
     planName,
     isLifetime,
     expiresAt,
@@ -316,10 +343,15 @@ export async function purchaseAtelierPlan(
 export async function restoreAtelierPurchases(
   userEmail?: string | null,
 ): Promise<PurchaseResult> {
+  const savedPlan = (typeof localStorage !== "undefined"
+    ? localStorage.getItem("noticed_pro_plan")
+    : null) as AtelierPlanId | null;
+  const preferredPlanId: AtelierPlanId = savedPlan || "lifetime";
+
   if (!isInitialized || !Capacitor.isNativePlatform()) {
     const current = isProUser();
     const details = current
-      ? buildSimulatedSubscriptionDetails("annual", userEmail)
+      ? buildSimulatedSubscriptionDetails(preferredPlanId, userEmail)
       : undefined;
     return {
       success: true,
@@ -338,8 +370,14 @@ export async function restoreAtelierPurchases(
     syncProToSupabase(isPro);
 
     const details = isPro
-      ? buildSubscriptionDetailsFromCustomerInfo(customerInfo, "annual", userEmail)
+      ? buildSubscriptionDetailsFromCustomerInfo(customerInfo, preferredPlanId, userEmail)
       : undefined;
+
+    if (details?.planId && typeof localStorage !== "undefined") {
+      try {
+        localStorage.setItem("noticed_pro_plan", details.planId);
+      } catch {}
+    }
 
     return {
       success: true,
@@ -368,11 +406,16 @@ export async function getActiveSubscriptionDetails(
 ): Promise<SubscriptionDetails | null> {
   if (!isProUser()) return null;
 
+  const savedPlan = (typeof localStorage !== "undefined"
+    ? localStorage.getItem("noticed_pro_plan")
+    : null) as AtelierPlanId | null;
+  const preferredPlanId: AtelierPlanId = savedPlan || "lifetime";
+
   if (isInitialized && Capacitor.isNativePlatform()) {
     try {
       const { customerInfo } = await Purchases.getCustomerInfo();
       if (checkCustomerHasPro(customerInfo)) {
-        return buildSubscriptionDetailsFromCustomerInfo(customerInfo, "annual", userEmail);
+        return buildSubscriptionDetailsFromCustomerInfo(customerInfo, preferredPlanId, userEmail);
       }
     } catch (err) {
       console.warn("[Purchases] getActiveSubscriptionDetails warning:", err);
@@ -380,7 +423,7 @@ export async function getActiveSubscriptionDetails(
   }
 
   // Fallback for verified Pro user
-  return buildSimulatedSubscriptionDetails("annual", userEmail);
+  return buildSimulatedSubscriptionDetails(preferredPlanId, userEmail);
 }
 
 /**

@@ -481,10 +481,9 @@ export function OnboardingGate({
       const res = await signInWithApple();
       if (!res) {
         // User canceled Apple sheet - silent exit without error banner
-        setIsLoading(false);
         return;
       }
-      if ("user" in res && res.user?.email) {
+      if (res && "user" in res && res.user?.email) {
         onAuthSuccess(res.user.email, res.user.id);
       }
     } catch (err: any) {
@@ -495,7 +494,6 @@ export function OnboardingGate({
         err?.code === "1001";
 
       if (isCancel) {
-        setIsLoading(false);
         return;
       }
 
@@ -507,6 +505,7 @@ export function OnboardingGate({
             ? "Gagal masuk dengan Apple. Silakan gunakan email."
             : "Sign in with Apple failed. Please use email."),
       );
+    } finally {
       setIsLoading(false);
     }
   };
@@ -519,8 +518,10 @@ export function OnboardingGate({
       const res = await signInWithGoogle();
       if (!res) {
         // Silent cancellation (user dismissed sheet)
-        setIsLoading(false);
         return;
+      }
+      if (res && "user" in res && res.user?.email) {
+        onAuthSuccess(res.user.email, res.user.id);
       }
     } catch (err: any) {
       const isCancel =
@@ -533,7 +534,6 @@ export function OnboardingGate({
         err?.message?.includes("SIGN_IN_CANCELED");
 
       if (isCancel) {
-        setIsLoading(false);
         return;
       }
 
@@ -545,6 +545,7 @@ export function OnboardingGate({
             ? "Gagal masuk dengan Google. Silakan gunakan email."
             : "Sign in with Google failed. Please use email."),
       );
+    } finally {
       setIsLoading(false);
     }
   };

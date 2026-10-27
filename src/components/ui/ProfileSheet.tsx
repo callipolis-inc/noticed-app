@@ -619,7 +619,7 @@ export function ProfileSheet({
                                 <span>Syncing...</span>
                               </span>
                             ) : (
-                              <span className="text-emerald-500/90">
+                              <span className="text-[var(--text-secondary)]">
                                 {lastSyncedAt
                                   ? "Synced with Cloud"
                                   : "Cloud Connected"}
@@ -1019,6 +1019,9 @@ export function ProfileSheet({
                           await onDeleteAccount?.();
                           setDeleteConfirmInput("");
                           setIsDeleteAccountConfirmOpen(false);
+                          onClose();
+                        } catch (err: any) {
+                          console.error("[ProfileSheet] Error during account deletion:", err);
                         } finally {
                           setIsDeletingAccount(false);
                         }

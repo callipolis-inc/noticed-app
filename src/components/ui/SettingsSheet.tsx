@@ -693,7 +693,7 @@ export function SettingsSheet({
                         }}
                         className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[10.5px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer flex items-center gap-1 shrink-0"
                       >
-                        <RotateCw className="w-3 h-3 text-amber-400" />
+                        <RotateCw className="w-3 h-3 text-[var(--text-secondary)]" />
                         <span>{t.settings.manageButton}</span>
                       </button>
                     </div>
