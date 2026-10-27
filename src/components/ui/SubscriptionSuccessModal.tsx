@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,11 +14,13 @@ import {
   User,
   X,
   CheckCircle2,
+  RotateCw,
+  ExternalLink,
 } from "lucide-react";
-import { triggerSuccessHaptic } from "@/lib/haptics";
+import { triggerSuccessHaptic, triggerHaptic } from "@/lib/haptics";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
 import { useAppLanguage } from "@/lib/i18n";
-import { SubscriptionDetails } from "@/lib/purchases";
+import { SubscriptionDetails, openStoreSubscriptionManagement } from "@/lib/purchases";
 
 interface SubscriptionSuccessModalProps {
   isOpen: boolean;
@@ -49,6 +51,7 @@ export function SubscriptionSuccessModal({
   useLockBodyScroll(isOpen);
   const [currentLang, , t] = useAppLanguage();
   const tx = t.subscriptionSuccess;
+  const [isManageConfirmOpen, setIsManageConfirmOpen] = useState(false);
 
   const isLifetime = details?.isLifetime ?? false;
   const planId = details?.planId ?? "annual";
@@ -280,11 +283,91 @@ export function SubscriptionSuccessModal({
               </div>
             </div>
 
+            {/* Manage / Cancel Auto-Renewal Button (for recurring plans) */}
+            {!isLifetime && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic("medium");
+                    setIsManageConfirmOpen(true);
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl bg-[var(--text-primary)]/[0.04] hover:bg-[var(--text-primary)]/[0.07] border border-[var(--glass-border)]/50 text-[var(--text-secondary)] text-[11px] font-medium flex items-center justify-between transition-colors cursor-pointer active:scale-[0.99]"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <RotateCw className="w-3.5 h-3.5 stroke-[1.8] text-amber-400" />
+                    <span>{t.settings.manageSubscription}</span>
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5 stroke-[1.8] opacity-60" />
+                </button>
+              </div>
+            )}
+
             {/* Manage Notice Disclaimer */}
             <div className="text-[9.5px] text-center text-[var(--text-tertiary)] leading-tight px-3 pt-1">
               {tx.manageNotice}
             </div>
           </div>
+
+          {/* Manage Auto-Renewal Confirmation Sheet Overlay */}
+          <AnimatePresence>
+            {isManageConfirmOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="absolute inset-0 z-30 p-5 sm:p-6 bg-[var(--bg-elevated)] backdrop-blur-xl flex flex-col justify-between rounded-3xl"
+              >
+                <div className="space-y-3 pt-2">
+                  <div className="w-10 h-10 rounded-full bg-amber-400/10 text-amber-400 flex items-center justify-center mb-1">
+                    <RotateCw className="w-5 h-5 stroke-[2]" />
+                  </div>
+
+                  <h3 className="font-serif text-lg font-bold text-[var(--text-primary)]">
+                    {t.settings.cancelSubsTitle}
+                  </h3>
+
+                  <p className="text-[12px] text-[var(--text-secondary)] leading-relaxed">
+                    {t.settings.cancelSubsDesc
+                      .replace("{store}", "Apple App Store")
+                      .replace(
+                        "{date}",
+                        formatDate(details?.expiresAt, currentLang) ||
+                          (currentLang === "id"
+                            ? "akhir periode berjalan"
+                            : "the end of current billing period"),
+                      )}
+                  </p>
+                </div>
+
+                <div className="space-y-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerSuccessHaptic();
+                      openStoreSubscriptionManagement();
+                    }}
+                    className="w-full py-3 rounded-full bg-[var(--text-primary)] text-[var(--accent-ink)] text-[12px] font-semibold active:scale-[0.98] transition-transform cursor-pointer shadow-md flex items-center justify-center gap-2"
+                  >
+                    <span>{t.settings.openStoreSettings}</span>
+                    <ExternalLink className="w-3.5 h-3.5 stroke-[2]" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic("light");
+                      setIsManageConfirmOpen(false);
+                    }}
+                    className="w-full py-2.5 rounded-full inner-pseudo-glass text-[var(--text-primary)] text-[11.5px] font-medium active:scale-[0.98] transition-transform cursor-pointer text-center"
+                  >
+                    {t.settings.keepSubscription}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Action Button CTA */}
           <div className="pt-3 border-t border-[var(--glass-border)]/40 mt-1">

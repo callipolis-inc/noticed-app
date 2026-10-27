@@ -108,6 +108,13 @@ export interface TranslationDictionary {
     restorePurchasesDesc: string;
     restoreButton: string;
     restoring: string;
+    manageSubscription: string;
+    manageSubscriptionDesc: string;
+    manageButton: string;
+    cancelSubsTitle: string;
+    cancelSubsDesc: string;
+    openStoreSettings: string;
+    keepSubscription: string;
     feedback: string;
     haptics: string;
     hapticsDesc: string;
@@ -348,6 +355,13 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
         "Pulihkan keanggotaan dari akun App Store / Google Play",
       restoreButton: "Pulihkan",
       restoring: "Memulihkan...",
+      manageSubscription: "Kelola Langganan",
+      manageSubscriptionDesc: "Hentikan perpanjangan otomatis di App Store",
+      manageButton: "Kelola",
+      cancelSubsTitle: "Kelola / Hentikan Langganan",
+      cancelSubsDesc: "Langganan Anda dikelola langsung oleh {store}. Jika perpanjangan otomatis dimatikan, seluruh hak istimewa Atelier Pro Anda tetap aktif hingga {date}. Setelah itu, akun otomatis kembali ke paket gratis tanpa tagihan baru.",
+      openStoreSettings: "Buka Pengaturan Langganan",
+      keepSubscription: "Kembali / Tetap Aktif",
       feedback: "Umpan Balik",
       haptics: "Haptik",
       hapticsDesc: "Umpan balik getaran taktil",
@@ -606,6 +620,13 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
         "Restore membership from your App Store / Google Play account",
       restoreButton: "Restore",
       restoring: "Restoring...",
+      manageSubscription: "Manage Subscription",
+      manageSubscriptionDesc: "Turn off auto-renewal in App Store",
+      manageButton: "Manage",
+      cancelSubsTitle: "Manage / Cancel Subscription",
+      cancelSubsDesc: "Your subscription is managed directly by {store}. If auto-renewal is turned off, all Atelier Pro privileges remain fully active until {date}. After that, your account returns to the free tier with zero new charges.",
+      openStoreSettings: "Open Subscription Settings",
+      keepSubscription: "Keep Subscription",
       feedback: "Feedback",
       haptics: "Haptics",
       hapticsDesc: "Tactile impulse feedback",

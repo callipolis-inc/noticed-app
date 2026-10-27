@@ -388,6 +388,29 @@ export async function getActiveSubscriptionDetails(
 }
 
 /**
+ * Opens the native store subscription management interface.
+ * - iOS: Opens native Apple ID Subscriptions sheet via itms-apps scheme
+ * - Android: Opens Google Play subscriptions page
+ * - Web: Opens Apple support page
+ */
+export function openStoreSubscriptionManagement(): void {
+  const platform = Capacitor.getPlatform();
+  if (platform === "ios") {
+    // Official Apple StoreKit subscription management deep link
+    window.location.href = "itms-apps://apps.apple.com/account/subscriptions";
+    setTimeout(() => {
+      window.open("https://apps.apple.com/account/subscriptions", "_blank");
+    }, 400);
+    return;
+  }
+  if (platform === "android") {
+    window.open("https://play.google.com/store/account/subscriptions", "_blank");
+    return;
+  }
+  window.open("https://apps.apple.com/account/subscriptions", "_blank");
+}
+
+/**
  * Links user authentication ID with RevenueCat on sign in.
  */
 export async function loginPurchasesUser(userId: string): Promise<void> {

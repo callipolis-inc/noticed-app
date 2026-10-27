@@ -672,6 +672,33 @@ export function SettingsSheet({
                     </button>
                   </div>
 
+                  {/* Manage / Cancel Auto-Renewal Row (Only for active Pro users) */}
+                  {isPro && (
+                    <div className="p-3 flex items-center justify-between">
+                      <div className="pl-8">
+                        <div className="text-[11px] font-medium text-[var(--text-primary)]">
+                          {t.settings.manageSubscription}
+                        </div>
+                        <div className="text-[9.5px] text-[var(--text-tertiary)]">
+                          {t.settings.manageSubscriptionDesc}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          triggerHaptic("medium");
+                          const details = await getActiveSubscriptionDetails();
+                          setSelectedSubscriptionDetails(details);
+                          setIsMembershipCardOpen(true);
+                        }}
+                        className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[10.5px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer flex items-center gap-1 shrink-0"
+                      >
+                        <RotateCw className="w-3 h-3 text-amber-400" />
+                        <span>{t.settings.manageButton}</span>
+                      </button>
+                    </div>
+                  )}
+
                   {/* Restore Feedback Banner */}
                   {restoreFeedback && (
                     <div className="p-2.5 bg-[var(--text-primary)]/5 text-[10.5px] font-sans text-center text-[var(--text-secondary)] leading-tight">
