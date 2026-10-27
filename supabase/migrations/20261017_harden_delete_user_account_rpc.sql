@@ -16,24 +16,23 @@ begin
     raise exception 'Not authenticated';
   end if;
 
-  -- 1. Purge all physical storage files belonging to user in 'noticed-media' bucket
-  delete from storage.objects
-  where bucket_id = 'noticed-media'
-    and (owner = v_user_id::text or name like '%' || v_user_id::text || '%');
+  -- 1. Purge physical storage files belonging to user in 'noticed-media' bucket
+  -- Wrapped in safe block so storage hiccups never block permanent account deletion
+  begin
+    delete from storage.objects
+    where bucket_id = 'noticed-media'
+      and (owner = v_user_id or name like '%' || v_user_id::text || '%');
+  exception when others then
+    null;
+  end;
 
   -- 2. Explicitly clean up all user-owned notes, spaces, and profiles
-  delete from public.field_notes
-  where user_id = v_user_id;
-
-  delete from public.spaces
-  where user_id = v_user_id;
-
-  delete from public.profiles
-  where id = v_user_id;
+  delete from public.field_notes where user_id = v_user_id;
+  delete from public.spaces where user_id = v_user_id;
+  delete from public.profiles where id = v_user_id;
 
   -- 3. Delete user identity from auth.users (cascades sessions, refresh tokens)
-  delete from auth.users
-  where id = v_user_id;
+  delete from auth.users where id = v_user_id;
 end;
 $$;
 

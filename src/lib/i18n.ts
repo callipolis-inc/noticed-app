@@ -110,6 +110,14 @@ export interface TranslationDictionary {
     restoring: string;
     manageSubscription: string;
     manageSubscriptionDesc: string;
+    manageSubscriptionUnifiedTitle: string;
+    manageSubscriptionUnifiedDesc: string;
+    activePlan: string;
+    autoRenewalActive: string;
+    autoRenewalNotice: string;
+    lifetimeNotice: string;
+    restoreApplePurchases: string;
+    restoreApplePurchasesDesc: string;
     manageButton: string;
     cancelSubsTitle: string;
     cancelSubsDesc: string;
@@ -357,6 +365,18 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       restoring: "Memulihkan...",
       manageSubscription: "Kelola Langganan",
       manageSubscriptionDesc: "Hentikan perpanjangan otomatis di App Store",
+      manageSubscriptionUnifiedTitle: "Kelola & Pulihkan Langganan",
+      manageSubscriptionUnifiedDesc:
+        "Atur perpanjangan otomatis di App Store atau pulihkan transaksi.",
+      activePlan: "Paket Aktif",
+      autoRenewalActive: "Perpanjangan Otomatis Aktif",
+      autoRenewalNotice:
+        "Apple mengelola seluruh penagihan. Untuk mematikan perpanjangan otomatis agar tidak ditagih pada siklus berikutnya, kelola langsung melalui Langganan Akun Apple Anda. Hak istimewa tetap aktif hingga akhir periode berjalan.",
+      lifetimeNotice:
+        "Akun ini memiliki hak istimewa Patron Seumur Hidup. Tidak ada siklus penagihan atau perpanjangan berkala yang perlu dibatalkan.",
+      restoreApplePurchases: "Pulihkan Pembelian dari Apple ID",
+      restoreApplePurchasesDesc:
+        "Sinkronkan ulang status keanggotaan Anda jika baru berpindah perangkat atau memperbarui langganan.",
       manageButton: "Kelola",
       cancelSubsTitle: "Kelola / Hentikan Langganan",
       cancelSubsDesc: "Langganan Anda dikelola langsung oleh {store}. Jika perpanjangan otomatis dimatikan, seluruh hak istimewa Atelier Pro Anda tetap aktif hingga {date}. Setelah itu, akun otomatis kembali ke paket gratis tanpa tagihan baru.",
@@ -622,6 +642,18 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       restoring: "Restoring...",
       manageSubscription: "Manage Subscription",
       manageSubscriptionDesc: "Turn off auto-renewal in App Store",
+      manageSubscriptionUnifiedTitle: "Manage Subscription & Restore",
+      manageSubscriptionUnifiedDesc:
+        "Manage auto-renewal in App Store or restore purchase history.",
+      activePlan: "Active Plan",
+      autoRenewalActive: "Auto-Renewal Active",
+      autoRenewalNotice:
+        "Apple manages all subscription billing. To turn off auto-renewal and prevent future charges, manage directly in your Apple Account Subscriptions. Your Atelier Pro privileges remain fully active until the end of your billing cycle.",
+      lifetimeNotice:
+        "This account holds lifetime Patron privileges. There are no recurring billing cycles or renewals to cancel.",
+      restoreApplePurchases: "Restore Purchases from Apple ID",
+      restoreApplePurchasesDesc:
+        "Resync your membership status if you recently switched devices or updated your Apple ID subscription.",
       manageButton: "Manage",
       cancelSubsTitle: "Manage / Cancel Subscription",
       cancelSubsDesc: "Your subscription is managed directly by {store}. If auto-renewal is turned off, all Atelier Pro privileges remain fully active until {date}. After that, your account returns to the free tier with zero new charges.",

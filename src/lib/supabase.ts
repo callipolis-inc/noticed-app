@@ -550,10 +550,12 @@ export async function deleteUserAccount(): Promise<void> {
   }
 
   try {
-    // Invoke hardened PostgreSQL RPC function on server
-    const rpcRes = await withTimeout(
-      Promise.resolve(supabase.rpc("delete_user_account")),
-      20000
+    // Invoke hardened PostgreSQL RPC function on server with auto-retry
+    const rpcRes = await withRetryTimeout(
+      () => Promise.resolve(supabase.rpc("delete_user_account")),
+      18000,
+      1,
+      "Account deletion request timed out."
     );
     if (rpcRes && typeof rpcRes === "object" && "error" in rpcRes && rpcRes.error) {
       console.error("[Noticed] Remote RPC delete_user_account failed:", rpcRes.error);

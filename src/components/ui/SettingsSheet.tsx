@@ -29,6 +29,7 @@ import {
 } from "@/lib/purchases";
 import { AtelierProModal } from "./AtelierProModal";
 import { SubscriptionSuccessModal } from "./SubscriptionSuccessModal";
+import { ManageSubscriptionModal } from "./ManageSubscriptionModal";
 import { LegalModal, LegalTab } from "./LegalModal";
 import {
   calculateStorageBreakdown,
@@ -110,6 +111,7 @@ export function SettingsSheet({
   const isPro = useProStatus();
   const [isProModalOpen, setIsProModalOpen] = useState(false);
   const [isMembershipCardOpen, setIsMembershipCardOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
   const [selectedSubscriptionDetails, setSelectedSubscriptionDetails] =
     useState<SubscriptionDetails | null>(null);
   const [isLegalOpen, setIsLegalOpen] = useState(false);
@@ -645,42 +647,15 @@ export function SettingsSheet({
                     )}
                   </div>
 
-                  {/* Restore In-App Purchases Row */}
-                  <div className="p-3 flex items-center justify-between">
-                    <div className="pl-8">
-                      <div className="text-[11px] font-medium text-[var(--text-primary)]">
-                        {t.settings.restorePurchases}
-                      </div>
-                      <div className="text-[9.5px] text-[var(--text-tertiary)]">
-                        {t.settings.restorePurchasesDesc}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={isRestoring}
-                      onClick={handleRestoreFromSettings}
-                      className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[10.5px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer disabled:opacity-50 flex items-center gap-1 shrink-0"
-                    >
-                      {isRestoring ? (
-                        <>
-                          <RotateCw className="w-3 h-3 animate-spin" />
-                          <span>{t.settings.restoring}</span>
-                        </>
-                      ) : (
-                        <span>{t.settings.restoreButton}</span>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Manage / Cancel Auto-Renewal Row (Only for active Pro users) */}
-                  {isPro && (
+                  {/* Unified Row: Manage Subscription & Auto-Renewal (When Pro) OR Restore (When Free) */}
+                  {isPro ? (
                     <div className="p-3 flex items-center justify-between">
                       <div className="pl-8">
                         <div className="text-[11px] font-medium text-[var(--text-primary)]">
-                          {t.settings.manageSubscription}
+                          {t.settings.manageSubscriptionUnifiedTitle}
                         </div>
-                        <div className="text-[9.5px] text-[var(--text-tertiary)]">
-                          {t.settings.manageSubscriptionDesc}
+                        <div className="text-[9.5px] text-[var(--text-tertiary)] max-w-[210px] leading-tight">
+                          {t.settings.manageSubscriptionUnifiedDesc}
                         </div>
                       </div>
                       <button
@@ -689,12 +664,39 @@ export function SettingsSheet({
                           triggerHaptic("medium");
                           const details = await getActiveSubscriptionDetails();
                           setSelectedSubscriptionDetails(details);
-                          setIsMembershipCardOpen(true);
+                          setIsManageModalOpen(true);
                         }}
                         className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[10.5px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer flex items-center gap-1 shrink-0"
                       >
                         <RotateCw className="w-3 h-3 text-[var(--text-secondary)]" />
                         <span>{t.settings.manageButton}</span>
+                      </button>
+                    </div>
+                  ) : (
+                    /* Restore In-App Purchases Row (When Free / Guest) */
+                    <div className="p-3 flex items-center justify-between">
+                      <div className="pl-8">
+                        <div className="text-[11px] font-medium text-[var(--text-primary)]">
+                          {t.settings.restorePurchases}
+                        </div>
+                        <div className="text-[9.5px] text-[var(--text-tertiary)]">
+                          {t.settings.restorePurchasesDesc}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={isRestoring}
+                        onClick={handleRestoreFromSettings}
+                        className="px-2.5 py-1 rounded-full inner-pseudo-glass text-[10.5px] font-medium text-[var(--text-primary)] active:scale-95 transition-transform cursor-pointer disabled:opacity-50 flex items-center gap-1 shrink-0"
+                      >
+                        {isRestoring ? (
+                          <>
+                            <RotateCw className="w-3 h-3 animate-spin" />
+                            <span>{t.settings.restoring}</span>
+                          </>
+                        ) : (
+                          <span>{t.settings.restoreButton}</span>
+                        )}
                       </button>
                     </div>
                   )}
@@ -1187,11 +1189,21 @@ export function SettingsSheet({
             onClose={() => setIsProModalOpen(false)}
           />
 
-          {/* Atelier Pro Membership Details Modal */}
+          {/* Atelier Pro Membership Details Modal (Privileges & Benefits) */}
           <SubscriptionSuccessModal
             isOpen={isMembershipCardOpen}
             onClose={() => setIsMembershipCardOpen(false)}
             details={selectedSubscriptionDetails}
+          />
+
+          {/* Dedicated Manage Subscription & Auto-Renewal Modal */}
+          <ManageSubscriptionModal
+            isOpen={isManageModalOpen}
+            onClose={() => setIsManageModalOpen(false)}
+            details={selectedSubscriptionDetails}
+            onRestoreSuccess={(details) => {
+              setSelectedSubscriptionDetails(details);
+            }}
           />
 
           {/* Legal Modal (Privacy Policy & Terms of Service) */}
