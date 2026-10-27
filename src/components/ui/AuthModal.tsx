@@ -239,7 +239,9 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         err?.message?.toLowerCase().includes("batal") ||
         err?.message?.includes("12501") ||
         err?.code === 12501 ||
-        err?.code === "12501";
+        err?.code === "12501" ||
+        err?.code === "SIGN_IN_CANCELED" ||
+        err?.message?.includes("SIGN_IN_CANCELED");
 
       if (isCancel) {
         setIsLoading(false);

@@ -204,46 +204,36 @@ export async function signInWithGoogle() {
         clientId: "3178689480-cpe53gd57jhr7t73vcgi5r4jfj96v9fu.apps.googleusercontent.com",
       });
 
-      // Generate secure cryptographic nonce
-      const rawNonce =
-        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substring(2) + Date.now().toString(36);
-
-      const result = await withTimeout(
-        GoogleSignIn.signIn({
-          nonce: rawNonce,
-        }),
-        30000,
-        "Google Sign-In request timed out. Please check your connection."
-      );
+      // Launch native Google Sign-In sheet without client-side timeout so interactive user flow is never interrupted
+      const result = await GoogleSignIn.signIn();
 
       const idToken = result?.idToken;
       if (!idToken) {
         throw new Error("No identity token returned from Google Sign-In.");
       }
 
-      // Exchange Google ID Token directly with Supabase
+      // Exchange Google ID Token directly with Supabase (omit nonce on iOS native SDK flow to prevent nonces mismatch)
       const { data, error } = await withTimeout(
         supabase.auth.signInWithIdToken({
           provider: "google",
           token: idToken,
-          nonce: rawNonce,
         }),
-        20000,
+        25000,
         "Google authentication timed out. Please check your connection."
       );
 
       if (error) throw error;
       return data;
     } catch (googleErr: any) {
-      // Detect user cancellation (code 12501, 'cancel', or 'batal')
+      // Detect user cancellation (code 12501, 'SIGN_IN_CANCELED', 'cancel', or 'batal')
       const isCancel =
         googleErr?.message?.toLowerCase().includes("cancel") ||
         googleErr?.message?.toLowerCase().includes("batal") ||
         googleErr?.message?.includes("12501") ||
         googleErr?.code === 12501 ||
-        googleErr?.code === "12501";
+        googleErr?.code === "12501" ||
+        googleErr?.code === "SIGN_IN_CANCELED" ||
+        googleErr?.message?.includes("SIGN_IN_CANCELED");
 
       if (isCancel) {
         // Silently ignore cancellation - no red banner or error throw
