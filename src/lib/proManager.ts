@@ -6,8 +6,9 @@
 
 import { useState, useEffect } from "react";
 
-const PRO_STORAGE_KEY = "sidenotes_is_pro";
-const PRO_EVENT_KEY = "sidenotes_pro_status_changed";
+const PRO_STORAGE_KEY = "noticed_is_pro";
+const LEGACY_PRO_STORAGE_KEY = "sidenotes_is_pro";
+const PRO_EVENT_KEY = "noticed_pro_status_changed";
 
 export const FREE_MAX_PHOTOS = 3;
 export const FREE_MAX_SPACES = 3;
@@ -25,9 +26,14 @@ export type ProFeature =
 
 /**
  * Checks if the current user has Atelier Pro status.
+ * Strictly defaults to false unless explicitly confirmed active.
  */
 export function isProUser(): boolean {
   try {
+    // Purge legacy storage key if present from older dev builds
+    if (localStorage.getItem(LEGACY_PRO_STORAGE_KEY) !== null) {
+      localStorage.removeItem(LEGACY_PRO_STORAGE_KEY);
+    }
     const val = localStorage.getItem(PRO_STORAGE_KEY);
     if (val === null) {
       return false;
@@ -43,6 +49,7 @@ export function isProUser(): boolean {
  */
 export function setProUser(status: boolean): void {
   try {
+    localStorage.removeItem(LEGACY_PRO_STORAGE_KEY);
     localStorage.setItem(PRO_STORAGE_KEY, status ? "true" : "false");
     window.dispatchEvent(
       new CustomEvent(PRO_EVENT_KEY, { detail: { isPro: status } })

@@ -94,9 +94,9 @@ export async function initPurchases(appUserId?: string | null): Promise<void> {
     // Check initial entitlement status on boot
     const { customerInfo } = await Purchases.getCustomerInfo();
     const hasActivePro = checkCustomerHasPro(customerInfo);
-    if (hasActivePro) {
-      setProUser(true);
-      syncProToSupabase(true, appUserId);
+    setProUser(hasActivePro);
+    if (appUserId) {
+      syncProToSupabase(hasActivePro, appUserId);
     }
   } catch (err) {
     console.warn("[Purchases] RevenueCat configuration warning (using fallback):", err);
@@ -265,9 +265,8 @@ export async function loginPurchasesUser(userId: string): Promise<void> {
   try {
     const { customerInfo } = await Purchases.logIn({ appUserID: userId });
     const isPro = checkCustomerHasPro(customerInfo);
-    if (isPro) {
-      setProUser(true);
-    }
+    setProUser(isPro);
+    syncProToSupabase(isPro, userId);
   } catch (err) {
     console.warn("[Purchases] logIn warning:", err);
   }
@@ -277,6 +276,7 @@ export async function loginPurchasesUser(userId: string): Promise<void> {
  * Resets user ID with RevenueCat on sign out.
  */
 export async function logoutPurchasesUser(): Promise<void> {
+  setProUser(false);
   if (!isInitialized || !Capacitor.isNativePlatform()) return;
   try {
     await Purchases.logOut();

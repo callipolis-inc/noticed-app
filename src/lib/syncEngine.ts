@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured, getCurrentUser } from "./supabase";
 import { Space, FieldNote } from "@/types";
-import { isProUser, setProUser } from "./proManager";
+import { setProUser } from "./proManager";
 import { saveToAtelierDB, safeLocalStorageSet } from "./storage";
 import {
   ensureRemoteMediaUrls,
@@ -413,11 +413,9 @@ export async function syncWithCloud(
       .eq("id", user.id)
       .maybeSingle();
 
-    const localIsPro = isProUser();
-    const finalIsPro = Boolean(remoteProfile?.is_pro || localIsPro);
-    if (finalIsPro) {
-      setProUser(true);
-    }
+    // Pro entitlement status: derived strictly from verified remote profile or active StoreKit receipt, never from unverified local cache
+    const finalIsPro = Boolean(remoteProfile?.is_pro);
+    setProUser(finalIsPro);
 
     let resolvedUserName = userName?.trim() || "Author";
     if (

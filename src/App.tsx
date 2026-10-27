@@ -465,9 +465,7 @@ export function App() {
                 .select("is_pro")
                 .eq("id", user.id)
                 .maybeSingle();
-              if (prof?.is_pro) {
-                setProUser(true);
-              }
+              setProUser(Boolean(prof?.is_pro));
             } catch {
               // ignore background sync error
             }
@@ -475,9 +473,12 @@ export function App() {
         } else {
           setCurrentUserId(null);
           initPurchases(null);
+          setProUser(false);
         }
       })
-      .catch(() => {})
+      .catch(() => {
+        setProUser(false);
+      })
       .finally(() => {
         setIsAuthChecking(false);
       });
@@ -493,9 +494,7 @@ export function App() {
           .select("is_pro")
           .eq("id", session.user.id)
           .maybeSingle();
-        if (prof?.is_pro) {
-          setProUser(true);
-        }
+        setProUser(Boolean(prof?.is_pro));
 
         if (event === "PASSWORD_RECOVERY") {
           setIsProfileOpen(true);
@@ -508,6 +507,7 @@ export function App() {
         setUserEmail(null);
         setCurrentUserId(null);
         logoutPurchasesUser();
+        setProUser(false);
       }
       setIsAuthChecking(false);
     });
@@ -897,6 +897,9 @@ export function App() {
 
   const handleSignOut = async () => {
     try {
+      // 0. Reset in-memory Pro entitlement immediately
+      setProUser(false);
+
       // 1. Terminate remote Supabase session
       try {
         await signOutUser();
@@ -2145,6 +2148,7 @@ export function App() {
               }}
               onContinueAsGuest={() => {
                 setIsGuestMode(true);
+                setProUser(false);
                 safeLocalStorageSet("noticed_guest_mode", "true");
                 showFlyout(
                   language === "id"
