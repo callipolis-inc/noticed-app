@@ -248,14 +248,10 @@ export async function purchaseAtelierPlan(
     const current = offerings.current;
 
     if (!current || !current.availablePackages.length) {
-      // Fallback if offerings not yet approved/published on store console
-      setProUser(true);
-      const details = buildSimulatedSubscriptionDetails(planId, userEmail);
       return {
-        success: true,
-        isPro: true,
-        message: "Atelier Pro diaktifkan dalam mode pratinjau.",
-        details,
+        success: false,
+        isPro: false,
+        message: "Paket langganan sedang dipersiapkan oleh App Store. Silakan coba sesaat lagi.",
       };
     }
 
