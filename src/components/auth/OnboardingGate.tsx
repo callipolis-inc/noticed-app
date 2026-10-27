@@ -516,8 +516,25 @@ export function OnboardingGate({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      await signInWithGoogle();
+      const res = await signInWithGoogle();
+      if (!res) {
+        // Silent cancellation (user dismissed sheet)
+        setIsLoading(false);
+        return;
+      }
     } catch (err: any) {
+      const isCancel =
+        err?.message?.toLowerCase().includes("cancel") ||
+        err?.message?.toLowerCase().includes("batal") ||
+        err?.message?.includes("12501") ||
+        err?.code === 12501 ||
+        err?.code === "12501";
+
+      if (isCancel) {
+        setIsLoading(false);
+        return;
+      }
+
       triggerHaptic("heavy");
       console.warn("[OnboardingGate] Google sign-in error:", err);
       setErrorMessage(

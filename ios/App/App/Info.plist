@@ -22,6 +22,10 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>GIDClientID</key>
+	<string>3178689480-2oun5iqgqqpo9kdhugo9dridebo7fl42.apps.googleusercontent.com</string>
+	<key>GIDServerClientID</key>
+	<string>3178689480-cpe53gd57jhr7t73vcgi5r4jfj96v9fu.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -31,6 +35,7 @@
 			<array>
 				<string>noticed</string>
 				<string>com.syntheticae.noticed</string>
+				<string>com.googleusercontent.apps.3178689480-2oun5iqgqqpo9kdhugo9dridebo7fl42</string>
 			</array>
 		</dict>
 	</array>

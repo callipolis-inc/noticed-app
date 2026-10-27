@@ -4,6 +4,7 @@ import {
   SignInWithApple,
   type SignInWithAppleResponse,
 } from "@capacitor-community/apple-sign-in";
+import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
 
 /**
  * Resilient promise timeout wrapper to prevent auth hanging on poor / interrupted network
@@ -186,13 +187,73 @@ export async function signInWithApple() {
 }
 
 /**
- * Sign-In with Google OAuth (Web & Android, wrapped with 20s network timeout)
+ * Native Sign-In with Google (Accrual Production Standard)
+ * On native iOS: utilizes 100% in-app Google bottom sheet with ZERO Safari redirect and ZERO supabase.co domain display.
+ * Exchanges Google idToken directly via supabase.auth.signInWithIdToken.
+ * If user cancels/dismisses, resolves silently with null.
  */
 export async function signInWithGoogle() {
   if (!isSupabaseConfigured) {
     throw new Error("Supabase is not configured. Please check your .env file.");
   }
 
+  // 1. Native iOS flow (In-app Google Account sheet, ZERO Safari redirect, ZERO supabase.co display)
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
+    try {
+      await GoogleSignIn.initialize({
+        clientId: "3178689480-cpe53gd57jhr7t73vcgi5r4jfj96v9fu.apps.googleusercontent.com",
+      });
+
+      // Generate secure cryptographic nonce
+      const rawNonce =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+      const result = await withTimeout(
+        GoogleSignIn.signIn({
+          nonce: rawNonce,
+        }),
+        30000,
+        "Google Sign-In request timed out. Please check your connection."
+      );
+
+      const idToken = result?.idToken;
+      if (!idToken) {
+        throw new Error("No identity token returned from Google Sign-In.");
+      }
+
+      // Exchange Google ID Token directly with Supabase
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: idToken,
+          nonce: rawNonce,
+        }),
+        20000,
+        "Google authentication timed out. Please check your connection."
+      );
+
+      if (error) throw error;
+      return data;
+    } catch (googleErr: any) {
+      // Detect user cancellation (code 12501, 'cancel', or 'batal')
+      const isCancel =
+        googleErr?.message?.toLowerCase().includes("cancel") ||
+        googleErr?.message?.toLowerCase().includes("batal") ||
+        googleErr?.message?.includes("12501") ||
+        googleErr?.code === 12501 ||
+        googleErr?.code === "12501";
+
+      if (isCancel) {
+        // Silently ignore cancellation - no red banner or error throw
+        return null;
+      }
+      throw googleErr;
+    }
+  }
+
+  // 2. Web / Android fallback: standard OAuth redirect
   const redirectTo = getAuthRedirectUrl();
 
   const { data, error } = await withTimeout(
