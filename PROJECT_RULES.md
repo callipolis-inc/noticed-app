@@ -1,10 +1,10 @@
-# SIDENOTES — Project & Architecture Rules
+# NOTICED — Project & Architecture Rules
 
 ## 1. Product Identity & Vibe
-- **App Name**: Sidenotes (Sidenotes: Notes for Noticing)
-- **Inspiration**: *footnotes: notes for noticing* (Doppler HQ) meets *Cozy Stash* (Shared journaling / Spaces).
-- **Core Loop**: Quick, aesthetic micro-captures of everyday curiosities, thoughts, polaroid pictures, and tactile voice memos organized into independent or shared notebooks ("Spaces").
-- **Target Platform**: Sideloadable iOS IPA via AltStore / SideStore / TrollStore & Capacitor 8, plus responsive web.
+- **App Name**: Noticed (Private Field Notes & Sovereign Atelier)
+- **Bundle ID**: `com.syntheticae.noticed`
+- **Core Loop**: Quick, aesthetic micro-captures of everyday curiosities, thoughts, polaroid pictures, 30s moving vignettes, and tactile voice memos organized into independent or shared notebooks ("Spaces").
+- **Target Platform**: Apple App Store (iOS 16+), TestFlight, sideloadable IPA, and responsive web.
 
 ---
 
@@ -15,39 +15,54 @@
 > Never use native colored system emojis (📊, ⚡, 🗓️, 🎯, 🔔, 🥧, 📸, etc.) as UI icons, tab bar buttons, modal buttons, or toggles.
 
 ### Icon Guidelines:
-- **Vector Icons Only**: Use vector outline icons from `lucide-react` with `strokeWidth={1.5}` or `strokeWidth={1.75}`.
-- **Color Variables**: Inherit `var(--text-primary)`, `var(--text-secondary)`, or `var(--text-tertiary)`.
-- **Theme Palette**:
-  - **Light Mode**: Warm alabaster linen paper (`#F7F5F0` / `#FCFBF9`), ink black accents (`#1C1917`), subtle warm grey borders.
-  - **Dark Mode**: Warm obsidian notebook (`#111113` / `#18181C`), soft white text (`#F5F5F4`), muted warm borders.
-- **Typography**:
-  - Headers & dates: Typewriter monospaced (`Courier Prime`, `Space Mono`).
-  - Body & long reading: Geometric sans (`Urbanist`).
+- **Vector Icons Only**: Use vector outline icons from `lucide-react` with `strokeWidth={1.5}` to `2.25`.
+- **Color Variables**: Strictly inherit native CSS theme tokens:
+  - `var(--text-primary)`, `var(--text-secondary)`, `var(--text-tertiary)`, `var(--glass-border)`, `var(--sheet-bg)`.
+- **Theme Palette (4 Resolutions)**:
+  - **Warm Paper**: Warm alabaster linen paper (`#F7F5F0`), matte ink black (`#1C1917`).
+  - **Daylight**: Pure porcelain white (`#FFFFFF`), crisp ink (`#111113`).
+  - **Obsidian**: Warm obsidian slate (`#111113`), soft paper white text (`#F5F5F4`).
+  - **Espresso**: Deep mahogany roast (`#181412`), warm parchment (`#F4EFEA`).
+- **Typography Four-Pillar System**:
+  - Long reading & prose: `Newsreader` (Editorial Serif)
+  - Display titles & chapter headers: `Cormorant Garamond` (Classic Display)
+  - Quick UI & compact forms: `Urbanist` (Geometric Sans)
+  - Dates, timestamps, & indices: `Courier Prime` / `Space Mono` (Monospaced)
 
 ---
 
-## 3. iOS Sideload & Safe Area Invariants (STRICT)
+## 3. iOS Native & Safe Area Invariants (STRICT)
 
-- **Dynamic Island / Hardware Notch**:
-  - Never hardcode `top: 24px`.
+- **Dynamic Island / Hardware Notch Clearance**:
+  - Never hardcode fixed top offsets (`top: 24px`).
   - Floating pills and flyouts must compute placement dynamically:
     `style={{ top: "max(calc(env(safe-area-inset-top, 0px) + 14px), 24px)" }}` paired with `left-4 right-4 max-w-md mx-auto`.
-- **Home Indicator Inset**:
+- **Home Indicator Inset Clearance**:
   - Floating bottom bars and bottom sheet interiors must always clear the home swipe bar:
     `paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 14px), 24px)"`.
 - **Touch & Feel**:
-  - No touch callout or tap highlight: `-webkit-tap-highlight-color: transparent`.
-  - Haptic feedback on all key taps using `@capacitor/haptics`.
+  - Touch highlight disabled: `-webkit-tap-highlight-color: transparent`.
+  - Haptic feedback on all interactions via `triggerHaptic()` and `triggerSuccessHaptic()`.
 
 ---
 
-## 4. Bottom Sheet Architecture (STRICT)
-- No artificial height caps (`max-h-[50vh]`) with inner scrollbars.
-- Use `BottomSheet` with single scroll container (`min-h-0 flex-1 overflow-y-auto`) expanding up to `92dvh`.
-- Virtual keyboard aware via `window.visualViewport`.
+## 4. Monetization & Billing (RevenueCat & StoreKit 2)
+
+- **SDK**: `@revenuecat/purchases-capacitor` configured with App Store API Key (`X4SX9VQZ44.p8`) and IAP Key (`VV2BGUYC5N.p8`).
+- **Product Identifiers**:
+  - `noticed_pro_monthly` (Monthly)
+  - `noticed_pro_annual` (Annual)
+  - `noticed_pro_lifetime` (Patron Lifetime)
+- **Lifetime Validity Rule**: Non-subscription transactions (Patron) must explicitly force `expiresAt = null` and `willRenew = false` to prevent displaying a false expiration date.
+- **Dedicated Management Modal**: Clicking "Kelola Langganan / Manage Subscription" opens `ManageSubscriptionModal.tsx` which directly routes to `openStoreSubscriptionManagement()` (`itms-apps://apps.apple.com/account/subscriptions`) and provides in-sheet purchase restoration.
 
 ---
 
-## 5. Offline-First & Future Supabase Sync
-- **Current State**: 100% offline-first local storage.
-- **Future Supabase Setup**: When the user provides Supabase credentials, do NOT assume migrations run automatically. Always generate idempotent `.sql` scripts for `spaces`, `field_notes`, and `space_members`.
+## 5. Security, Privacy & Account Deletion (Apple Guideline 5.1.1(v))
+
+- **Permanent Account Deletion**:
+  - Stored procedure `public.delete_user_account()` in Supabase runs as `security definer`.
+  - Must compare `storage.objects.owner = v_user_id` (`UUID = UUID`) with safe exception wrapping on storage purging.
+  - Client side purges IndexedDB (`clearAtelierDB()`), clears all `noticed_*` and `sidenotes_*` localStorage keys, and resets RevenueCat identity.
+- **Network Resilience**:
+  - Auth network calls use `withRetryTimeout` (300ms fallback) to prevent timeout failures on mobile IPv6 routing.

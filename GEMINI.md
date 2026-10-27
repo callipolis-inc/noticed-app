@@ -58,24 +58,36 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
-# Sidenotes Architectural & Design Rules
+# Noticed Architectural & Engineering Invariants (STRICT)
+
+> **Engram Project**: Always pass `project: "noticed"` on all Engram MCP operations (`mem_save`, `mem_context`, `mem_session_summary`).
 
 ## 1. Iconography & Visual Aesthetics Rule (STRICT)
 - **NO NATIVE COLORED SYSTEM EMOJIS IN THE UI CONTROLS**.
-- Vector outline icons from `lucide-react` only.
-- Strict monochrome warm paper luxury theme system.
-  - Light mode: Alabaster cream linen `#f7f5f0` with matte ink black `#1c1917`.
-  - Dark mode: Warm obsidian `#111113` with muted frosted glass `#18181c`.
+- Vector outline icons from `lucide-react` only (`strokeWidth={1.5}` to `2.25`).
+- Strict monochrome editorial theme system (Warm Paper, Daylight, Obsidian, Espresso):
+  - Always use native theme variables (`var(--sheet-bg)`, `var(--text-primary)`, `var(--text-secondary)`, `var(--glass-border)`, `inner-pseudo-glass`, `dynamic-island-shell`).
+  - Never introduce bright saturated accent colors (e.g. amber, emerald, neon blue badges) that clash with the Penguin Classics literary atmosphere.
 
-## 2. iOS Sideload (IPA) & Safe Area Rule (STRICT)
+## 2. iOS Native (IPA), Safe Area & Haptics (STRICT)
 - All top floating flyouts/modals must clear the Dynamic Island:
   `style={{ top: "max(calc(env(safe-area-inset-top, 0px) + 14px), 24px)" }}`.
 - Bottom actions and sheets must clear the iOS Home swipe bar:
   `paddingBottom: "max(calc(env(safe-area-inset-bottom, 0px) + 14px), 24px)"`.
-- Haptics: Use `triggerHaptic()` from `@/lib/haptics`.
+- Haptics: Use `triggerHaptic()` and `triggerSuccessHaptic()` from `@/lib/haptics`.
 
-## 3. Bottom Sheet Sizing (STRICT)
-- No nested scrollbars or artificial inner height caps (`max-h-[50vh]`). The sheet expands to `92dvh`.
+## 3. In-App Purchases & Billing (RevenueCat & StoreKit 2)
+- Entitlements: Derived strictly from RevenueCat customer info & Supabase. Guest mode and new accounts never receive automatic Pro.
+- Lifetime / Patron tier: Always force `expiresAt = null` and `willRenew = false` in subscription details logic.
+- UI Modals Separation:
+  - `SubscriptionSuccessModal.tsx`: Displays congratulatory welcome and reviews unlocked privileges (`[✓ Unlocked]`).
+  - `ManageSubscriptionModal.tsx`: Displays active plan details, Apple Subscriptions deep link (`itms-apps://apps.apple.com/account/subscriptions`) to cancel auto-renewal, and unified Restore Purchases.
+- Settings Sheet: Pro accounts display a single unified row for "Manage Subscription & Restore" (`t.settings.manageSubscriptionUnifiedTitle`).
 
-## 4. Offline-First & Future Supabase
-- The app operates offline-first via local storage. When Supabase is introduced, provide idempotent SQL scripts for the user to execute manually in Supabase SQL editor.
+## 4. Supabase RPC & Account Deletion (Apple Guideline 5.1.1(v))
+- Stored procedure `public.delete_user_account()` must compare `owner = v_user_id` (`UUID = UUID`) in `storage.objects` and wrap storage purging in a safe `BEGIN ... EXCEPTION WHEN OTHERS THEN NULL; END;` block.
+- Client side account deletion must clear IndexedDB (`clearAtelierDB()`), remove all `noticed_*` and `sidenotes_*` localStorage keys, and log out from RevenueCat (`logoutPurchasesUser()`).
+
+## 5. Network Resilience & Bilingual Engine (i18n)
+- Mobile Auth: Use `withRetryTimeout` in `src/lib/supabase.ts` for automated retry against transient IPv6 / cellular connection dropouts.
+- All user-facing strings must be localized in `src/lib/i18n.ts` for both Bahasa Indonesia (`id`) and English (`en`).

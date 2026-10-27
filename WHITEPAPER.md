@@ -1,7 +1,7 @@
-# NOTICED — Technical & Product Whitepaper (v1.0)
+# NOTICED — Technical & Product Whitepaper (v2.0)
 
 > **"for things you don't want to forget"**  
-> *A quiet, offline-first personal & shared field notebook engineered with Apple-Style High-Density Liquid Glass, Penguin Classics editorial typography, and hybrid Supabase Cloud & Media Storage synchronization.*
+> *A quiet, local-sovereign field notebook & digital atelier engineered with Apple-Style High-Density Liquid Glass, Penguin Classics editorial typography, hybrid Supabase synchronization, and StoreKit 2 / RevenueCat architecture.*
 
 ---
 
@@ -10,278 +10,276 @@
 1. [Ringkasan Eksekutif & Filosofi Produk](#1-ringkasan-eksekutif--filosofi-produk)
 2. [Sistem Desain & Estetika Editorial](#2-sistem-desain--estetika-editorial)
 3. [Fitur Utama & Pengalaman Pengguna (UX)](#3-fitur-utama--pengalaman-pengguna-ux)
-4. [Arsitektur Sistem & Hybrid Data Pipeline](#4-arsitektur-sistem--hybrid-data-pipeline)
-5. [Skema Database PostgreSQL & Supabase Storage](#5-skema-database-postgresql--supabase-storage)
-6. [Rekayasa iOS Native (IPA), Safe Area & Haptics](#6-rekayasa-ios-native-ipa-safe-area--haptics)
-7. [Peta Struktur Direktori & Organisasi Kode](#7-peta-struktur-direktori--organisasi-kode)
-8. [Panduan Build, Deployment & Pemeliharaan](#8-panduan-build-deployment--pemeliharaan)
+4. [Arsitektur Data Hybrid & Offline-First Pipeline](#4-arsitektur-data-hybrid--offline-first-pipeline)
+5. [Skema Database PostgreSQL, Storage & Hardened RPC](#5-skema-database-postgresql-storage--hardened-rpc)
+6. [Rekayasa iOS Native & App Store Compliance](#6-rekayasa-ios-native--app-store-compliance)
+7. [Arsitektur Monetisasi & Billing (RevenueCat & StoreKit 2)](#7-arsitektur-monetisasi--billing-revenuecat--storekit-2)
+8. [Keamanan, Privasi & Kepatuhan Store (GDPR & Apple 5.1.1(v))](#8-keamanan-privasi--kepatuhan-store-gdpr--apple-511v)
+9. [Peta Struktur Direktori & Organisasi Kode](#9-peta-struktur-direktori--organisasi-kode)
+10. [Panduan Build, Fastlane & Deployment](#10-panduan-build-fastlane--deployment)
 
 ---
 
 ## 1. Ringkasan Eksekutif & Filosofi Produk
 
-**Noticed** adalah aplikasi buku catatan lapangan (*field notebook*) dan ruang jurnal editorial yang dirancang khusus untuk menangkap pengamatan sehari-hari, kutipan buku, catatan kaki (*marginalia*), potongan foto polaroid/strip, klip video pendek 30 detik, hingga memo suara taktil.
+**Noticed** adalah aplikasi buku catatan lapangan (*field notebook*) dan suaka refleksi editorial yang dirancang untuk mereka yang menghargai keintiman buku catatan fisik, sastra klasik, dan ketenangan berpikir bebas dari distraksi algoritmik.
 
-Berbeda dari aplikasi catatan produktivitas korporat yang kaku, **Noticed** menggabungkan dua dunia:
-1. **Keanggunan Buku Cetak Klasik (*Penguin Classics & Moleskine*)**: Tata letak aliran naskah (*manuscript stream*), penomoran catatan kaki superskrip (`¹`, `²`, `³`), stabilo teks berlapis, dan sampul buku bertekstur kain *buckram* dengan embos foil.
-2. **Presisi Antarmuka iOS Modern (*High-Density Liquid Glass*)**: Permukaan kaca buram berlapis (*frosted translucent surfaces*), pantulan tepi spekular (*caustic specular rims*), umpan balik getaran taktil (*haptics*), dan transisi pegas fisik (*spring physics*).
+Noticed memadukan dua disiplin utama:
+1. **Keanggunan Buku Cetak Klasik (*Penguin Classics & Moleskine*)**:
+   - Tata letak aliran naskah (*manuscript stream*), superskrip catatan kaki marginalia, stabilo berlapis, sampul kain *buckram*, dan motif foil emas/perak/kobalt.
+2. **Presisi Antarmuka iOS Modern (*High-Density Liquid Glass*)**:
+   - Permukaan kaca buram berdensitas tinggi (*frosted translucent glass*), pantulan spekular tepi dinamis (*specular rim highlights*), transisi pegas fisik (*spring physics*), dan umpan balik taktil mikro (*haptic impulses*).
 
 ---
 
 ## 2. Sistem Desain & Estetika Editorial
 
-### 2.1. Palet Tema Monokrom Hangat (4 Resolusi)
+### 2.1. Palet Tema Monokrom Terkurasi (4 Resolusi)
 Noticed menerapkan empat tema warna terkurasi yang dikendalikan melalui atribut `data-theme` pada elemen `:root`:
 
-| Tema | Mode | Karakteristik Visual | Warna Dasar (`--bg-base`) | Tinta Utama (`--text-primary`) |
+| Tema | Mode | Karakteristik Visual | Background (`--sheet-bg`) | Teks Utama (`--text-primary`) |
 | :--- | :--- | :--- | :--- | :--- |
 | **Warm Paper** | Light | Kertas linen krem alabaster klasik | `#F7F5F0` | `#1C1917` |
 | **Daylight** | Light | Porselen putih bersih bertepi perak | `#FFFFFF` | `#111113` |
 | **Obsidian** | Dark | Batu tulis malam monokrom pekat | `#111113` | `#F5F5F4` |
 | **Espresso** | Dark | Kulit kayu mahoni & kopi sangrai gelap | `#181412` | `#F4EFEA` |
 
-### 2.2. Tipografi Tiga Karakter
-Setiap buku catatan (*Space*) dapat memilih kepribadian tipografinya sendiri:
-- **Editorial (`Newsreader`)**: Serif sastra untuk membaca panjang dan refleksi buku.
-- **Classic Display (`Cormorant Garamond`)**: Serif kontras tinggi bergaya majalah seni & jurnal klasik.
-- **Geometric Sans (`Urbanist`)**: Sans-serif modern yang bersih untuk catatan harian cepat.
-- **Metadata & Indeks (`Courier Prime` / `Space Mono`)**: Huruf mesin tik *monospaced* untuk penanda tanggal, waktu, koordinat lokasi, dan nomor indeks.
+### 2.2. Tipografi Empat Pilar
+Setiap buku catatan (*Space*) dapat menentukan kepribadian tipografinya sendiri:
+- **Editorial (`Newsreader`)**: Serif sastra untuk bacaan reflektif dan esai panjang.
+- **Classic Display (`Cormorant Garamond`)**: Serif kontras tinggi bergaya majalah seni & jurnal folio.
+- **Geometric Sans (`Urbanist`)**: Sans-serif kontemporer yang bersih untuk entri cepat.
+- **Metadata & Indeks (`Courier Prime` / `Space Mono`)**: Huruf mesin tik monospaced untuk penanda waktu, tanggal, dan koordinat.
 
-### 2.3. Aturan Ikonografi Ketat
-Seluruh kontrol antarmuka wajib menggunakan ikon garis vektor dari `lucide-react` (`strokeWidth={1.5}` hingga `2.25`). Penggunaan emoji sistem berwarna pada tombol dan navigasi dilarang sepenuhnya demi menjaga keselarasan visual monokrom.
+### 2.3. Aturan Ikonografi Ketat (Zero Emoji UI)
+Seluruh kontrol antarmuka wajib menggunakan ikon garis vektor dari `lucide-react` (`strokeWidth={1.5}` hingga `2.25`). Penggunaan emoji sistem berwarna pada tombol dan navigasi **dilarang sepenuhnya** demi menjaga keselarasan estetika monokromatis.
 
 ---
 
 ## 3. Fitur Utama & Pengalaman Pengguna (UX)
 
 ### 3.1. Spatial 3D Bookshelf (`BookshelfModal.tsx` & `BookshelfSpine.tsx`)
-- **Mode Spines (Punggung Buku)**: Buku-buku berjajar di atas pedestal kayu/kaca dengan tekstur kain *buckram*, pita kapital (*headband*), motif foil emas/perak/kobalt, serta *Live Spine Preview* saat mengedit buku.
-- **Mode Covers (3D Spatial Carousel)**: Karusel perspektif 3D *edge-to-edge* (`perspective: 1400px`) yang menampilkan sampul buku bertekstur fisik.
-- **Time-Zone Aware Greeting**: Pill profil di sudut kiri atas menyapa pengguna secara dinamis mengikuti zona waktu perangkat (*Good Morning / Afternoon / Evening / Night*) beserta titik indikator sinkronisasi cloud.
+- **Mode Spines**: Buku-buku berjajar di atas pedestal kayu/kaca dengan tekstur kain *buckram*, pita kapital (*headband*), foil mewah, dan pratinjau punggung buku interaktif.
+- **Mode Covers**: Karusel spasial 3D *edge-to-edge* (`perspective: 1400px`) yang menampilkan sampul fisik lengkap.
+- **Time-Zone Aware Greeting**: Menyapa pengguna secara dinamis mengikuti waktu setempat (*Good Morning / Afternoon / Evening / Night*) disertai indikator sinkronisasi cloud.
 
 ### 3.2. Editorial Manuscript Stream (`NoteEntry.tsx`)
-- **Inline Text Highlighter (`TextHighlighter.tsx`)**: Seleksi kalimat langsung di dalam catatan untuk memberi warna stabilo (*Amber, Sage, Cobalt, Rose*) atau menautkan *Marginalia* (catatan pinggir/kutipan) dengan angka superskrip otomatis.
-- **Quick Annotator (`QuickAnnotatorModal.tsx`)**: Menambah dan menyunting *sidenote* atau sumber kutipan langsung dari aliran catatan tanpa membuka editor penuh.
-- **Inline Autoplay Video (`InlineVideoPlayer.tsx`)**: Klip video pendek (maks 30 detik) diputar otomatis tanpa suara (*muted loop*) saat terlihat di layar menggunakan `IntersectionObserver` (`threshold: 0.65`), dilengkapi tombol suara *Liquid Glass* dan bilah progres 2px.
-- **Photostrip & Polaroid Layouts (`PhotostripModal.tsx`)**: Menampilkan lampiran foto dalam tata letak strip vertikal, kolase berdampingan, atau tampilan penuh dengan stempel waktu.
-- **Tactile Voice Memo (`audioRecorder.ts`)**: Perekam suara real-time dengan visualisasi gelombang frekuensi (*Web Audio API AnalyserNode*) 12-bar.
-- **Zen Reading Mode & Table of Contents (`NotebookIndexSheet.tsx`)**: Mode baca bebas distraksi yang menyembunyikan seluruh tombol kontrol dan menampilkan bilah progres baca di puncak layar, serta daftar isi kronologis & pencarian cepat (`SpotlightSearchModal.tsx`).
+- **Inline Text Highlighter & Marginalia**: Seleksi teks langsung untuk memberi stabilo atau menautkan *marginalia* dengan penomoran superskrip otomatis.
+- **Analog Darkroom (Polaroid & Photostrip)**: Lampiran foto berformat bingkai fisik polaroid dengan stempel tanggal mesin tik dan grain film analog.
+- **Inline Autoplay Video 30s**: Klip bergerak 30 detik diputar otomatis tanpa suara saat terdeteksi oleh `IntersectionObserver` (`threshold: 0.65`).
+- **Tactile Voice Memo**: Perekaman memo suara dengan visualisasi gelombang frekuensi audio (*Web Audio API AnalyserNode*).
+- **Zen Reading Mode & Spotlight Search**: Mode baca bebas tombol kontrol dan pencarian instan fuzzy di seluruh ruang catatan.
+
+### 3.3. Bilingual Engine & Habit Reminders
+- **i18n Multi-bahasa**: Seluruh antarmuka, pengaturan, pesan kesalahan, dan disclamer storeKit tersedia penuh dalam **Bahasa Indonesia (`id`)** dan **English (`en`)**.
+- **Pengingat Menulis Harian**: Didukung `@capacitor/local-notifications` untuk membangun kebiasaan refleksi harian tanpa pelacak pihak ketiga.
 
 ---
 
-## 4. Arsitektur Sistem & Hybrid Data Pipeline
+## 4. Arsitektur Data Hybrid & Offline-First Pipeline
 
-Noticed menganut prinsip **Offline-First dengan Silent Cloud Synchronization**. Aplikasi bekerja 100% instan tanpa koneksi internet menggunakan penyimpanan lokal, dan secara otomatis menyinkronkan data serta file media ke **Supabase** di latar belakang.
+Noticed beroperasi dengan prinsip **Local Sovereignty First**:
+Semua catatan, foto, dan audio tersimpan secara instan di dalam IndexedDB (`AtelierDB`). Saat koneksi internet tersedia, sistem menjalankan *Silent Debounced Auto-Sync* (1500ms) ke Supabase.
 
 ```mermaid
 flowchart TD
-    subgraph Client["iOS IPA / Web Client (Offline-First)"]
+    subgraph Client["iOS Client / Web App (Offline-First)"]
         UI["React 19 UI + Framer Motion"]
-        IDB["IndexedDB (AtelierDB) + localStorage Mirror"]
-        Tombstone["Pending Delete Queue (sidenotes_pending_deletes)"]
-        MediaProc["Media Pipeline (mediaStorage.ts)"]
+        IDB["IndexedDB (AtelierDB)"]
+        RC["RevenueCat SDK (Purchases v13)"]
+        Tombstone["Pending Deletion Queue"]
     end
 
     subgraph Cloud["Supabase Cloud Infrastructure"]
-        Auth["Supabase Auth (Email / Password)"]
-        PG["PostgreSQL Database (500 MB) — profiles, spaces, field_notes"]
-        Bucket["Supabase Storage Bucket 'noticed-media' (1 GB) — photos, videos, audio, avatars"]
+        Auth["Supabase Auth (Apple / Google / Email)"]
+        PG["PostgreSQL (profiles, spaces, field_notes)"]
+        Storage["Storage Bucket 'noticed-media'"]
     end
 
-    UI -->|Write / Edit / Delete| IDB
-    UI -->|Compress Photo / Validate 30s Video / Audio Blob| MediaProc
-    MediaProc -->|Online: Direct Upload| Bucket
-    MediaProc -->|Offline: Base64 DataURL Fallback| IDB
-    UI -->|Delete Note or Space| Tombstone
-    Tombstone -->|1. Purge Orphan Media Files| Bucket
-    Tombstone -->|2. Delete Rows| PG
-    IDB <-->|Debounced 1.5s Silent Auto-Sync| PG
-    IDB -->|Auto-Offload Offline DataURLs on Reconnect| Bucket
-```
+    subgraph AppleStoreKit["Apple StoreKit 2"]
+        SK["App Store Subscriptions / IAP"]
+    end
 
-### 4.1. Empat Pilar Sinkronisasi (`syncEngine.ts`)
-1. **Silent Background Auto-Sync**:
-   - Berjalan otomatis secara tenang (`1500ms` *debounce*) setiap kali pengguna menambah/mengedit catatan, marginalia, buku, atau profil.
-   - Otomatis terpicu saat perangkat kembali *online* (`window.ononline`) atau saat aplikasi kembali aktif di layar (`visibilitychange`).
-2. **Offload Media ke Bucket `noticed-media`**:
-   - Foto dikompresi di sisi klien (`1600px`, JPEG `0.82`), video divalidasi (maks 30 detik / 25 MB), dan memo suara direkam, lalu diunggah langsung ke bucket `noticed-media`.
-   - Tabel PostgreSQL (`field_notes`) hanya menyimpan URL publik berukuran puluhan byte sehingga kuota database 500 MB mampu menampung ratusan ribu catatan.
-   - Jika dibuat saat *offline*, media disimpan sebagai DataURL di IndexedDB dan otomatis diunggah ke bucket `noticed-media` begitu sinkronisasi berjalan saat *online*.
-3. **Cloud Delete & Auto-Purge Storage (`queueCloudDeleteNote` / `queueCloudDeleteSpace`)**:
-   - Saat catatan atau buku dihapus, seluruh file foto, video, dan memo suara terkait dihapus otomatis dari bucket `noticed-media` (mencegah *orphan files* memenuhi kuota 1 GB).
-   - Jika dihapus saat *offline*, ID catatan/buku dan daftar URL medianya disimpan di *Tombstone Queue* (`sidenotes_pending_deletes`) dan dieksekusi ke cloud terlebih dahulu sebelum menarik data baru—mencegah catatan yang sudah dihapus hidup kembali (*zombie notes*).
-4. **Cloud-First Starter Priority**:
-   - Saat pengguna login di perangkat baru ke akun yang sudah memiliki data di cloud, 3 buku sampel bawaan (`Animal Farm`, `Field Notes`, `Cozy Stash`) yang sudah pernah dihapus tidak akan di-*push* ulang.
+    UI -->|Instant Write / Edit| IDB
+    UI -->|Purchase / Restore| RC
+    RC <-->|Receipt Validation & Entitlements| SK
+    IDB <-->|Silent Auto-Sync 1500ms| PG
+    UI -->|Media Upload / Purge| Storage
+    UI -->|Delete Account RPC| Auth
+    UI -->|Tombstone Deletes| Tombstone
+    Tombstone -->|Purge Deleted Media & Rows| Cloud
+```
 
 ---
 
-## 5. Skema Database PostgreSQL & Supabase Storage
+## 5. Skema Database PostgreSQL, Storage & Hardened RPC
 
-```mermaid
-erDiagram
-    PROFILES ||--o{ SPACES : owns
-    PROFILES ||--o{ FIELD_NOTES : writes
-    SPACES ||--o{ FIELD_NOTES : contains
-    SPACES ||--o{ SPACE_MEMBERS : shares
+### 5.1. Struktur Relasi Utama
+- `public.profiles`: Profil penulis, nama tampilan, bio, avatar URL.
+- `public.spaces`: Ruang buku catatan, preferensi sampul, font, warna, dan status kolaborasi.
+- `public.field_notes`: Catatan lapangan, judul, teks, highlights, marginalia JSONB, foto JSONB, video JSONB, dan memo suara JSONB.
 
-    PROFILES {
-        text id PK
-        text display_name
-        text avatar_url
-        timestamptz updated_at
-    }
+### 5.2. Hardened Account Deletion RPC (`public.delete_user_account()`)
+Untuk memenuhi regulasi **Apple App Store Guideline 5.1.1(v)** dan **GDPR**, penghapusan akun dilakukan secara permanen melalui stored procedure PostgreSQL berstatus `security definer`:
 
-    SPACES {
-        text id PK
-        text user_id FK
-        text name
-        text type
-        text description
-        text icon_name
-        text cover_style
-        text custom_color
-        text font_choice
-        boolean is_shared
-        text invite_code
-        text partner_name
-        int members_count
-        timestamptz created_at
-    }
+```sql
+create or replace function public.delete_user_account()
+returns void
+language plpgsql
+security definer set search_path = public, auth, storage
+as $$
+declare
+  v_user_id uuid;
+begin
+  v_user_id := auth.uid();
+  if v_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
 
-    FIELD_NOTES {
-        text id PK
-        text space_id FK
-        text user_id FK
-        text title
-        text content
-        text text_align
-        text location_name
-        jsonb photos
-        jsonb videos
-        jsonb voice_memo
-        jsonb tags
-        boolean pinned
-        text photostrip_layout
-        text marginalia
-        text quote_source
-        jsonb marginalia_items
-        jsonb highlights
-        text author
-        timestamptz created_at
-    }
+  -- 1. Purge physical storage files belonging to user in 'noticed-media' bucket
+  begin
+    delete from storage.objects
+    where bucket_id = 'noticed-media'
+      and (owner = v_user_id or name like '%' || v_user_id::text || '%');
+  exception when others then
+    null;
+  end;
+
+  -- 2. Explicitly clean up all user-owned notes, spaces, and profiles
+  delete from public.field_notes where user_id = v_user_id;
+  delete from public.spaces where user_id = v_user_id;
+  delete from public.profiles where id = v_user_id;
+
+  -- 3. Delete user identity from auth.users (cascades sessions, refresh tokens)
+  delete from auth.users where id = v_user_id;
+end;
+$$;
 ```
-
-### Skrip SQL Migrasi (Idempotent)
-Seluruh skrip SQL disimpan di folder [`supabase/`](./supabase/) dan aman dijalankan berulang kali (*idempotent*):
-1. [`supabase/schema.sql`](./supabase/schema.sql) — Skema utama tabel `profiles`, `spaces`, `field_notes`, `space_members`, beserta kebijakan Row Level Security (RLS).
-2. [`supabase/migrations/20261005_add_videos_to_field_notes.sql`](./supabase/migrations/20261005_add_videos_to_field_notes.sql) — Penambahan kolom `videos JSONB` pada `field_notes`.
-3. [`supabase/migrations/20261005_create_storage_bucket.sql`](./supabase/migrations/20261005_create_storage_bucket.sql) — Pembuatan bucket publik `noticed-media` (batas 25 MB/file untuk foto, video, dan audio) beserta kebijakan RLS `SELECT`, `INSERT`, `UPDATE`, dan `DELETE`.
 
 ---
 
-## 6. Rekayasa iOS Native (IPA), Safe Area & Haptics
+## 6. Rekayasa iOS Native & App Store Compliance
 
-Noticed dikemas menjadi aplikasi iOS native (`.ipa`) menggunakan **Capacitor 8** yang dapat di-*sideload* melalui AltStore, SideStore, atau TrollStore:
-- **Dynamic Island Clearance**: Seluruh pill melayang dan notifikasi atas menggunakan perhitungan dinamis:
+- **Framework**: Capacitor 8 dengan konfigurasi `com.syntheticae.noticed`.
+- **Target Perangkat**: Terkunci eksklusif untuk iPhone (`TARGETED_DEVICE_FAMILY = "1"`).
+- **Dynamic Island Safe Placement**:
   ```css
   top: max(calc(env(safe-area-inset-top, 0px) + 14px), 24px);
   ```
-- **Home Indicator Clearance**: Seluruh *Bottom Sheet* (`92dvh` tanpa *nested scrollbar*) dan dock bawah memberikan ruang aman untuk bilah geser iOS:
+- **Home Indicator Clearance**:
   ```css
   padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) + 14px), 24px);
   ```
-- **Tactile Haptics (`src/lib/haptics.ts`)**: Menghubungkan `@capacitor/haptics` (`ImpactStyle.Light`, `Medium`, `Heavy`, dan `NotificationType.Success`) dengan *fallback* pulsa mikro Web Audio API (`6ms–12ms`) pada browser.
-- **App Icon Pipeline (`scripts/generate_app_icons.cjs`)**: Menghasilkan ikon aplikasi resolusi `1024×1024` dengan latar **Warm Alabaster Ceramic** (Light) dan **Obsidian Smoked Liquid Glass** (Dark) yang terpusat secara optik.
+- **Store Graphics Kit (`store-assets/`)**:
+  - Master App Icon: `1024 × 1024 px` (Format 24bpp RGB, nol channel alpha).
+  - Screenshots iOS 6.7" (iPhone 16 Pro Max / 15 Pro Max): `1290 × 2796 px`.
+  - Screenshots iOS 6.5" (iPhone 14 Plus / 11 Pro Max): `1242 × 2688 px`.
+  - Android Phone Screenshots: `1080 × 2400 px`.
 
 ---
 
-## 7. Peta Struktur Direktori & Organisasi Kode
+## 7. Arsitektur Monetisasi & Billing (RevenueCat & StoreKit 2)
+
+- **SDK**: `@revenuecat/purchases-capacitor` v13.7.4.
+- **Kunci Kredensial App Store Connect**:
+  - In-App Purchase Key: `VV2BGUYC5N.p8`
+  - App Store Connect API Key: `X4SX9VQZ44.p8`
+- **Katalog Produk Atelier Pro**:
+  1. `noticed_pro_monthly` — Berlangganan bulanan.
+  2. `noticed_pro_annual` — Berlangganan tahunan dengan diskon folio.
+  3. `noticed_pro_lifetime` — Pembelian satu kali seumur hidup (*Patron*).
+- **Aturan Lifetime Validity**:
+  - Paket Patron non-subscription secara ketat memaksa `expiresAt = null` dan `willRenew = false` agar tidak menampilkan tanggal kedaluwarsa hari ini pada UI.
+- **Pemisahan Modal Antarmuka**:
+  - `SubscriptionSuccessModal.tsx`: Menampilkan selebrasi sambutan keanggotaan dan peninjauan hak istimewa Pro (`[✓ Unlocked]`).
+  - `ManageSubscriptionModal.tsx`: Menampilkan status masa aktif, tombol pemulihan transaksi (*Restore Purchases*) terintegrasi, dan tombol **Buka Pengaturan Langganan Apple** (`itms-apps://apps.apple.com/account/subscriptions`) untuk pembatalan perpanjangan otomatis sesuai pedoman Apple.
+
+---
+
+## 8. Keamanan, Privasi & Kepatuhan Store (GDPR & Apple 5.1.1(v))
+
+1. **Native Sign in with Apple & Google OAuth**:
+   - iOS menggunakan sheet native Face ID / Passcode (`@capacitor-community/apple-sign-in`) tanpa pengalihan ke browser Safari.
+   - Google Sign-In menggunakan pertukaran ID Token dengan cryptographic `rawNonce` via `@capawesome/capacitor-google-sign-in`.
+2. **Resiliensi Jaringan Handshake IPv6**:
+   - Seluruh pemanggilan autentikasi Supabase dibungkus dengan utilitas `withRetryTimeout` (auto-retry 300ms) untuk menangani *SYN packet drop* pada jaringan dual-stack IPv6 ISP rumahan/seluler Indonesia.
+3. **Pembersihan Bersih Saat Hapus Akun**:
+   - Pemanggilan RPC `delete_user_account` di server.
+   - Penghapusan seluruh basis data IndexedDB Atelier.
+   - Penghapusan seluruh kunci cache `localStorage` (`noticed_*` dan `sidenotes_*`).
+   - Logout identitas RevenueCat (`logoutPurchasesUser()`).
+
+---
+
+## 9. Peta Struktur Direktori & Organisasi Kode
 
 ```text
-d:\Project\Sidenotes
-├── .env.example                 # Template variabel lingkungan Supabase
-├── capacitor.config.ts          # Konfigurasi iOS Capacitor 8 (com.sidenotes.app)
-├── GEMINI.md                    # Aturan arsitektur & desain utama
-├── PROJECT_RULES.md             # Spesifikasi invariant UI & safe-area iOS
-├── README.md                    # Panduan ringkas proyek
-├── WHITEPAPER.md                # Dokumen Whitepaper teknis & produk lengkap (dokumen ini)
-├── index.html                   # Entry HTML + Google Fonts + viewport-fit=cover
-├── package.json                 # Dependensi & skrip build
-├── vite.config.ts               # Konfigurasi bundler Vite 8 + Tailwind CSS v4
-│
-├── public/                      # Aset statis produksi yang ikut dibundle ke IPA
-│   ├── logo-dark.png            # Ikon aplikasi Obsidian Liquid Glass (1024x1024)
-│   └── logo-light.png           # Ikon aplikasi Alabaster Ceramic (1024x1024)
-│
-├── scripts/                     # Skrip utilitas aktif
-│   └── generate_app_icons.cjs   # Generator ikon iOS 1024x1024 (Light & Dark)
-│
-├── supabase/                    # Skrip SQL idempotent untuk Supabase
-│   ├── schema.sql               # Skema tabel PostgreSQL & kebijakan RLS
+d:\Project\noticed\Noticed-Mobile
+├── .env.example
+├── capacitor.config.ts          # Konfigurasi iOS Capacitor 8 (com.syntheticae.noticed)
+├── GEMINI.md                    # Aturan arsitektur & rekayasa sistem
+├── PROJECT_RULES.md             # Invarian estetika & safe-area iOS
+├── WHITEPAPER.md                # Dokumen teknis resmi (dokumen ini)
+├── store-assets/                # Aset toko resmi (icon 1024x1024, screenshot 6.7" & 6.5")
+│   └── STORE_LISTING_METADATA.md
+├── supabase/                    # Skrip SQL & migrasi PostgreSQL
+│   ├── schema.sql
 │   └── migrations/
 │       ├── 20261005_add_videos_to_field_notes.sql
-│       └── 20261005_create_storage_bucket.sql
-│
-├── src/                         # Kode sumber aplikasi utama (100% aktif)
-│   ├── App.tsx                  # Orkestrator state, navigasi, & Silent Auto-Sync
-│   ├── main.tsx                 # Bootstrap React 19
-│   ├── index.css                # Sistem token CSS, tema 4-palet, & kelas Liquid Glass
-│   ├── types.ts                 # Kontrak tipe TypeScript (Space, FieldNote, dll)
-│   │
-│   ├── components/
-│   │   ├── notes/               # Komponen aliran catatan & editor
-│   │   │   ├── CreateNoteSheet.tsx
-│   │   │   ├── DateGroupDivider.tsx
-│   │   │   ├── InlineVideoPlayer.tsx
-│   │   │   ├── NotebookIndexSheet.tsx
-│   │   │   ├── NoteEntry.tsx
-│   │   │   ├── PhotostripModal.tsx
-│   │   │   ├── QuickAnnotatorModal.tsx
-│   │   │   └── TextHighlighter.tsx
-│   │   │
-│   │   ├── spaces/              # Komponen rak buku 3D & punggung buku
-│   │   │   ├── BookshelfModal.tsx
-│   │   │   └── BookshelfSpine.tsx
-│   │   │
-│   │   └── ui/                  # Sheet & modal sistem berdesain Liquid Glass
-│   │       ├── AuthModal.tsx
-│   │       ├── DynamicFlyout.tsx
-│   │       ├── ProfileSheet.tsx
-│   │       ├── SettingsSheet.tsx
-│   │       ├── SpotlightSearchModal.tsx
-│   │       └── ThemeSelectorSheet.tsx
-│   │
-│   └── lib/                     # Mesin penyimpanan, media, audio, & sinkronisasi
-│       ├── audioRecorder.ts     # Perekam memo suara + visualisasi frekuensi
-│       ├── greetings.ts         # Sapaan dinamis mengikuti zona waktu perangkat
-│       ├── haptics.ts           # Umpan balik getaran Capacitor + Web Audio fallback
-│       ├── mediaStorage.ts      # Kompresi foto, validasi video 30s, upload & auto-purge bucket
-│       ├── storage.ts           # Penyimpanan offline IndexedDB (AtelierDB)
-│       ├── supabase.ts          # Klien autentikasi & koneksi Supabase
-│       ├── syncEngine.ts        # Mesin sinkronisasi 2 arah + Tombstone Delete Queue
-│       └── utils.ts             # Pemformat tanggal, waktu, & generator ID
-│
-└── archive/                     # Arsip komponen generasi lama & referensi desain
-    ├── README.md                # Dokumentasi isi folder arsip
-    ├── assets/                  # File sumber logo transparan asli
-    ├── legacy-components/       # Komponen UI lama yang telah digantikan
-    ├── references/              # Tangkapan layar referensi desain awal
-    └── scripts/                 # Skrip generator showcase sekali pakai
+│       ├── 20261005_create_storage_bucket.sql
+│       └── 20261017_harden_delete_user_account_rpc.sql
+└── src/
+    ├── App.tsx                  # State root, alur auth, navigasi & sinkronisasi
+    ├── index.css                # CSS variables, palet 4-tema & Liquid Glass tokens
+    ├── components/
+    │   ├── auth/                # Gerbang onboarding, Apple/Google OAuth, verifikasi OTP
+    │   │   ├── OnboardingGate.tsx
+    │   │   └── InAppOtpVerifyModal.tsx
+    │   ├── notes/               # Editor catatan, marginalia, photostrip, video player
+    │   │   ├── CreateNoteSheet.tsx
+    │   │   ├── NoteEntry.tsx
+    │   │   ├── InlineVideoPlayer.tsx
+    │   │   ├── PhotostripModal.tsx
+    │   │   ├── QuickAnnotatorModal.tsx
+    │   │   └── TextHighlighter.tsx
+    │   ├── spaces/              # Rak buku spasial 3D, karusel covers, & punggung buku
+    │   │   ├── BookshelfModal.tsx
+    │   │   └── BookshelfSpine.tsx
+    │   └── ui/                  # Modal & sheet berdesain Liquid Glass
+    │       ├── AtelierProModal.tsx
+    │       ├── SubscriptionSuccessModal.tsx
+    │       ├── ManageSubscriptionModal.tsx
+    │       ├── ProfileSheet.tsx
+    │       ├── SettingsSheet.tsx
+    │       └── LegalModal.tsx
+    └── lib/                     # Utilitas penyimpanan, media, i18n & billing
+        ├── i18n.ts              # Mesin lokalisasi dwibahasa (ID & EN)
+        ├── purchases.ts         # RevenueCat & StoreKit 2 bridge
+        ├── proManager.ts        # Sinkronisasi status Pro & entitlments
+        ├── storage.ts           # Mesin IndexedDB (AtelierDB)
+        ├── supabase.ts          # Klien Supabase & resiliensi jaringan
+        └── haptics.ts           # Haptik getaran mikro iOS
 ```
 
 ---
 
-## 8. Panduan Build, Deployment & Pemeliharaan
+## 10. Panduan Build, Fastlane & Deployment
 
-### 8.1. Menjalankan Build Produksi
-```bash
-npm install
-npm run build
-```
-Perintah `npm run build` menjalankan pemeriksaan tipe ketat TypeScript (`tsc -b`) diikuti pembundelan produksi Vite (`vite build`) ke dalam folder `dist/`.
-
-### 8.2. Sinkronisasi ke Proyek iOS (Capacitor)
-```bash
-npx cap sync ios
-```
-Untuk membangun file `.ipa` secara otomatis di cloud, *push* perubahan ke branch `main` di GitHub (`https://github.com/callipolis-inc/noticed-app.git`) dan jalankan workflow GitHub Actions.
+1. **Menjalankan Server Pengembangan**:
+   ```powershell
+   npm run dev
+   ```
+2. **Kompilasi TypeScript & Produksi Web**:
+   ```powershell
+   npm run build
+   ```
+3. **Sinkronisasi ke Proyek iOS Native**:
+   ```powershell
+   npx cap sync ios
+   ```
+4. **Membuka Proyek di Xcode (macOS)**:
+   ```powershell
+   npx cap open ios
+   ```
+5. **Otomatisasi Deployment via GitHub Actions / Fastlane**:
+   - Alur kerja di `.github/workflows/deploy-appstore.yml` mengotomatisasi pengiriman build langsung ke TestFlight dan App Store Connect.
