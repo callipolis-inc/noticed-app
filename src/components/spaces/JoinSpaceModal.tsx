@@ -512,7 +512,7 @@ export function JoinSpaceModal({
 
             {/* Error Message */}
             {searchError && (
-              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-start gap-2 text-xs">
+              <div className="p-3 rounded-2xl bg-archival-carmine-soft border border-archival-carmine text-archival-carmine flex items-start gap-2 text-xs">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span className="leading-snug">{searchError}</span>
               </div>
@@ -522,7 +522,7 @@ export function JoinSpaceModal({
             {foundSpace ? (
               <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
                 <div className="text-center pt-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400 flex items-center justify-center gap-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-archival-sage flex items-center justify-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     {t.joinSpace.foundTitle}
                   </span>
@@ -555,7 +555,7 @@ export function JoinSpaceModal({
                           <span>{foundSpace.membersCount || 1} {t.joinSpace.membersCount}</span>
                         </span>
 
-                        <span className="text-[9px] px-2 py-0.5 rounded-full font-sans font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-sans font-semibold bg-archival-sage-soft text-archival-sage border border-archival-sage flex items-center gap-1">
                           {foundSpace.memberRole === "viewer" ? (
                             <>
                               <Eye className="w-2.5 h-2.5" />
@@ -633,12 +633,12 @@ export function JoinSpaceModal({
                       {/* Viewfinder Target Reticle */}
                       <div className="absolute inset-8 rounded-2xl border-2 border-dashed border-white/60 pointer-events-none flex flex-col justify-between p-2">
                         <div className="flex justify-between">
-                          <div className="w-4 h-4 border-t-2 border-l-2 border-emerald-400" />
-                          <div className="w-4 h-4 border-t-2 border-r-2 border-emerald-400" />
+                          <div className="w-4 h-4 border-t-2 border-l-2 border-archival-sage" />
+                          <div className="w-4 h-4 border-t-2 border-r-2 border-archival-sage" />
                         </div>
                         <div className="flex justify-between">
-                          <div className="w-4 h-4 border-b-2 border-l-2 border-emerald-400" />
-                          <div className="w-4 h-4 border-b-2 border-r-2 border-emerald-400" />
+                          <div className="w-4 h-4 border-b-2 border-l-2 border-archival-sage" />
+                          <div className="w-4 h-4 border-b-2 border-r-2 border-archival-sage" />
                         </div>
                       </div>
 

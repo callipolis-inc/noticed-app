@@ -1,6 +1,8 @@
 import { supabase, isSupabaseConfigured, getCurrentUser } from "./supabase";
 import { Space, FieldNote } from "@/types";
+import { Capacitor } from "@capacitor/core";
 import { isProUser, setProUser } from "./proManager";
+import { getNativeCustomerProStatus } from "./purchases";
 import { saveToAtelierDB, safeLocalStorageSet } from "./storage";
 import {
   ensureRemoteMediaUrls,
@@ -414,8 +416,10 @@ export async function syncWithCloud(
       .eq("id", user.id)
       .maybeSingle();
 
-    // Pro entitlement status: preserve active local StoreKit/Pro entitlement or remote profile Pro status
-    const finalIsPro = Boolean(remoteProfile?.is_pro) || isProUser();
+    // Pro entitlement status: on native iOS/Android, StoreKit/RevenueCat is authoritative
+    const finalIsPro = Capacitor.isNativePlatform()
+      ? await getNativeCustomerProStatus()
+      : Boolean(remoteProfile?.is_pro) || isProUser();
     setProUser(finalIsPro);
 
     let resolvedUserName = userName?.trim() || "Author";

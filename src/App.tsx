@@ -2701,14 +2701,7 @@ export function App() {
         )}
       </AnimatePresence>
 
-      {/* Global tap-anywhere dismissal backdrop for active note context menu */}
-      {activeMenuNoteId && (
-        <div
-          className="fixed inset-0 z-35 bg-transparent"
-          onClick={() => setActiveMenuNoteId(null)}
-          onTouchStart={() => setActiveMenuNoteId(null)}
-        />
-      )}
+{/* Note context menu backdrop is now portaled directly inside NoteEntry */}
 
       {/* Zen Reading Mode Progress Bar */}
       {isReadingMode && currentView === "notebook" && (
@@ -2846,7 +2839,7 @@ export function App() {
                   {/* Read-Only Badge for Collaborators */}
                   {isCurrentSpaceReadOnly && (
                     <div className="pt-2 flex items-center justify-center">
-                      <span className="text-[10px] px-2.5 py-0.5 rounded-full font-sans font-semibold bg-amber-500/15 text-amber-500 border border-amber-500/30 flex items-center gap-1">
+                      <span className="text-[10px] px-2.5 py-0.5 rounded-full font-sans font-semibold bg-[var(--text-primary)]/10 text-[var(--text-secondary)] border border-[var(--glass-border)] flex items-center gap-1">
                         <Eye className="w-3 h-3" />
                         <span>Mode Hanya Baca (Read-Only)</span>
                       </span>
@@ -2870,7 +2863,7 @@ export function App() {
                     {userName || "Author"}
                   </div>
                   {isCurrentSpaceReadOnly && (
-                    <div className="text-[10px] text-amber-500/80 font-sans font-medium">
+                    <div className="text-[10px] text-[var(--text-secondary)] opacity-80 font-sans font-medium">
                       Mode Hanya Baca
                     </div>
                   )}
@@ -3036,7 +3029,7 @@ export function App() {
                         >
                           <div className="dynamic-island-specular-rim" />
                           {isCurrentSpaceReadOnly ? (
-                            <Eye className="w-4 h-4 text-amber-500/90" />
+                            <Eye className="w-4 h-4 text-[var(--text-secondary)] opacity-90" />
                           ) : (
                             <PenLine className="w-4 h-4 stroke-[2]" />
                           )}

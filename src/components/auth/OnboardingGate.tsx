@@ -474,7 +474,7 @@ export function OnboardingGate({
         const resolvedEmail =
           res.user.email ||
           res.user.user_metadata?.email ||
-          `apple_${res.user.id.slice(0, 8)}@privaterelay.appleid.com`;
+          `user_${res.user.id.slice(0, 8)}@noticed.app`;
         onAuthSuccess(resolvedEmail, res.user.id);
       }
     } catch (err: any) {
@@ -515,7 +515,7 @@ export function OnboardingGate({
         const resolvedEmail =
           res.user.email ||
           res.user.user_metadata?.email ||
-          `apple_${res.user.id.slice(0, 8)}@privaterelay.appleid.com`;
+          `user_${res.user.id.slice(0, 8)}@noticed.app`;
         onAuthSuccess(resolvedEmail, res.user.id);
       }
     } catch (err: any) {
@@ -550,7 +550,7 @@ export function OnboardingGate({
       {/* ATMOSPHERIC 3D PEBBLE HERO BACKGROUND */}
       <div className="absolute top-0 inset-x-0 h-[62%] sm:h-[66%] z-0 overflow-hidden flex items-center justify-center pointer-events-none select-none">
         {/* Subtle Ambient Radial Aura behind the pebble */}
-        <div className="absolute w-80 h-80 rounded-full bg-radial from-amber-500/10 via-amber-700/5 to-transparent blur-3xl" />
+        <div className="absolute w-80 h-80 rounded-full bg-radial from-[var(--text-primary)]/10 via-[var(--text-primary)]/5 to-transparent blur-3xl" />
 
         {/* Floating 3D Pebble Artwork */}
         <motion.div
@@ -947,7 +947,7 @@ export function OnboardingGate({
 
             {/* Status & Error Alerts */}
             {errorMessage && (
-              <div className="mb-2.5 p-2.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-sans flex items-start gap-2">
+              <div className="mb-2.5 p-2.5 rounded-2xl bg-archival-carmine-soft border border-archival-carmine text-archival-carmine text-xs font-sans flex items-start gap-2">
                 <span>{errorMessage}</span>
               </div>
             )}

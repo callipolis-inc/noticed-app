@@ -10,6 +10,7 @@ import {
   sendPasswordResetEmail,
 } from "@/lib/supabase";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
+import { useAppLanguage } from "@/lib/i18n";
 import {
   X,
   Mail,
@@ -32,9 +33,11 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
   useLockBodyScroll(isOpen);
+  const [currentLang] = useAppLanguage();
+  const isId = currentLang === "id";
 
   const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "success">(
-    "signin"
+    "signin",
   );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,7 +57,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     }
   }, [isOpen]);
 
-  // Anti-hang safety timeout & window focus listener for Google OAuth
+  // Anti-hang safety timeout & window focus listener for OAuth
   useEffect(() => {
     let safetyTimeout: any;
 
@@ -89,13 +92,21 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
 
     if (!cleanEmail || !cleanEmail.includes("@")) {
       triggerHaptic("heavy");
-      setErrorMessage("Please enter a valid email address.");
+      setErrorMessage(
+        isId
+          ? "Silakan masukkan alamat email yang valid."
+          : "Please enter a valid email address.",
+      );
       return;
     }
 
     if (password.length < 6) {
       triggerHaptic("heavy");
-      setErrorMessage("Password must be at least 6 characters.");
+      setErrorMessage(
+        isId
+          ? "Kata sandi minimal harus 6 karakter."
+          : "Password must be at least 6 characters.",
+      );
       return;
     }
 
@@ -108,7 +119,6 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
       if (mode === "signup") {
         const data = await signUpWithPassword(cleanEmail, password);
 
-        // Rule 1: Instant Sign-Up (Auto-Login in 1s when Confirm Email is OFF and session is returned)
         if (data?.session) {
           triggerSuccessHaptic();
           setMode("success");
@@ -117,10 +127,11 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
             onClose();
           }, 800);
         } else {
-          // Fallback if Confirm Email is still enabled on server
           triggerSuccessHaptic();
           setInfoMessage(
-            "Account created! Please check your email inbox to confirm your account before signing in."
+            isId
+              ? "Akun berhasil dibuat! Silakan periksa kotak masuk email Anda untuk konfirmasi sebelum masuk."
+              : "Account created! Please check your email inbox to confirm your account before signing in.",
           );
           setMode("signin");
         }
@@ -138,21 +149,28 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     } catch (err: any) {
       triggerHaptic("heavy");
       setErrorMessage(
-        err?.message || "Authentication failed. Please check your credentials."
+        err?.message ||
+          (isId
+            ? "Autentikasi gagal. Periksa kembali email dan kata sandi Anda."
+            : "Authentication failed. Please check your credentials."),
       );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle Forgot Password (via Supabase Custom Gmail SMTP)
+  // Handle Forgot Password
   const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail || !cleanEmail.includes("@")) {
       triggerHaptic("heavy");
-      setErrorMessage("Please enter your account email address.");
+      setErrorMessage(
+        isId
+          ? "Silakan masukkan alamat email akun Anda."
+          : "Please enter your account email address.",
+      );
       return;
     }
 
@@ -165,12 +183,17 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
       await sendPasswordResetEmail(cleanEmail);
       triggerSuccessHaptic();
       setInfoMessage(
-        `Password reset instructions have been sent to ${cleanEmail}. Please check your inbox.`
+        isId
+          ? `Instruksi pengaturan ulang kata sandi telah dikirim ke ${cleanEmail}. Silakan periksa kotak masuk Anda.`
+          : `Password reset instructions have been sent to ${cleanEmail}. Please check your inbox.`,
       );
     } catch (err: any) {
       triggerHaptic("heavy");
       setErrorMessage(
-        err?.message || "Failed to send password reset email. Please try again."
+        err?.message ||
+          (isId
+            ? "Gagal mengirim email reset kata sandi. Silakan coba lagi."
+            : "Failed to send password reset email. Please try again."),
       );
     } finally {
       setIsLoading(false);
@@ -187,12 +210,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     try {
       const res = await signInWithApple();
       if (!res) {
-        // Silent cancellation
-        setIsLoading(false);
         return;
       }
-      if (res && "user" in res && res.user?.email) {
-        onAuthSuccess(res.user.email);
+      if (res && "user" in res && res.user?.id) {
+        const resolvedEmail =
+          res.user.email ||
+          res.user.user_metadata?.email ||
+          `apple_${res.user.id.slice(0, 8)}@privaterelay.appleid.com`;
+        onAuthSuccess(resolvedEmail);
         onClose();
       }
     } catch (err: any) {
@@ -203,14 +228,17 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         err?.code === "1001";
 
       if (isCancel) {
-        setIsLoading(false);
         return;
       }
 
       triggerHaptic("heavy");
       setErrorMessage(
-        err?.message || "Sign in with Apple failed. Please try again."
+        err?.message ||
+          (isId
+            ? "Gagal masuk dengan Apple. Silakan coba lagi."
+            : "Sign in with Apple failed. Please try again."),
       );
+    } finally {
       setIsLoading(false);
     }
   };
@@ -225,12 +253,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
     try {
       const res = await signInWithGoogle();
       if (!res) {
-        // Silent cancellation (user dismissed sheet)
-        setIsLoading(false);
         return;
       }
-      if (res && "user" in res && res.user?.email) {
-        onAuthSuccess(res.user.email);
+      if (res && "user" in res && res.user?.id) {
+        const resolvedEmail =
+          res.user.email ||
+          res.user.user_metadata?.email ||
+          `google_${res.user.id.slice(0, 8)}@gmail.com`;
+        onAuthSuccess(resolvedEmail);
         onClose();
       }
     } catch (err: any) {
@@ -244,14 +274,17 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
         err?.message?.includes("SIGN_IN_CANCELED");
 
       if (isCancel) {
-        setIsLoading(false);
         return;
       }
 
       triggerHaptic("heavy");
       setErrorMessage(
-        err?.message || "Could not start Google Sign-In. Please try again."
+        err?.message ||
+          (isId
+            ? "Gagal masuk dengan Google. Silakan coba lagi."
+            : "Could not complete Google Sign-In. Please try again."),
       );
+    } finally {
       setIsLoading(false);
     }
   };
@@ -295,7 +328,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
               onClose();
             }}
             className="absolute top-5 right-5 p-2 rounded-full text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-            aria-label="Close"
+            aria-label={isId ? "Tutup" : "Close"}
           >
             <X className="w-4 h-4" />
           </button>
@@ -309,12 +342,20 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                   <Cloud className="w-6 h-6 text-[var(--text-primary)]" />
                 </div>
                 <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
-                  {mode === "signup" ? "Create Cloud Account" : "Noticed Cloud"}
+                  {mode === "signup"
+                    ? isId
+                      ? "Buat Akun Cloud"
+                      : "Create Cloud Account"
+                    : "Noticed Cloud"}
                 </h2>
                 <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-[280px] mx-auto leading-relaxed">
                   {mode === "signup"
-                    ? "Instant sign-up to back up and synchronize your notebooks across devices."
-                    : "Sign in to keep your notebooks, marginalia, and field notes synchronized."}
+                    ? isId
+                      ? "Daftar instan untuk mencadangkan dan menyinkronkan buku catatan Anda di semua perangkat."
+                      : "Instant sign-up to back up and synchronize your notebooks across devices."
+                    : isId
+                      ? "Masuk untuk menjaga buku catatan, catatan pinggir, dan jurnal Anda tetap tersinkronisasi."
+                      : "Sign in to keep your notebooks, marginalia, and field notes synchronized."}
                 </p>
               </div>
 
@@ -333,7 +374,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   }`}
                 >
-                  Sign In
+                  {isId ? "Masuk" : "Sign In"}
                 </button>
                 <button
                   type="button"
@@ -348,7 +389,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   }`}
                 >
-                  Create Account
+                  {isId ? "Buat Akun" : "Create Account"}
                 </button>
               </div>
 
@@ -379,8 +420,12 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={
                       mode === "signup"
-                        ? "Create password (min. 6 chars)"
-                        : "Enter your password"
+                        ? isId
+                          ? "Buat kata sandi (min. 6 karakter)"
+                          : "Create password (min. 6 chars)"
+                        : isId
+                          ? "Masukkan kata sandi Anda"
+                          : "Enter your password"
                     }
                     autoComplete={
                       mode === "signup" ? "new-password" : "current-password"
@@ -391,7 +436,15 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] p-0.5 shrink-0"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword
+                        ? isId
+                          ? "Sembunyikan sandi"
+                          : "Hide password"
+                        : isId
+                          ? "Tampilkan sandi"
+                          : "Show password"
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="w-4 h-4" />
@@ -414,20 +467,27 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                       }}
                       className="text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
                     >
-                      Forgot password?
+                      {isId ? "Lupa kata sandi?" : "Forgot password?"}
                     </button>
                   </div>
                 )}
 
                 {errorMessage && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs">
+                  <div
+                    style={{
+                      backgroundColor: "rgba(158, 59, 51, 0.1)",
+                      borderColor: "rgba(158, 59, 51, 0.25)",
+                      color: "#9e3b33",
+                    }}
+                    className="flex items-center gap-2 p-3 rounded-xl border text-xs"
+                  >
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{errorMessage}</span>
                   </div>
                 )}
 
                 {infoMessage && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs">
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-[var(--text-primary)]/8 border border-[var(--glass-border)] text-[var(--text-primary)] text-xs">
                     <Check className="w-4 h-4 shrink-0" />
                     <span>{infoMessage}</span>
                   </div>
@@ -444,8 +504,12 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                     <>
                       <span>
                         {mode === "signup"
-                          ? "Create Account & Sign In"
-                          : "Sign In"}
+                          ? isId
+                            ? "Buat Akun & Masuk"
+                            : "Create Account & Sign In"
+                          : isId
+                            ? "Masuk"
+                            : "Sign In"}
                       </span>
                       <ArrowRight className="w-4 h-4" />
                     </>
@@ -458,7 +522,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 <div className="relative flex items-center justify-center">
                   <div className="border-t border-[var(--glass-border)]/50 w-full" />
                   <span className="px-3 text-[10px] font-mono uppercase tracking-widest text-[var(--text-tertiary)] bg-transparent shrink-0">
-                    or
+                    {isId ? "atau" : "or"}
                   </span>
                   <div className="border-t border-[var(--glass-border)]/50 w-full" />
                 </div>
@@ -470,10 +534,15 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                   disabled={isLoading}
                   className="w-full py-3 px-4 rounded-2xl bg-black text-white dark:bg-white dark:text-black font-medium text-xs flex items-center justify-center gap-2.5 hover:opacity-90 active:scale-[0.99] transition-all disabled:opacity-40 cursor-pointer shadow-xs"
                 >
-                  <svg className="w-4 h-4 fill-current mb-0.5" viewBox="0 0 170 170">
+                  <svg
+                    className="w-4 h-4 fill-current mb-0.5"
+                    viewBox="0 0 170 170"
+                  >
                     <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.69-7.85-11.97-14.42-6.19-9.58-10.9-20.58-14.13-33-3.23-12.42-4.85-24.1-4.85-35.03 0-14.92 3.8-27.42 11.41-37.5 7.61-10.08 17.18-15.22 28.72-15.42 4.9 0 10.37 1.34 16.42 4.02 6.05 2.68 10.22 4.09 12.51 4.22 1.96 0 6.32-1.46 13.08-4.38 6.76-2.92 12.35-4.14 16.78-3.66 12.63 1.09 22.86 6.03 30.68 14.81-11.09 6.76-16.53 16.22-16.32 28.38.22 9.58 3.91 17.58 11.08 24 7.17 6.42 15.67 10.05 25.5 10.89-2.18 6.76-4.79 13.62-7.83 20.58zM119.22 33.09c0-7.39 2.61-14.28 7.83-20.67 5.22-6.39 11.75-10.45 19.59-12.18.22 1.3.33 2.41.33 3.32 0 7.39-2.73 14.43-8.19 21.12-5.46 6.69-12.08 10.59-19.86 11.7-.1-.99-.3-1.99-.7-3.29z" />
                   </svg>
-                  <span>Sign in with Apple</span>
+                  <span>
+                    {isId ? "Lanjutkan dengan Apple" : "Sign in with Apple"}
+                  </span>
                 </button>
 
                 {/* Continue with Google */}
@@ -501,7 +570,11 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                       d="M12.18 4.75c2.35 0 4.46.81 6.12 2.4l4.59-4.59C20.12.98 16.5 0 12.18 0 7.01 0 2.54 3.58-.1 8.82l3.32 3.74c1.26-3.78 4.79-6.59 8.96-6.59z"
                     />
                   </svg>
-                  <span>Continue with Google</span>
+                  <span>
+                    {isId
+                      ? "Lanjutkan dengan Google"
+                      : "Continue with Google"}
+                  </span>
                 </button>
               </div>
 
@@ -515,13 +588,15 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                   }}
                   className="text-xs text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors cursor-pointer"
                 >
-                  Continue offline without cloud sync
+                  {isId
+                    ? "Lanjutkan offline tanpa sinkronisasi cloud"
+                    : "Continue offline without cloud sync"}
                 </button>
               </div>
             </div>
           )}
 
-          {/* FORGOT PASSWORD VIEW (Rule 2: Transactional Email Only for Password Reset) */}
+          {/* FORGOT PASSWORD VIEW */}
           {mode === "forgot" && (
             <div>
               <button
@@ -535,7 +610,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 className="inline-flex items-center gap-1.5 text-xs text-[var(--text-tertiary)] hover:text-[var(--text-primary)] mb-4 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Back to Sign In</span>
+                <span>{isId ? "Kembali ke Masuk" : "Back to Sign In"}</span>
               </button>
 
               <div className="text-center mb-5">
@@ -543,11 +618,12 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                   <KeyRound className="w-6 h-6 text-[var(--text-primary)]" />
                 </div>
                 <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
-                  Reset Password
+                  {isId ? "Atur Ulang Kata Sandi" : "Reset Password"}
                 </h2>
                 <p className="text-xs text-[var(--text-secondary)] mt-1.5 max-w-[280px] mx-auto leading-relaxed">
-                  Enter your email address and we will send you a link to reset
-                  your password.
+                  {isId
+                    ? "Masukkan alamat email Anda dan kami akan mengirimkan tautan untuk mengatur ulang kata sandi."
+                    : "Enter your email address and we will send you a link to reset your password."}
                 </p>
               </div>
 
@@ -569,14 +645,21 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                 </div>
 
                 {errorMessage && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs">
+                  <div
+                    style={{
+                      backgroundColor: "rgba(158, 59, 51, 0.1)",
+                      borderColor: "rgba(158, 59, 51, 0.25)",
+                      color: "#9e3b33",
+                    }}
+                    className="flex items-center gap-2 p-3 rounded-xl border text-xs"
+                  >
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{errorMessage}</span>
                   </div>
                 )}
 
                 {infoMessage && (
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs">
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-[var(--text-primary)]/8 border border-[var(--glass-border)] text-[var(--text-primary)] text-xs">
                     <Check className="w-4 h-4 shrink-0" />
                     <span>{infoMessage}</span>
                   </div>
@@ -591,7 +674,9 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
                     <RotateCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <span>Send Reset Link</span>
+                      <span>
+                        {isId ? "Kirim Tautan Reset" : "Send Reset Link"}
+                      </span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -603,20 +688,22 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess }: AuthModalProps) {
           {/* SUCCESS STATE */}
           {mode === "success" && (
             <div className="text-center py-6">
-              <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center bg-green-500/15 text-green-600 dark:text-green-400 border border-green-500/30">
+              <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--glass-border)]">
                 <Check className="w-7 h-7" />
               </div>
               <h2 className="text-xl font-serif font-bold text-[var(--text-primary)] tracking-tight">
-                Signed In Successfully
+                {isId ? "Berhasil Masuk" : "Signed In Successfully"}
               </h2>
               <p className="text-xs text-[var(--text-secondary)] mt-1.5">
-                Connecting to Noticed cloud and synchronizing your notebooks...
+                {isId
+                  ? "Menghubungkan ke Noticed Cloud dan menyinkronkan buku catatan Anda..."
+                  : "Connecting to Noticed cloud and synchronizing your notebooks..."}
               </p>
             </div>
           )}
         </motion.div>
       </div>
     </AnimatePresence>,
-    document.body
+    document.body,
   );
 }

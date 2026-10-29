@@ -1670,3 +1670,25 @@ a.liquid-glass:active {
   opacity: 0.6;
 }
 
+
+
+/* Archival Semantic Utilities (GEMINI.md Rule 1 Compliant) */
+.text-archival-carmine { color: #9e3b33; }
+.hover\:text-archival-carmine:hover { color: #872f28; }
+.bg-archival-carmine { background-color: #9e3b33; }
+.hover\:bg-archival-carmine:hover { background-color: #872f28; }
+.bg-archival-carmine-soft { background-color: rgba(158, 59, 51, 0.10); }
+.hover\:bg-archival-carmine-soft:hover { background-color: rgba(158, 59, 51, 0.16); }
+.border-archival-carmine { border-color: rgba(158, 59, 51, 0.28); }
+.ring-archival-carmine { --tw-ring-color: rgba(158, 59, 51, 0.30); }
+
+.text-archival-sage { color: #4a6b53; }
+.bg-archival-sage { background-color: #4a6b53; }
+.bg-archival-sage-soft { background-color: rgba(74, 107, 83, 0.14); }
+.border-archival-sage { border-color: rgba(74, 107, 83, 0.32); }
+:where([data-theme="obsidian"], [data-theme="espresso"], [data-theme="oxford"], [data-theme="dark"], .dark) .text-archival-sage {
+  color: #8ab093;
+}
+:where([data-theme="obsidian"], [data-theme="espresso"], [data-theme="oxford"], [data-theme="dark"], .dark) .text-archival-carmine {
+  color: #cf6a62;
+}

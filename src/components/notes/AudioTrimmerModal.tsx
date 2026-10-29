@@ -438,7 +438,7 @@ export function AudioTrimmerModal({
             </div>
           ) : decodeError ? (
             <div className="py-8 text-center space-y-3">
-              <div className="text-xs text-rose-500 font-medium px-4">
+              <div className="text-xs text-archival-carmine font-medium px-4">
                 {decodeError}
               </div>
               <button
@@ -535,10 +535,10 @@ export function AudioTrimmerModal({
                   {/* Live Playhead Needle Indicator */}
                   {isPlaying && (
                     <div
-                      className="absolute top-0 bottom-0 w-[2px] bg-rose-500 z-20 pointer-events-none shadow-[0_0_8px_rgba(244,63,94,0.6)]"
+                      className="absolute top-0 bottom-0 w-[2px] bg-archival-carmine z-20 pointer-events-none shadow-[0_0_8px_rgba(244,63,94,0.6)]"
                       style={{ left: `${playheadPercent}%` }}
                     >
-                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-rose-500" />
+                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-archival-carmine" />
                     </div>
                   )}
 

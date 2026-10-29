@@ -433,7 +433,7 @@ export function QuickAnnotatorModal({
                   <button
                     type="button"
                     onClick={() => handleRemoveActiveItem(activeItemIndex)}
-                    className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-tertiary)] hover:text-rose-500 transition-colors shrink-0 cursor-pointer"
+                    className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-tertiary)] hover:text-archival-carmine transition-colors shrink-0 cursor-pointer"
                     title="Delete this footnote"
                   >
                     <Trash2 className="w-3.5 h-3.5 stroke-[1.8]" />
@@ -522,7 +522,7 @@ export function QuickAnnotatorModal({
                   }
                   onClose();
                 }}
-                className="text-xs text-[var(--text-tertiary)] hover:text-rose-500 transition-colors cursor-pointer py-1 px-1 font-medium"
+                className="text-xs text-[var(--text-tertiary)] hover:text-archival-carmine transition-colors cursor-pointer py-1 px-1 font-medium"
               >
                 Clear All
               </button>

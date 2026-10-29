@@ -345,7 +345,7 @@ export function CreateNoteMediaSection({
         </div>
       )}
       {videoError && (
-        <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans flex items-start gap-2">
+        <div className="mt-2 p-2.5 rounded-xl bg-archival-carmine-soft border border-archival-carmine text-archival-carmine text-xs font-sans flex items-start gap-2">
           <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <div className="flex-1">
             <span className="font-semibold block">Video Error</span>
@@ -354,7 +354,7 @@ export function CreateNoteMediaSection({
         </div>
       )}
       {audioError && (
-        <div className="mt-2 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-sans flex items-start gap-2">
+        <div className="mt-2 p-2.5 rounded-xl bg-archival-carmine-soft border border-archival-carmine text-archival-carmine text-xs font-sans flex items-start gap-2">
           <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
           <div className="flex-1">
             <span className="font-semibold block">Audio Notice</span>
@@ -380,7 +380,7 @@ export function CreateNoteMediaSection({
               triggerHaptic("light");
               onRemoveAudio();
             }}
-            className="p-2 text-[var(--text-tertiary)] hover:text-rose-500 transition-colors cursor-pointer shrink-0"
+            className="p-2 text-[var(--text-tertiary)] hover:text-archival-carmine transition-colors cursor-pointer shrink-0"
             title="Delete voice memo"
           >
             <Trash2 className="w-4 h-4" />

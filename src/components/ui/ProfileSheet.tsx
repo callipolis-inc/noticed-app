@@ -454,7 +454,7 @@ export function ProfileSheet({
                       <button
                         type="button"
                         onClick={handleResetPhoto}
-                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white dark:bg-neutral-800 border border-black/10 dark:border-white/20 text-[var(--text-secondary)] hover:text-rose-500 flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer"
+                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white dark:bg-neutral-800 border border-black/10 dark:border-white/20 text-[var(--text-secondary)] hover:text-archival-carmine flex items-center justify-center shadow-md active:scale-90 transition-transform cursor-pointer"
                         title="Remove Photo"
                       >
                         <Trash2 className="w-2.5 h-2.5" />
@@ -659,7 +659,7 @@ export function ProfileSheet({
                           type="button"
                           onClick={handleSignOut}
                           title="Sign Out"
-                          className="p-1.5 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-secondary)] hover:text-rose-500 active:scale-95 transition-all cursor-pointer shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]"
+                          className="p-1.5 rounded-full inner-pseudo-glass text-[11px] font-medium text-[var(--text-secondary)] hover:text-archival-carmine active:scale-95 transition-all cursor-pointer shadow-[0_2px_6px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.7)]"
                         >
                           <LogOut className="w-3 h-3" />
                         </button>
@@ -782,14 +782,14 @@ export function ProfileSheet({
 
               {/* 6. DANGER ZONE / ACCOUNT & DATA ERASURE (App Store 5.1.1(v) & Google Play Compliance) */}
               <div className="space-y-1.5 pt-1">
-                <span className="text-[11px] font-medium tracking-wide text-rose-500/80 px-2">
+                <span className="text-[11px] font-medium tracking-wide text-archival-carmine opacity-85 px-2">
                   Account & Data Privacy
                 </span>
 
-                <div className="rounded-2xl apple-card border border-rose-500/20 overflow-hidden shadow-[0_8px_24px_-6px_rgba(244,63,94,0.08)]">
+                <div className="rounded-2xl apple-card border border-archival-carmine overflow-hidden shadow-[0_8px_24px_-6px_rgba(244,63,94,0.08)]">
                   <div className="p-3.5 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="text-xs font-semibold text-rose-500 flex items-center gap-1.5">
+                      <div className="text-xs font-semibold text-archival-carmine flex items-center gap-1.5">
                         <UserX className="w-3.5 h-3.5 shrink-0 stroke-[2.2]" />
                         <span>Delete Account & Data</span>
                       </div>
@@ -805,7 +805,7 @@ export function ProfileSheet({
                         setDeleteConfirmInput("");
                         setIsDeleteAccountConfirmOpen(true);
                       }}
-                      className="px-3.5 py-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 text-rose-500 border border-rose-500/25 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs"
+                      className="px-3.5 py-1.5 rounded-full bg-archival-carmine-soft hover:bg-archival-carmine-soft active:scale-95 text-archival-carmine border border-archival-carmine text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-2xs"
                     >
                       <Trash2 className="w-3 h-3 stroke-[2.2]" />
                       <span>Delete</span>
@@ -862,12 +862,12 @@ export function ProfileSheet({
 
                   <form onSubmit={handlePasswordSubmit} className="space-y-3.5">
                     {passwordModalError && (
-                      <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs">
+                      <div className="p-2.5 rounded-xl bg-archival-carmine-soft border border-archival-carmine text-archival-carmine text-xs">
                         {passwordModalError}
                       </div>
                     )}
                     {passwordModalSuccess && (
-                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-xs flex items-center gap-1.5 font-medium">
+                      <div className="p-2.5 rounded-xl bg-archival-sage-soft border border-archival-sage text-archival-sage text-xs flex items-center gap-1.5 font-medium">
                         <Check className="w-3.5 h-3.5 stroke-[2.5]" />
                         Password updated successfully!
                       </div>
@@ -963,9 +963,9 @@ export function ProfileSheet({
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.94, opacity: 0, y: 10 }}
                   transition={{ type: "spring", stiffness: 450, damping: 30 }}
-                  className="relative w-full max-w-xs sm:max-w-sm rounded-3xl dynamic-island-shell p-5 border border-rose-500/30 shadow-2xl z-10 space-y-4 text-center pointer-events-auto"
+                  className="relative w-full max-w-xs sm:max-w-sm rounded-3xl dynamic-island-shell p-5 border border-archival-carmine shadow-2xl z-10 space-y-4 text-center pointer-events-auto"
                 >
-                  <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/25 shadow-xs">
+                  <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-archival-carmine-soft text-archival-carmine border border-archival-carmine shadow-xs">
                     <AlertTriangle className="w-6 h-6 stroke-[2.2]" />
                   </div>
 
@@ -974,14 +974,14 @@ export function ProfileSheet({
                       Permanently Delete Account?
                     </h3>
                     <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed">
-                      This action is <strong className="text-rose-500 font-semibold">irreversible</strong>. In compliance with Apple & Google Play privacy standards, your cloud account, synchronised notebooks, media archives, and local device records will be permanently erased.
+                      This action is <strong className="text-archival-carmine font-semibold">irreversible</strong>. In compliance with Apple & Google Play privacy standards, your cloud account, synchronised notebooks, media archives, and local device records will be permanently erased.
                     </p>
                   </div>
 
                   {/* Verification Input (Type DELETE to confirm) */}
                   <div className="text-left space-y-1.5 pt-1">
                     <label className="text-[11px] font-medium text-[var(--text-secondary)]">
-                      Type <span className="font-mono font-bold text-rose-500">DELETE</span> to confirm:
+                      Type <span className="font-mono font-bold text-archival-carmine">DELETE</span> to confirm:
                     </label>
                     <input
                       type="text"
@@ -992,7 +992,7 @@ export function ProfileSheet({
                       onChange={(e) => setDeleteConfirmInput(e.target.value)}
                       placeholder="DELETE"
                       disabled={isDeletingAccount}
-                      className="w-full px-3 py-2 rounded-xl text-center font-mono font-bold text-xs uppercase tracking-wider bg-black/5 dark:bg-white/5 border border-rose-500/30 focus:border-rose-500 focus:outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 transition-colors"
+                      className="w-full px-3 py-2 rounded-xl text-center font-mono font-bold text-xs uppercase tracking-wider bg-black/5 dark:bg-white/5 border border-archival-carmine focus:border-archival-carmine focus:outline-none text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]/40 transition-colors"
                     />
                   </div>
 
@@ -1026,7 +1026,7 @@ export function ProfileSheet({
                           setIsDeletingAccount(false);
                         }
                       }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
+                      className="flex-1 py-2 px-3 rounded-xl bg-archival-carmine hover:bg-archival-carmine active:scale-95 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
                     >
                       {isDeletingAccount ? (
                         <>

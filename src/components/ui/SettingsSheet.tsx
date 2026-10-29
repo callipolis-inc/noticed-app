@@ -1065,7 +1065,7 @@ export function SettingsSheet({
                     triggerHaptic("heavy");
                     setIsResetConfirmOpen(true);
                   }}
-                  className="w-full p-3.5 rounded-2xl apple-card text-rose-500 hover:text-rose-600 active:scale-98 transition-all text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-[0_6px_20px_-4px_rgba(244,63,94,0.1),inset_0_1px_0_rgba(255,255,255,0.85)] border border-rose-500/15"
+                  className="w-full p-3.5 rounded-2xl apple-card text-archival-carmine hover:text-archival-carmine active:scale-98 transition-all text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-[0_6px_20px_-4px_rgba(244,63,94,0.1),inset_0_1px_0_rgba(255,255,255,0.85)] border border-archival-carmine/15"
                 >
                   <Trash2 className="w-3.5 h-3.5 stroke-[2.2]" />
                   <span>{t.settings.resetAllData}</span>
@@ -1136,7 +1136,7 @@ export function SettingsSheet({
                   <div className="dynamic-island-specular-rim" />
 
                   <div className="text-center space-y-1">
-                    <div className="w-9 h-9 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 mx-auto mb-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+                    <div className="w-9 h-9 rounded-xl bg-archival-carmine-soft flex items-center justify-center text-archival-carmine mx-auto mb-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
                       <AlertTriangle className="w-4 h-4" />
                     </div>
                     <h4 className="text-sm font-semibold text-[var(--text-primary)]">
@@ -1173,7 +1173,7 @@ export function SettingsSheet({
                       onClick={handleConfirmReset}
                       className={`flex-1 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-transform shadow-xs cursor-pointer ${
                         confirmInput.toUpperCase() === "RESET"
-                          ? "bg-rose-500 text-white hover:bg-rose-600 shadow-[0_4px_12px_rgba(244,63,94,0.3)]"
+                          ? "bg-archival-carmine text-white hover:bg-archival-carmine shadow-[0_4px_12px_rgba(244,63,94,0.3)]"
                           : "bg-[var(--text-primary)]/10 text-[var(--text-tertiary)] cursor-not-allowed"
                       }`}
                     >

@@ -320,8 +320,8 @@ export function ManuscriptExportModal({
               >
                 {copied ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
-                    <span className="text-emerald-500">Copied</span>
+                    <Check className="w-3.5 h-3.5 text-archival-sage stroke-[2.5]" />
+                    <span className="text-archival-sage">{currentLang === "id" ? "Tersalin" : "Copied"}</span>
                   </>
                 ) : (
                   <>

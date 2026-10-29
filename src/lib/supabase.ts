@@ -12,7 +12,7 @@ import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
 export function withTimeout<T>(
   promise: Promise<T> | PromiseLike<T>,
   ms = 20000,
-  timeoutMessage = "Network request timed out (20s). Please check your internet connection."
+  timeoutMessage = "Network request timed out (20s). Please check your internet connection.",
 ): Promise<T> {
   let timer: any;
   const timeoutPromise = new Promise<never>((_, reject) => {
@@ -34,7 +34,7 @@ export async function withRetryTimeout<T>(
   operation: () => Promise<T>,
   ms = 12000,
   maxRetries = 1,
-  timeoutMessage = "Network request timed out. Please check your internet connection."
+  timeoutMessage = "Network request timed out. Please check your internet connection.",
 ): Promise<T> {
   let attempt = 0;
   while (true) {
@@ -61,7 +61,9 @@ export async function withRetryTimeout<T>(
         err?.message?.toLowerCase().includes("abort");
 
       if (attempt <= maxRetries && isNetworkOrTimeout) {
-        console.warn(`[Supabase] Network attempt ${attempt} interrupted, retrying immediately...`);
+        console.warn(
+          `[Supabase] Network attempt ${attempt} interrupted, retrying immediately...`,
+        );
         await new Promise((resolve) => setTimeout(resolve, 300));
         continue;
       }
@@ -86,7 +88,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
-    "[Noticed] Supabase credentials not found in environment variables. Offline mode only."
+    "[Noticed] Supabase credentials not found in environment variables. Offline mode only.",
   );
 }
 
@@ -99,13 +101,11 @@ export const supabase = createClient(
       autoRefreshToken: true,
       detectSessionInUrl: true,
     },
-  }
+  },
 );
 
 export const isSupabaseConfigured = Boolean(
-  supabaseUrl &&
-    supabaseAnonKey &&
-    !supabaseUrl.includes("placeholder")
+  supabaseUrl && supabaseAnonKey && !supabaseUrl.includes("placeholder"),
 );
 
 /**
@@ -113,7 +113,9 @@ export const isSupabaseConfigured = Boolean(
  */
 export async function signUpWithPassword(email: string, password: string) {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
   const { data, error } = await withRetryTimeout(
@@ -124,7 +126,7 @@ export async function signUpWithPassword(email: string, password: string) {
       }),
     14000,
     1,
-    "Sign-up request timed out. Please check your connection."
+    "Sign-up request timed out. Please check your connection.",
   );
 
   if (error) {
@@ -139,7 +141,9 @@ export async function signUpWithPassword(email: string, password: string) {
  */
 export async function signInWithPassword(email: string, password: string) {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
   const { data, error } = await withRetryTimeout(
@@ -150,7 +154,7 @@ export async function signInWithPassword(email: string, password: string) {
       }),
     14000,
     1,
-    "Sign-in request timed out. Please check your connection."
+    "Sign-in request timed out. Please check your connection.",
   );
 
   if (error) {
@@ -167,7 +171,9 @@ export async function signInWithPassword(email: string, password: string) {
  */
 export async function signInWithApple() {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
   // 1. Native iOS flow (In-app Face ID / Passcode sheet, NO Safari redirect)
@@ -175,7 +181,8 @@ export async function signInWithApple() {
     try {
       const result: SignInWithAppleResponse = await SignInWithApple.authorize({
         clientId: "com.syntheticae.noticed",
-        redirectURI: "https://ienbkpjldpzaewzewxfz.supabase.co/auth/v1/callback",
+        redirectURI:
+          "https://ienbkpjldpzaewzewxfz.supabase.co/auth/v1/callback",
         scopes: "email name",
       });
 
@@ -193,7 +200,7 @@ export async function signInWithApple() {
           }),
         15000,
         1,
-        "Sign in with Apple timed out. Please check your connection."
+        "Sign in with Apple timed out. Please check your connection.",
       );
 
       if (error) throw error;
@@ -225,7 +232,7 @@ export async function signInWithApple() {
       },
     }),
     20000,
-    "Apple OAuth request timed out. Please check your connection."
+    "Apple OAuth request timed out. Please check your connection.",
   );
 
   if (error) {
@@ -236,49 +243,62 @@ export async function signInWithApple() {
 }
 
 /**
- * Native Sign-In with Google (Accrual Production Standard)
- * On native iOS: utilizes 100% in-app Google bottom sheet with ZERO Safari redirect and ZERO supabase.co domain display.
+ * Native Sign-In with Google
+ * On native iOS: utilizes 100% in-app Google bottom sheet with ZERO Safari redirect.
  * Exchanges Google idToken directly via supabase.auth.signInWithIdToken.
  * If user cancels/dismisses, resolves silently with null.
  */
 export async function signInWithGoogle() {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
-  // 1. Native iOS flow (In-app Google Account sheet, ZERO Safari redirect, ZERO supabase.co display)
+  // 1. Native iOS flow (In-app Google Account sheet, ZERO Safari redirect)
   if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
     try {
       await GoogleSignIn.initialize({
-        clientId: "3178689480-cpe53gd57jhr7t73vcgi5r4jfj96v9fu.apps.googleusercontent.com",
+        clientId:
+          "3178689480-cpe53gd57jhr7t73vcgi5r4jfj96v9fu.apps.googleusercontent.com",
       });
 
-      // Generate secure cryptographic nonce (Accrual production standard)
-      const rawNonce =
-        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      // Clear any stale cached Google session before opening the account sheet
+      try {
+        await GoogleSignIn.signOut();
+      } catch {}
 
-      const result = await GoogleSignIn.signIn({
-        nonce: rawNonce,
-      });
+      const result = await GoogleSignIn.signIn();
 
       const idToken = result?.idToken;
       if (!idToken) {
         throw new Error("No identity token returned from Google Sign-In.");
       }
 
-      // Exchange Google ID Token with Supabase (Accrual standard with rawNonce) with resilient retry
+      // Inspect JWT payload so we only pass nonce if embedded in the ID token
+      let tokenNonce: string | undefined;
+      try {
+        const parts = idToken.split(".");
+        if (parts.length === 3) {
+          const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+          const payload = JSON.parse(atob(base64));
+          if (typeof payload?.nonce === "string" && payload.nonce.length > 0) {
+            tokenNonce = payload.nonce;
+          }
+        }
+      } catch {}
+
+      // Exchange Google ID Token with Supabase with resilient retry
       const { data, error } = await withRetryTimeout(
         () =>
           supabase.auth.signInWithIdToken({
             provider: "google",
             token: idToken,
-            nonce: rawNonce,
+            ...(tokenNonce ? { nonce: tokenNonce } : {}),
           }),
         18000,
         1,
-        "Google authentication timed out. Please check your connection."
+        "Google authentication timed out. Please check your connection.",
       );
 
       if (error) throw error;
@@ -313,7 +333,7 @@ export async function signInWithGoogle() {
       },
     }),
     20000,
-    "Google Sign-In request timed out. Please check your connection."
+    "Google Sign-In request timed out. Please check your connection.",
   );
 
   if (error) {
@@ -328,7 +348,9 @@ export async function signInWithGoogle() {
  */
 export async function sendPasswordResetEmail(email: string) {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
   const redirectTo = getAuthRedirectUrl();
@@ -338,7 +360,7 @@ export async function sendPasswordResetEmail(email: string) {
       redirectTo,
     }),
     20000,
-    "Password reset request timed out. Please check your connection."
+    "Password reset request timed out. Please check your connection.",
   );
 
   if (error) {
@@ -353,7 +375,9 @@ export async function sendPasswordResetEmail(email: string) {
  */
 export async function sendEmailOtp(email: string) {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
   const { data, error } = await withTimeout(
@@ -365,7 +389,7 @@ export async function sendEmailOtp(email: string) {
       },
     }),
     20000,
-    "OTP request timed out. Please check your connection."
+    "OTP request timed out. Please check your connection.",
   );
 
   if (error) {
@@ -380,7 +404,9 @@ export async function sendEmailOtp(email: string) {
  */
 export async function verifyEmailOtp(email: string, token: string) {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
   const cleanToken = token.trim().replace(/\D/g, "");
@@ -394,7 +420,7 @@ export async function verifyEmailOtp(email: string, token: string) {
       }),
     15000,
     1,
-    "OTP verification timed out. Please check your connection."
+    "OTP verification timed out. Please check your connection.",
   );
 
   if (error) {
@@ -409,7 +435,9 @@ export async function verifyEmailOtp(email: string, token: string) {
  */
 export async function verifySignupOtp(email: string, token: string) {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
   const cleanToken = token.trim().replace(/\D/g, "");
@@ -423,7 +451,7 @@ export async function verifySignupOtp(email: string, token: string) {
       type: "signup",
     }),
     20000,
-    "Signup OTP verification timed out. Please check your connection."
+    "Signup OTP verification timed out. Please check your connection.",
   );
 
   if (error) {
@@ -434,7 +462,7 @@ export async function verifySignupOtp(email: string, token: string) {
         token: cleanToken,
         type: "email",
       }),
-      20000
+      20000,
     );
 
     if (fallback.error) {
@@ -451,7 +479,9 @@ export async function verifySignupOtp(email: string, token: string) {
  */
 export async function resendSignupOtp(email: string) {
   if (!isSupabaseConfigured) {
-    throw new Error("Supabase is not configured. Please check your .env file.");
+    throw new Error(
+      "Supabase is not configured. Please check your .env file.",
+    );
   }
 
   const cleanEmail = email.trim().toLowerCase();
@@ -464,7 +494,7 @@ export async function resendSignupOtp(email: string) {
       },
     }),
     20000,
-    "Resend OTP timed out. Please check your connection."
+    "Resend OTP timed out. Please check your connection.",
   );
 
   if (error) {
@@ -479,10 +509,15 @@ export async function resendSignupOtp(email: string) {
  * Signs out the current user
  */
 export async function signOutUser() {
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
+    try {
+      await GoogleSignIn.signOut();
+    } catch {}
+  }
   const { error } = await withTimeout(
     supabase.auth.signOut(),
     10000,
-    "Sign-out request timed out."
+    "Sign-out request timed out.",
   );
   if (error) {
     throw error;
@@ -515,7 +550,7 @@ export async function getCurrentUser(): Promise<User | null> {
  * Subscribes to authentication state changes
  */
 export function onAuthStateChange(
-  callback: (event: string, session: Session | null) => void
+  callback: (event: string, session: Session | null) => void,
 ) {
   return supabase.auth.onAuthStateChange(callback);
 }
@@ -532,7 +567,7 @@ export async function updateUserPassword(newPassword: string) {
       password: newPassword,
     }),
     20000,
-    "Password update request timed out."
+    "Password update request timed out.",
   );
   if (error) {
     throw error;
@@ -555,13 +590,28 @@ export async function deleteUserAccount(): Promise<void> {
       () => Promise.resolve(supabase.rpc("delete_user_account")),
       18000,
       1,
-      "Account deletion request timed out."
+      "Account deletion request timed out.",
     );
-    if (rpcRes && typeof rpcRes === "object" && "error" in rpcRes && rpcRes.error) {
-      console.error("[Noticed] Remote RPC delete_user_account failed:", rpcRes.error);
-      throw new Error(rpcRes.error.message || "Failed to delete account on server.");
+    if (
+      rpcRes &&
+      typeof rpcRes === "object" &&
+      "error" in rpcRes &&
+      rpcRes.error
+    ) {
+      console.error(
+        "[Noticed] Remote RPC delete_user_account failed:",
+        rpcRes.error,
+      );
+      throw new Error(
+        rpcRes.error.message || "Failed to delete account on server.",
+      );
     }
   } finally {
+    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
+      try {
+        await GoogleSignIn.signOut();
+      } catch {}
+    }
     // Always sign out the session cleanly
     try {
       await withTimeout(supabase.auth.signOut(), 8000);

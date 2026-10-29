@@ -1027,7 +1027,7 @@ export function PhotostripModal({
                 exit={{ opacity: 0, y: 4 }}
                 className="mb-2 px-3.5 py-1.5 rounded-full dynamic-island-shell text-[var(--text-primary)] text-xs font-medium flex items-center gap-1.5 shadow-lg pointer-events-auto border border-[var(--glass-border)]"
               >
-                <Check className="w-3.5 h-3.5 text-emerald-500 stroke-[2.5]" />
+                <Check className="w-3.5 h-3.5 text-archival-sage stroke-[2.5]" />
                 <span>{exportedStatus}</span>
               </motion.div>
             )}

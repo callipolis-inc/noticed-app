@@ -596,7 +596,7 @@ export function AtelierProModal({
                 disabled={isProcessing}
                 className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
               >
-                Restore
+                {currentLang === "id" ? "Pulihkan" : "Restore"}
               </button>
               <span>·</span>
               <button
@@ -608,7 +608,7 @@ export function AtelierProModal({
                 }}
                 className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
               >
-                Terms
+                {currentLang === "id" ? "Ketentuan" : "Terms"}
               </button>
               <span>·</span>
               <button
@@ -620,7 +620,7 @@ export function AtelierProModal({
                 }}
                 className="hover:text-[var(--text-primary)] underline decoration-[var(--glass-border)] underline-offset-2 transition-colors cursor-pointer"
               >
-                Privacy
+                {currentLang === "id" ? "Privasi" : "Privacy"}
               </button>
               <span>·</span>
               <a
@@ -635,8 +635,8 @@ export function AtelierProModal({
 
             <div className="text-[8.5px] text-[var(--text-tertiary)]/65 leading-tight">
               {currentLang === "id"
-                ? "Pembayaran Apple IAP · GoPay, DANA, ShopeePay & Kartu Debit."
-                : "Official Apple IAP · Supports GoPay, DANA, ShopeePay & Debit Cards."}
+                ? "Pembayaran Resmi Apple App Store · Dikelola aman melalui Apple ID Anda."
+                : "Official Apple App Store Billing · Managed securely via your Apple ID."}
             </div>
           </div>
 

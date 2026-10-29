@@ -281,20 +281,19 @@ export function BookshelfView({
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isMoreMenuOpen) return;
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
-        setIsMoreMenuOpen(false);
-      }
-    };
-    window.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("touchstart", handleClickOutside);
-    return () => {
-      window.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [isMoreMenuOpen]);
+  const [moreMenuCoords, setMoreMenuCoords] = useState<{ top: number; right: number }>({
+    top: 68,
+    right: 16,
+  });
+
+  const updateMoreMenuCoords = () => {
+    if (!moreMenuRef.current || typeof window === "undefined") return;
+    const rect = moreMenuRef.current.getBoundingClientRect();
+    setMoreMenuCoords({
+      top: rect.bottom + 8,
+      right: Math.max(12, window.innerWidth - rect.right),
+    });
+  };
 
   const activeSpaces = useMemo(
     () => spaces.filter((s) => !s.archived),
@@ -595,7 +594,7 @@ export function BookshelfView({
                 className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[var(--bg-base)] transition-colors ${
                   isSyncing
                     ? "bg-[var(--text-primary)] opacity-80 animate-pulse"
-                    : "bg-emerald-500"
+                    : "bg-archival-sage"
                 }`}
                 title={isSyncing ? "Syncing to Cloud..." : "Cloud Synced"}
               />
@@ -617,13 +616,17 @@ export function BookshelfView({
           {/* More / Library Menu Trigger (•••) */}
           <button
             type="button"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               triggerHaptic("light");
+              if (!isMoreMenuOpen) {
+                updateMoreMenuCoords();
+              }
               setIsMoreMenuOpen(!isMoreMenuOpen);
             }}
             aria-label="Library Menu"
             aria-expanded={isMoreMenuOpen}
-            className="relative w-7 h-7 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-['']"
+            className="relative w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer before:absolute before:-inset-2 before:content-[''] touch-manipulation"
             title="Library Menu"
           >
             <MoreHorizontal className="w-4 h-4 stroke-[2]" />
@@ -649,16 +652,32 @@ export function BookshelfView({
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
           </button>
 
-          {/* Apple Frosted Glass Overflow Popover */}
-          <AnimatePresence>
-            {isMoreMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: -6 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: -6 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute top-full right-0 mt-2 w-56 rounded-2xl dynamic-island-shell shadow-[0_12px_32px_-8px_rgba(0,0,0,0.25)] border border-[var(--glass-border)] p-1.5 z-50 overflow-hidden text-xs backdrop-blur-xl pointer-events-auto"
-              >
+          {/* Portaled Frosted Glass Overflow Popover */}
+          {typeof document !== "undefined" &&
+            createPortal(
+              <AnimatePresence>
+                {isMoreMenuOpen && (
+                  <div className="fixed inset-0 z-[9990] pointer-events-auto">
+                    <div
+                      className="fixed inset-0 z-[9990] bg-transparent"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMoreMenuOpen(false);
+                      }}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.92, y: -6 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      onClick={(e) => e.stopPropagation()}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      style={{
+                        top: `${moreMenuCoords.top}px`,
+                        right: `${moreMenuCoords.right}px`,
+                      }}
+                      className="fixed z-[9995] w-60 rounded-2xl dynamic-island-shell shadow-[0_20px_45px_-8px_rgba(0,0,0,0.32)] border border-[var(--glass-border)] p-1.5 overflow-hidden text-xs backdrop-blur-xl pointer-events-auto select-none"
+                    >
                 {/* 1. Layout Switcher Row */}
                 <div className="p-2 flex items-center justify-between border-b border-[var(--glass-border)]/50">
                   <span className="text-[11px] font-medium text-[var(--text-tertiary)]">
@@ -753,16 +772,19 @@ export function BookshelfView({
                         setIsMoreMenuOpen(false);
                         onOpenSettings();
                       }}
-                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-[var(--text-secondary)] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-[var(--text-secondary)] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] hover:text-[var(--text-primary)] transition-colors cursor-pointer touch-manipulation"
                     >
                       <Settings className="w-3.5 h-3.5 stroke-[1.8]" />
                       <span>{t.settings.title}</span>
                     </button>
                   )}
                 </div>
-              </motion.div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>,
+              document.body,
             )}
-          </AnimatePresence>
         </div>
       </header>
 
@@ -1443,12 +1465,12 @@ export function BookshelfView({
                     placeholder="e.g. Field Notes, Kyoto Trip..."
                     className={`w-full px-3.5 py-2 rounded-xl apple-card text-xs font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none transition-all shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] ${
                       editError
-                        ? "border border-rose-500 ring-1 ring-rose-500/30"
+                        ? "border border-archival-carmine ring-1 ring-archival-carmine"
                         : ""
                     }`}
                   />
                   {editError && (
-                    <span className="text-[10px] text-rose-500 font-medium block mt-1">
+                    <span className="text-[10px] text-archival-carmine font-medium block mt-1">
                       {editError}
                     </span>
                   )}
@@ -1727,7 +1749,7 @@ export function BookshelfView({
                 <button
                   type="button"
                   onClick={handleDeleteActive}
-                  className="w-full p-3 rounded-2xl apple-card text-rose-500 hover:text-rose-600 active:scale-98 transition-all text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(244,63,94,0.08)] border border-rose-500/15"
+                  className="w-full p-3 rounded-2xl apple-card text-archival-carmine hover:text-archival-carmine active:scale-98 transition-all text-xs font-medium flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(244,63,94,0.08)] border border-archival-carmine/15"
                 >
                   <Trash2 className="w-3.5 h-3.5 stroke-[2]" />
                   <span>Delete Volume</span>
@@ -2061,7 +2083,7 @@ export function BookshelfView({
                   transition={{ type: "spring", stiffness: 420, damping: 32 }}
                   className="relative w-full max-w-xs dynamic-island-shell rounded-3xl p-5 z-10 pointer-events-auto border border-[var(--glass-border)] shadow-2xl text-center"
                 >
-                  <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                  <div className="w-10 h-10 rounded-2xl mx-auto mb-3 flex items-center justify-center bg-archival-carmine-soft text-archival-carmine border border-archival-carmine">
                     <Trash2 className="w-5 h-5" />
                   </div>
                   <h3 className="font-serif font-bold text-sm text-[var(--text-primary)]">
@@ -2094,7 +2116,7 @@ export function BookshelfView({
                           spaces.find((s) => s.id !== activeSelected.id)?.id || "",
                         );
                       }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                      className="flex-1 py-2 px-3 rounded-xl bg-archival-carmine hover:bg-archival-carmine text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                     >
                       Delete Volume
                     </button>

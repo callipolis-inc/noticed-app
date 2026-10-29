@@ -1073,7 +1073,7 @@ export function CreateNoteSheet({
                           triggerHaptic("light");
                           setLocationName("");
                         }}
-                        className="p-0.5 text-[var(--text-tertiary)] hover:text-rose-500 transition-colors ml-0.5 cursor-pointer"
+                        className="p-0.5 text-[var(--text-tertiary)] hover:text-archival-carmine transition-colors ml-0.5 cursor-pointer"
                         title="Remove location"
                       >
                         <X className="w-3 h-3" />
@@ -1652,8 +1652,8 @@ export function CreateNoteSheet({
               ) : (
                 /* Active Recording / Live Dictation Bar */
                 <div className="flex items-center justify-between w-full px-1 py-0.5 gap-2">
-                  <div className="flex items-center gap-2 text-rose-500 font-sans font-medium text-xs shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  <div className="flex items-center gap-2 text-archival-carmine font-sans font-medium text-xs shrink-0">
+                    <span className="w-2 h-2 rounded-full bg-archival-carmine animate-ping" />
                     <span className="font-mono">
                       {Math.floor(
                         (speech.isDictatingOnly
@@ -1717,7 +1717,7 @@ export function CreateNoteSheet({
                         {recorder.audioLevels.slice(0, 10).map((lvl, idx) => (
                           <span
                             key={idx}
-                            className="w-0.5 bg-rose-500 rounded-full transition-all duration-75"
+                            className="w-0.5 bg-archival-carmine rounded-full transition-all duration-75"
                             style={{ height: `${Math.max(4, lvl * 0.22)}px` }}
                           />
                         ))}
@@ -1732,7 +1732,7 @@ export function CreateNoteSheet({
                         ? speech.stopDictation
                         : recorder.stopRecording
                     }
-                    className="px-3 py-1 rounded-full bg-rose-500 text-white text-xs font-semibold flex items-center gap-1 active:scale-95 transition-transform cursor-pointer shadow-xs shrink-0"
+                    className="px-3 py-1 rounded-full bg-archival-carmine text-white text-xs font-semibold flex items-center gap-1 active:scale-95 transition-transform cursor-pointer shadow-xs shrink-0"
                   >
                     <Square className="w-3 h-3 fill-current" />
                     <span>Done</span>
@@ -1833,7 +1833,7 @@ export function CreateNoteSheet({
                         setIsDiscardConfirmOpen(false);
                         onClose();
                       }}
-                      className="flex-1 py-2 px-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                      className="flex-1 py-2 px-3 rounded-xl bg-archival-carmine hover:bg-archival-carmine text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                     >
                       Discard
                     </button>
