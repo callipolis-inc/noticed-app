@@ -205,20 +205,16 @@ export async function initPurchases(appUserId?: string | null): Promise<void> {
     // Listen for customer entitlement updates from RevenueCat
     await Purchases.addCustomerInfoUpdateListener((customerInfo) => {
       const isPro = checkCustomerHasPro(customerInfo);
-      if (isPro) {
-        setProUser(true);
-        void syncProToSupabase(true, appUserId);
-      }
+      setProUser(isPro);
+      void syncProToSupabase(isPro, appUserId);
     });
 
     // Check initial entitlement status on boot
     const { customerInfo } = await Purchases.getCustomerInfo();
     const hasActivePro = checkCustomerHasPro(customerInfo);
-    if (hasActivePro) {
-      setProUser(true);
-      if (appUserId) {
-        await syncProToSupabase(true, appUserId);
-      }
+    setProUser(hasActivePro);
+    if (appUserId) {
+      await syncProToSupabase(hasActivePro, appUserId);
     }
   } catch (err) {
     console.warn("[Purchases] RevenueCat configuration warning (using fallback):", err);
@@ -385,9 +381,7 @@ export async function restoreAtelierPurchases(
     const { customerInfo } = await Purchases.restorePurchases();
     const isPro = checkCustomerHasPro(customerInfo);
     setProUser(isPro);
-    if (isPro) {
-      await syncProToSupabase(true);
-    }
+    await syncProToSupabase(isPro);
 
     const details = isPro
       ? buildSubscriptionDetailsFromCustomerInfo(customerInfo, preferredPlanId, userEmail)
@@ -477,12 +471,27 @@ export async function loginPurchasesUser(userId: string): Promise<void> {
   try {
     const { customerInfo } = await Purchases.logIn({ appUserID: userId });
     const isPro = checkCustomerHasPro(customerInfo);
-    if (isPro) {
-      setProUser(true);
-      await syncProToSupabase(true, userId);
-    }
+    setProUser(isPro);
+    await syncProToSupabase(isPro, userId);
   } catch (err) {
     console.warn("[Purchases] logIn warning:", err);
+  }
+}
+
+/**
+ * Checks native StoreKit / Google Play customer status on demand.
+ */
+export async function getNativeCustomerProStatus(): Promise<boolean> {
+  if (!isInitialized || !Capacitor.isNativePlatform()) {
+    return isProUser();
+  }
+  try {
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    const isPro = checkCustomerHasPro(customerInfo);
+    setProUser(isPro);
+    return isPro;
+  } catch {
+    return isProUser();
   }
 }
 

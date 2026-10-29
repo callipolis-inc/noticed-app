@@ -148,6 +148,7 @@ import {
   initPurchases,
   loginPurchasesUser,
   logoutPurchasesUser,
+  getNativeCustomerProStatus,
 } from "@/lib/purchases";
 import {
   DEMO_SHOWCASE_SPACES,
@@ -195,6 +196,22 @@ export function App() {
 
   const [theme, setTheme] = useState<ThemePalette>(() => {
     if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTheme = urlParams.get("theme");
+      if (
+        urlTheme &&
+        [
+          "alabaster",
+          "clean_white",
+          "sage",
+          "obsidian",
+          "espresso",
+          "oxford",
+        ].includes(urlTheme)
+      ) {
+        return urlTheme as ThemePalette;
+      }
+
       const saved = (safeLocalStorageGet("noticed_theme_palette") ||
         localStorage.getItem("sidenotes_theme_palette")) as ThemePalette;
       if (
@@ -250,31 +267,59 @@ export function App() {
   useEffect(() => {
     notesRef.current = notes;
   }, [notes]);
+  const spacesRef = useRef(spaces);
+  useEffect(() => {
+    spacesRef.current = spaces;
+  }, [spaces]);
   const [isHydrated, setIsHydrated] = useState(false);
 
   const [activeSpaceId, setActiveSpaceId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      const spaceFromUrl = p.get("space") || p.get("spaceId");
+      if (spaceFromUrl) {
+        const found = initialSanitized.spaces.find((s) => s.id === spaceFromUrl);
+        if (found) return found.id;
+      }
+    }
     return initialSanitized.spaces[0]?.id || DEFAULT_STARTER_SPACE.id;
   });
 
   const [currentView, setCurrentView] = useState<"bookshelf" | "notebook">(
     () => {
       if (typeof window !== "undefined") {
-        const v = new URLSearchParams(window.location.search).get("view");
+        const p = new URLSearchParams(window.location.search);
+        const v = p.get("view");
         if (v === "bookshelf" || v === "notebook") return v;
+        if (p.get("space") || p.get("spaceId") || p.get("note") || p.get("noteId")) {
+          return "notebook";
+        }
       }
       return "bookshelf";
     },
   );
-  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
+  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const s = new URLSearchParams(window.location.search).get("sheet");
+      return s === "theme" || s === "appearance";
+    }
+    return false;
+  });
   const [isProfileOpen, setIsProfileOpen] = useState(() => {
     if (typeof window !== "undefined") {
+      const s = new URLSearchParams(window.location.search).get("sheet");
+      return s === "profile" || s === "vault";
+    }
+    return false;
+  });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(() => {
+    if (typeof window !== "undefined") {
       return (
-        new URLSearchParams(window.location.search).get("sheet") === "profile"
+        new URLSearchParams(window.location.search).get("sheet") === "settings"
       );
     }
     return false;
   });
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeMenuNoteId, setActiveMenuNoteId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -334,11 +379,28 @@ export function App() {
     }
     return true;
   });
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isIndexOpen, setIsIndexOpen] = useState(false);
-  const [highlightedNoteId, setHighlightedNoteId] = useState<string | null>(
-    null,
-  );
+  const [isSearchOpen, setIsSearchOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return (
+        new URLSearchParams(window.location.search).get("sheet") === "search"
+      );
+    }
+    return false;
+  });
+  const [isIndexOpen, setIsIndexOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const s = new URLSearchParams(window.location.search).get("sheet");
+      return s === "index" || s === "toc";
+    }
+    return false;
+  });
+  const [highlightedNoteId, setHighlightedNoteId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      return p.get("note") || p.get("noteId") || null;
+    }
+    return null;
+  });
   const [isCreateOpen, setIsCreateOpen] = useState(() => {
     if (typeof window !== "undefined") {
       return (
@@ -367,12 +429,31 @@ export function App() {
   useEffect(() => {
     editingNoteRef.current = editingNote;
   }, [editingNote]);
-  const [photostripNote, setPhotostripNote] = useState<FieldNote | null>(null);
+  const [photostripNote, setPhotostripNote] = useState<FieldNote | null>(() => {
+    if (typeof window !== "undefined") {
+      if (new URLSearchParams(window.location.search).get("sheet") === "photostrip") {
+        return DEMO_SHOWCASE_NOTES[1];
+      }
+    }
+    return null;
+  });
   const [annotatorNote, setAnnotatorNote] = useState<FieldNote | null>(null);
   const [sharingSpace, setSharingSpace] = useState<Space | null>(null);
   const [exportingSpace, setExportingSpace] = useState<Space | null>(null);
-  const [isJoinSpaceOpen, setIsJoinSpaceOpen] = useState(false);
-  const [joinSpaceInitialCode, setJoinSpaceInitialCode] = useState<string | null>(null);
+  const [joinSpaceInitialCode, setJoinSpaceInitialCode] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      return p.get("code") || p.get("join") || null;
+    }
+    return null;
+  });
+  const [isJoinSpaceOpen, setIsJoinSpaceOpen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search);
+      return p.get("sheet") === "join" || Boolean(p.get("code") || p.get("join"));
+    }
+    return false;
+  });
   const [isProModalOpen, setIsProModalOpen] = useState(() => {
     if (typeof window !== "undefined") {
       const p = new URLSearchParams(window.location.search);
@@ -448,6 +529,87 @@ export function App() {
     });
   }, []);
 
+  const navigationStateRef = useRef({
+    isJoinSpaceOpen,
+    sharingSpace,
+    exportingSpace,
+    photostripNote,
+    annotatorNote,
+    isProModalOpen,
+    activeMenuNoteId,
+    isCreateOpen,
+    isSearchOpen,
+    isIndexOpen,
+    isThemeSelectorOpen,
+    isProfileOpen,
+    isSettingsOpen,
+    currentView,
+  });
+
+  useEffect(() => {
+    navigationStateRef.current = {
+      isJoinSpaceOpen,
+      sharingSpace,
+      exportingSpace,
+      photostripNote,
+      annotatorNote,
+      isProModalOpen,
+      activeMenuNoteId,
+      isCreateOpen,
+      isSearchOpen,
+      isIndexOpen,
+      isThemeSelectorOpen,
+      isProfileOpen,
+      isSettingsOpen,
+      currentView,
+    };
+  });
+
+  // Synchronize state with URL query parameters for Web & deep preview links
+  useEffect(() => {
+    if (typeof window === "undefined" || Capacitor.isNativePlatform()) return;
+    try {
+      const params = new URLSearchParams();
+      if (currentView !== "bookshelf") {
+        params.set("view", currentView);
+      }
+      if (currentView === "notebook" && activeSpaceId) {
+        params.set("space", activeSpaceId);
+      }
+      if (highlightedNoteId) {
+        params.set("note", highlightedNoteId);
+      }
+      if (isProModalOpen) params.set("sheet", "pro");
+      else if (isThemeSelectorOpen) params.set("sheet", "theme");
+      else if (isProfileOpen) params.set("sheet", "profile");
+      else if (isSettingsOpen) params.set("sheet", "settings");
+      else if (isSearchOpen) params.set("sheet", "search");
+      else if (isIndexOpen) params.set("sheet", "index");
+      else if (isCreateOpen) params.set("sheet", "create");
+      else if (isJoinSpaceOpen) params.set("sheet", "join");
+      else if (photostripNote) params.set("sheet", "photostrip");
+
+      const searchStr = params.toString();
+      const newUrl = searchStr ? `?${searchStr}` : window.location.pathname;
+      window.history.replaceState(null, "", newUrl);
+    } catch {
+      // Ignore url sync error
+    }
+  }, [
+    currentView,
+    activeSpaceId,
+    highlightedNoteId,
+    isProModalOpen,
+    isThemeSelectorOpen,
+    isProfileOpen,
+    isSettingsOpen,
+    isSearchOpen,
+    isIndexOpen,
+    isCreateOpen,
+    isJoinSpaceOpen,
+    photostripNote,
+  ]);
+
   // Listen to Supabase session state & initialize RevenueCat purchases
   useEffect(() => {
     const resolveUserEmail = (u: { id?: string; email?: string; user_metadata?: Record<string, any> } | null | undefined): string | null => {
@@ -475,7 +637,12 @@ export function App() {
                 .select("is_pro")
                 .eq("id", user.id)
                 .maybeSingle();
-              setProUser(Boolean(prof?.is_pro) || isProUser());
+              if (Capacitor.isNativePlatform()) {
+                const nativePro = await getNativeCustomerProStatus();
+                setProUser(nativePro || Boolean(prof?.is_pro));
+              } else {
+                setProUser(Boolean(prof?.is_pro));
+              }
             } catch {
               // ignore background sync error
             }
@@ -505,7 +672,12 @@ export function App() {
           .select("is_pro")
           .eq("id", session.user.id)
           .maybeSingle();
-        setProUser(Boolean(prof?.is_pro) || isProUser());
+        if (Capacitor.isNativePlatform()) {
+          const nativePro = await getNativeCustomerProStatus();
+          setProUser(nativePro || Boolean(prof?.is_pro));
+        } else {
+          setProUser(Boolean(prof?.is_pro));
+        }
 
         if (event === "PASSWORD_RECOVERY") {
           setIsProfileOpen(true);
@@ -557,7 +729,7 @@ export function App() {
           rawUrl.includes("access_token=") ||
           rawUrl.includes("refresh_token=") ||
           rawUrl.includes("type=recovery") ||
-          rawUrl.includes("code=");
+          (rawUrl.includes("auth") && rawUrl.includes("code="));
 
         if (isAuthTarget) {
           let queryParams = new URLSearchParams();
@@ -599,6 +771,20 @@ export function App() {
         const host = url.hostname.toLowerCase();
         const segments = url.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
 
+        // General query parameter overrides
+        const viewParam = url.searchParams.get("view");
+        if (viewParam === "bookshelf" || viewParam === "notebook") {
+          setCurrentView(viewParam);
+        }
+        const sheetParam = url.searchParams.get("sheet");
+        if (sheetParam === "pro") setIsProModalOpen(true);
+        else if (sheetParam === "theme" || sheetParam === "appearance") setIsThemeSelectorOpen(true);
+        else if (sheetParam === "profile" || sheetParam === "vault") setIsProfileOpen(true);
+        else if (sheetParam === "settings") setIsSettingsOpen(true);
+        else if (sheetParam === "search") setIsSearchOpen(true);
+        else if (sheetParam === "index" || sheetParam === "toc") setIsIndexOpen(true);
+        else if (sheetParam === "join") setIsJoinSpaceOpen(true);
+
         if (
           (host === "space" && segments[0] === "join") ||
           host === "join" ||
@@ -613,6 +799,68 @@ export function App() {
             setIsJoinSpaceOpen(true);
           }
         } else if (
+          host === "pro" ||
+          host === "paywall" ||
+          host === "subscribe" ||
+          segments[0] === "pro" ||
+          segments[0] === "paywall" ||
+          segments[0] === "subscribe" ||
+          url.searchParams.get("modal") === "pro"
+        ) {
+          setIsProModalOpen(true);
+        } else if (
+          host === "theme" ||
+          host === "appearance" ||
+          segments[0] === "theme" ||
+          segments[0] === "appearance"
+        ) {
+          setIsThemeSelectorOpen(true);
+        } else if (
+          host === "bookshelf" ||
+          host === "home" ||
+          segments[0] === "bookshelf" ||
+          segments[0] === "home"
+        ) {
+          setCurrentView("bookshelf");
+        } else if (
+          host === "index" ||
+          host === "toc" ||
+          segments[0] === "index" ||
+          segments[0] === "toc"
+        ) {
+          setIsIndexOpen(true);
+        } else if (
+          host === "photostrip" ||
+          segments[0] === "photostrip"
+        ) {
+          const targetId = url.searchParams.get("id") || (host === "photostrip" ? segments[0] : segments[1]);
+          const found = (targetId ? notesRef.current.find((n) => n.id === targetId) : null) ||
+            notesRef.current.find((n) => Boolean(n.photos && n.photos.length > 0)) ||
+            notesRef.current[0] ||
+            DEMO_SHOWCASE_NOTES[1];
+          if (found) setPhotostripNote(found);
+        } else if (
+          host === "note" ||
+          segments[0] === "note"
+        ) {
+          const noteId =
+            url.searchParams.get("id") ||
+            url.searchParams.get("noteId") ||
+            (host === "note" ? segments[0] : segments[1]);
+          const spaceId = url.searchParams.get("space") || url.searchParams.get("spaceId");
+          if (spaceId) {
+            setActiveSpaceId(spaceId);
+          } else if (noteId) {
+            const foundNote = notesRef.current.find((n) => n.id === noteId);
+            if (foundNote?.spaceId) {
+              setActiveSpaceId(foundNote.spaceId);
+            }
+          }
+          if (noteId) {
+            setHighlightedNoteId(noteId);
+          }
+          setCurrentView("notebook");
+        } else if (
           host === "notebook" ||
           host === "space" ||
           segments[0] === "notebook" ||
@@ -620,6 +868,7 @@ export function App() {
         ) {
           const spaceId =
             url.searchParams.get("id") ||
+            url.searchParams.get("spaceId") ||
             (host === "space" || host === "notebook"
               ? segments[0]
               : segments[0] === "space" || segments[0] === "notebook"
@@ -691,9 +940,142 @@ export function App() {
       });
     }
 
+    let removeBackButton: (() => void) | undefined;
+    if (Capacitor.isNativePlatform()) {
+      CapApp.addListener("backButton", () => {
+        const state = navigationStateRef.current;
+        if (state.isJoinSpaceOpen) {
+          setIsJoinSpaceOpen(false);
+          return;
+        }
+        if (state.sharingSpace) {
+          setSharingSpace(null);
+          return;
+        }
+        if (state.exportingSpace) {
+          setExportingSpace(null);
+          return;
+        }
+        if (state.photostripNote) {
+          setPhotostripNote(null);
+          return;
+        }
+        if (state.annotatorNote) {
+          setAnnotatorNote(null);
+          return;
+        }
+        if (state.isProModalOpen) {
+          setIsProModalOpen(false);
+          return;
+        }
+        if (state.activeMenuNoteId) {
+          setActiveMenuNoteId(null);
+          return;
+        }
+        if (state.isCreateOpen) {
+          setIsCreateOpen(false);
+          return;
+        }
+        if (state.isSearchOpen) {
+          setIsSearchOpen(false);
+          return;
+        }
+        if (state.isIndexOpen) {
+          setIsIndexOpen(false);
+          return;
+        }
+        if (state.isThemeSelectorOpen) {
+          setIsThemeSelectorOpen(false);
+          return;
+        }
+        if (state.isProfileOpen) {
+          setIsProfileOpen(false);
+          return;
+        }
+        if (state.isSettingsOpen) {
+          setIsSettingsOpen(false);
+          return;
+        }
+        if (state.currentView === "notebook") {
+          setCurrentView("bookshelf");
+          return;
+        }
+        CapApp.exitApp();
+      }).then((handle) => {
+        removeBackButton = () => handle.remove();
+      });
+    }
+
+    const handlePopState = () => {
+      const state = navigationStateRef.current;
+      if (state.isJoinSpaceOpen) {
+        setIsJoinSpaceOpen(false);
+        return;
+      }
+      if (state.sharingSpace) {
+        setSharingSpace(null);
+        return;
+      }
+      if (state.exportingSpace) {
+        setExportingSpace(null);
+        return;
+      }
+      if (state.photostripNote) {
+        setPhotostripNote(null);
+        return;
+      }
+      if (state.annotatorNote) {
+        setAnnotatorNote(null);
+        return;
+      }
+      if (state.isProModalOpen) {
+        setIsProModalOpen(false);
+        return;
+      }
+      if (state.activeMenuNoteId) {
+        setActiveMenuNoteId(null);
+        return;
+      }
+      if (state.isCreateOpen) {
+        setIsCreateOpen(false);
+        return;
+      }
+      if (state.isSearchOpen) {
+        setIsSearchOpen(false);
+        return;
+      }
+      if (state.isIndexOpen) {
+        setIsIndexOpen(false);
+        return;
+      }
+      if (state.isThemeSelectorOpen) {
+        setIsThemeSelectorOpen(false);
+        return;
+      }
+      if (state.isProfileOpen) {
+        setIsProfileOpen(false);
+        return;
+      }
+      if (state.isSettingsOpen) {
+        setIsSettingsOpen(false);
+        return;
+      }
+      if (state.currentView === "notebook") {
+        setCurrentView("bookshelf");
+        return;
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("popstate", handlePopState);
+    }
+
     return () => {
       authListener?.subscription?.unsubscribe();
       removeDeepLink?.();
+      removeBackButton?.();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("popstate", handlePopState);
+      }
     };
   }, []);
 
