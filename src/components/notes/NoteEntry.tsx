@@ -799,7 +799,8 @@ export const NoteEntry = memo(function NoteEntry({
                   : "var(--note-font-size, 15.5px)",
               }}
               data-font={note.fontChoice || "editorial"}
-              className={`font-content ${leadingClass} text-[var(--text-primary)] whitespace-pre-wrap selection:bg-[var(--text-primary)] selection:text-[var(--bg-base)] after:content-[''] after:table after:clear-both ${textAlignClass}`}
+              data-selectable="true"
+              className={`font-content select-text ${leadingClass} text-[var(--text-primary)] whitespace-pre-wrap selection:bg-[var(--text-primary)] selection:text-[var(--bg-base)] after:content-[''] after:table after:clear-both ${textAlignClass}`}
             >
               {note.title && (
                 <h3

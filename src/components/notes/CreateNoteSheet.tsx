@@ -30,7 +30,14 @@ import {
 import { AudioTrimmerModal } from "./AudioTrimmerModal";
 import { collectNoteMediaUrls } from "@/lib/syncEngine";
 import { DarkroomModal } from "./DarkroomModal";
+import {
+  safeLocalStorageGet,
+  safeLocalStorageSet,
+  safeLocalStorageRemove,
+} from "@/lib/storage";
 import { CreateNoteHeader } from "./create/CreateNoteHeader";
+
+const CREATE_NOTE_DRAFT_KEY = "noticed_create_note_draft";
 import {
   CreateNoteMarkdownToolbar,
   type RichFormatAction,
@@ -250,31 +257,78 @@ export function CreateNoteSheet({
         editorRef.current.innerHTML = markdownToHtml(editingNote.content || "");
       }
     } else {
-      setContent(initialContent || "");
-      if (editorRef.current) {
-        editorRef.current.innerHTML = initialContent ? markdownToHtml(initialContent) : "";
+      let restoredFromDraft = false;
+      const savedDraftRaw = safeLocalStorageGet(CREATE_NOTE_DRAFT_KEY);
+      if (savedDraftRaw) {
+        try {
+          const draft = JSON.parse(savedDraftRaw);
+          if (draft && typeof draft === "object") {
+            const draftContent = draft.content || initialContent || "";
+            setContent(draftContent);
+            if (editorRef.current) {
+              editorRef.current.innerHTML = draftContent ? markdownToHtml(draftContent) : "";
+            }
+            setTitle(draft.title || initialTitle || "");
+            setTextAlign(draft.textAlign || defaultTextAlign);
+            setFontChoice(draft.fontChoice || defaultFontChoice || "editorial");
+            setSelectedSpaceId(draft.selectedSpaceId || defaultSpaceId);
+            setLocationName(draft.locationName || "");
+            setPhotos(Array.isArray(draft.photos) ? draft.photos : []);
+            setPhotosMeta(Array.isArray(draft.photosMeta) ? draft.photosMeta : []);
+            setVideos(Array.isArray(draft.videos) ? draft.videos : []);
+            setMarginaliaText(draft.marginaliaText || "");
+            setCitationText(draft.citationText || "");
+            setIsMarginaliaOpen(Boolean(draft.marginaliaText || draft.citationText));
+            setNoteDate(draft.noteDate || toDateInputString(new Date()));
+            setNoteTime(draft.noteTime || toTimeInputString(new Date()));
+            setImagePosition(draft.imagePosition || defaultImagePosition || "bottom");
+            if (draft.voiceMemo?.audioUrl) {
+              recorder.setRecordedAudio({
+                blob: new Blob(),
+                url: draft.voiceMemo.audioUrl,
+                durationSeconds: draft.voiceMemo.durationSeconds || 0,
+              });
+            } else {
+              recorder.setRecordedAudio(null);
+            }
+            setDarkroomIndex(null);
+            setVideoError(null);
+            recorder.setAudioError(null);
+            setSelectionText("");
+            restoredFromDraft = true;
+          }
+        } catch (e) {
+          console.warn("[CreateNoteSheet] Failed to restore draft:", e);
+        }
       }
-      setTitle(initialTitle || "");
-      setTextAlign(defaultTextAlign);
-      const s = spaces.find((sp) => sp.id === defaultSpaceId);
-      setFontChoice(s?.fontChoice || defaultFontChoice || "editorial");
-      setSelectedSpaceId(defaultSpaceId);
-      setLocationName("");
-      setPhotos([]);
-      setPhotosMeta([]);
-      setDarkroomIndex(null);
-      setVideos([]);
-      setVideoError(null);
-      recorder.setAudioError(null);
-      setMarginaliaText("");
-      setCitationText("");
-      setIsMarginaliaOpen(false);
-      recorder.setRecordedAudio(null);
-      const now = new Date();
-      setNoteDate(toDateInputString(now));
-      setNoteTime(toTimeInputString(now));
-      setImagePosition(defaultImagePosition || "bottom");
-      setSelectionText("");
+
+      if (!restoredFromDraft) {
+        setContent(initialContent || "");
+        if (editorRef.current) {
+          editorRef.current.innerHTML = initialContent ? markdownToHtml(initialContent) : "";
+        }
+        setTitle(initialTitle || "");
+        setTextAlign(defaultTextAlign);
+        const s = spaces.find((sp) => sp.id === defaultSpaceId);
+        setFontChoice(s?.fontChoice || defaultFontChoice || "editorial");
+        setSelectedSpaceId(defaultSpaceId);
+        setLocationName("");
+        setPhotos([]);
+        setPhotosMeta([]);
+        setDarkroomIndex(null);
+        setVideos([]);
+        setVideoError(null);
+        recorder.setAudioError(null);
+        setMarginaliaText("");
+        setCitationText("");
+        setIsMarginaliaOpen(false);
+        recorder.setRecordedAudio(null);
+        const now = new Date();
+        setNoteDate(toDateInputString(now));
+        setNoteTime(toTimeInputString(now));
+        setImagePosition(defaultImagePosition || "bottom");
+        setSelectionText("");
+      }
     }
 
     setTimeout(() => {
@@ -288,6 +342,75 @@ export function CreateNoteSheet({
     defaultFontChoice,
     defaultImagePosition,
   ]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Debounced Auto-Save Draft into Local Storage whenever composition changes
+  useEffect(() => {
+    if (!isOpen || Boolean(editingNote)) return;
+
+    const hasDraftContent = Boolean(
+      content.trim() ||
+      title.trim() ||
+      marginaliaText.trim() ||
+      photos.length > 0 ||
+      videos.length > 0 ||
+      recorder.recordedAudio?.url ||
+      locationName.trim()
+    );
+
+    if (!hasDraftContent) {
+      safeLocalStorageRemove(CREATE_NOTE_DRAFT_KEY);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      const draftData = {
+        title,
+        content,
+        textAlign,
+        fontChoice,
+        selectedSpaceId,
+        locationName,
+        photos,
+        photosMeta,
+        videos,
+        marginaliaText,
+        citationText,
+        isMarginaliaOpen,
+        noteDate,
+        noteTime,
+        imagePosition,
+        voiceMemo: recorder.recordedAudio
+          ? {
+              durationSeconds: recorder.recordedAudio.durationSeconds,
+              audioUrl: recorder.recordedAudio.url,
+            }
+          : undefined,
+        savedAt: Date.now(),
+      };
+      safeLocalStorageSet(CREATE_NOTE_DRAFT_KEY, JSON.stringify(draftData));
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [
+    isOpen,
+    editingNote,
+    content,
+    title,
+    textAlign,
+    fontChoice,
+    selectedSpaceId,
+    locationName,
+    photos,
+    photosMeta,
+    videos,
+    marginaliaText,
+    citationText,
+    isMarginaliaOpen,
+    noteDate,
+    noteTime,
+    imagePosition,
+    recorder.recordedAudio,
+  ]);
 
   const handleTriggerPhotoSelect = () => {
     if (!canUseFeature("unlimited_photos", photos.length)) {
@@ -624,6 +747,7 @@ export function CreateNoteSheet({
     };
 
     onSaveNote(newNote);
+    safeLocalStorageRemove(CREATE_NOTE_DRAFT_KEY);
     setContent("");
     if (editorRef.current) {
       editorRef.current.innerHTML = "";
@@ -1696,6 +1820,16 @@ export function CreateNoteSheet({
                       type="button"
                       onClick={() => {
                         triggerHaptic("heavy");
+                        safeLocalStorageRemove(CREATE_NOTE_DRAFT_KEY);
+                        setContent("");
+                        if (editorRef.current) editorRef.current.innerHTML = "";
+                        setTitle("");
+                        setPhotos([]);
+                        setPhotosMeta([]);
+                        setVideos([]);
+                        recorder.setRecordedAudio(null);
+                        setMarginaliaText("");
+                        setCitationText("");
                         setIsDiscardConfirmOpen(false);
                         onClose();
                       }}

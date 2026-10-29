@@ -33,12 +33,18 @@ body,
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Allow text editing strictly in inputs, textareas, and editable editors */
+/* Allow text selection & touch callout across all note contents & selectable containers */
 input,
 textarea,
 [contenteditable="true"],
 .select-text,
-.selectable-content {
+.select-text *,
+.selectable-content,
+.selectable-content *,
+.font-content,
+.font-content *,
+[data-selectable="true"],
+[data-selectable="true"] * {
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;

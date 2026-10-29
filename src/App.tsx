@@ -243,11 +243,11 @@ export function App() {
 
       const savedSpacesStr =
         typeof window !== "undefined"
-          ? safeLocalStorageGet("noticed_spaces")
+          ? safeLocalStorageGet("noticed_spaces") || localStorage.getItem("sidenotes_spaces")
           : null;
       const savedNotesStr =
         typeof window !== "undefined"
-          ? safeLocalStorageGet("noticed_notes")
+          ? safeLocalStorageGet("noticed_notes") || localStorage.getItem("sidenotes_notes")
           : null;
       const rawSpaces: Space[] = savedSpacesStr
         ? JSON.parse(savedSpacesStr)
@@ -280,10 +280,23 @@ export function App() {
       if (spaceFromUrl) {
         const found = initialSanitized.spaces.find((s) => s.id === spaceFromUrl);
         if (found) return found.id;
+        return spaceFromUrl;
+      }
+      const savedSpace =
+        safeLocalStorageGet("noticed_active_space_id") ||
+        localStorage.getItem("sidenotes_active_space_id");
+      if (savedSpace) {
+        return savedSpace;
       }
     }
     return initialSanitized.spaces[0]?.id || DEFAULT_STARTER_SPACE.id;
   });
+
+  useEffect(() => {
+    if (activeSpaceId) {
+      safeLocalStorageSet("noticed_active_space_id", activeSpaceId);
+    }
+  }, [activeSpaceId]);
 
   const [currentView, setCurrentView] = useState<"bookshelf" | "notebook">(
     () => {
@@ -1464,7 +1477,13 @@ export function App() {
           rawIdbSpaces ?? initialSanitized.spaces,
           rawIdbNotes ?? initialSanitized.notes,
         );
-        if (rawIdbSpaces) setSpaces(sanitized.spaces);
+        if (rawIdbSpaces) {
+          setSpaces(sanitized.spaces);
+          const savedActive = safeLocalStorageGet("noticed_active_space_id");
+          if (savedActive && sanitized.spaces.some((s) => s.id === savedActive)) {
+            setActiveSpaceId(savedActive);
+          }
+        }
         if (rawIdbNotes) setNotes(sanitized.notes);
       }
       if (typeof window !== "undefined") {
@@ -2061,8 +2080,8 @@ export function App() {
         } else {
           nextNotes = [remoteNote, ...prevNotes];
         }
-        safeLocalStorageSet("sidenotes_notes", JSON.stringify(nextNotes));
-        saveToAtelierDB("sidenotes_notes", nextNotes);
+        safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+        saveToAtelierDB("noticed_notes", nextNotes);
         return nextNotes;
       });
 
@@ -2087,8 +2106,8 @@ export function App() {
       triggerHaptic("medium");
       setNotes((prevNotes) => {
         const nextNotes = prevNotes.filter((n) => n.id !== noteId);
-        safeLocalStorageSet("sidenotes_notes", JSON.stringify(nextNotes));
-        saveToAtelierDB("sidenotes_notes", nextNotes);
+        safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+        saveToAtelierDB("noticed_notes", nextNotes);
         return nextNotes;
       });
 
@@ -2136,15 +2155,15 @@ export function App() {
       ...spaces.filter((s) => s.id !== joinedSpace.id),
     ];
     setSpaces(updatedSpaces);
-    safeLocalStorageSet("sidenotes_spaces", JSON.stringify(updatedSpaces));
-    saveToAtelierDB("sidenotes_spaces", updatedSpaces);
+    safeLocalStorageSet("noticed_spaces", JSON.stringify(updatedSpaces));
+    saveToAtelierDB("noticed_spaces", updatedSpaces);
 
     const existingNoteIds = new Set(notes.map((n) => n.id));
     const notesToAdd = newNotes.filter((n) => !existingNoteIds.has(n.id));
     const updatedNotes = [...notesToAdd, ...notes];
     setNotes(updatedNotes);
-    safeLocalStorageSet("sidenotes_notes", JSON.stringify(updatedNotes));
-    saveToAtelierDB("sidenotes_notes", updatedNotes);
+    safeLocalStorageSet("noticed_notes", JSON.stringify(updatedNotes));
+    saveToAtelierDB("noticed_notes", updatedNotes);
 
     setActiveSpaceId(joinedSpace.id);
     setCurrentView("notebook");
@@ -2264,13 +2283,13 @@ export function App() {
         setCurrentView("bookshelf");
       }
       setSpaces(remaining);
-      safeLocalStorageSet("sidenotes_spaces", JSON.stringify(remaining));
-      saveToAtelierDB("sidenotes_spaces", remaining);
+      safeLocalStorageSet("noticed_spaces", JSON.stringify(remaining));
+      saveToAtelierDB("noticed_spaces", remaining);
 
       setNotes((prev) => {
         const next = prev.filter((n) => n.spaceId !== spaceId);
-        safeLocalStorageSet("sidenotes_notes", JSON.stringify(next));
-        saveToAtelierDB("sidenotes_notes", next);
+        safeLocalStorageSet("noticed_notes", JSON.stringify(next));
+        saveToAtelierDB("noticed_notes", next);
         return next;
       });
 
@@ -2304,7 +2323,12 @@ export function App() {
       _isDirty: true,
       updatedAt: nowIso,
     };
-    setNotes((prev) => [noteToSave, ...prev]);
+    setNotes((prev) => {
+      const nextNotes = [noteToSave, ...prev];
+      safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+      saveToAtelierDB("noticed_notes", nextNotes);
+      return nextNotes;
+    });
     broadcastNoteSaved(noteToSave, true);
     showFlyout(
       language === "id" ? "Catatan ditambahkan" : "Notice added",
@@ -2321,9 +2345,12 @@ export function App() {
       _isDirty: true,
       updatedAt: new Date().toISOString(),
     };
-    setNotes((prev) =>
-      prev.map((n) => (n.id === updatedNote.id ? noteToUpdate : n)),
-    );
+    setNotes((prev) => {
+      const nextNotes = prev.map((n) => (n.id === updatedNote.id ? noteToUpdate : n));
+      safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+      saveToAtelierDB("noticed_notes", nextNotes);
+      return nextNotes;
+    });
     setEditingNote(null);
     broadcastNoteSaved(noteToUpdate, false);
 
@@ -2346,8 +2373,8 @@ export function App() {
     marginalia?: string,
     quoteSource?: string,
   ) => {
-    setNotes((prev) =>
-      prev.map((n) =>
+    setNotes((prev) => {
+      const nextNotes = prev.map((n) =>
         n.id === noteId
           ? {
               ...n,
@@ -2359,8 +2386,11 @@ export function App() {
               updatedAt: new Date().toISOString(),
             }
           : n,
-      ),
-    );
+      );
+      safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+      saveToAtelierDB("noticed_notes", nextNotes);
+      return nextNotes;
+    });
     showFlyout(
       language === "id" ? "Catatan tepi diperbarui" : "Sidenote updated",
       2200,
@@ -2369,8 +2399,8 @@ export function App() {
 
   const handleUpdateNoteHighlights = useCallback(
     (noteId: string, highlights: TextHighlight[]) => {
-      setNotes((prev) =>
-        prev.map((n) =>
+      setNotes((prev) => {
+        const nextNotes = prev.map((n) =>
           n.id === noteId
             ? {
                 ...n,
@@ -2379,16 +2409,19 @@ export function App() {
                 updatedAt: new Date().toISOString(),
               }
             : n,
-        ),
-      );
+        );
+        safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+        saveToAtelierDB("noticed_notes", nextNotes);
+        return nextNotes;
+      });
     },
     [],
   );
 
   const handleUpdateNoteTextAlign = useCallback(
     (noteId: string, align: TextAlign) => {
-      setNotes((prev) =>
-        prev.map((n) =>
+      setNotes((prev) => {
+        const nextNotes = prev.map((n) =>
           n.id === noteId
             ? {
                 ...n,
@@ -2397,16 +2430,19 @@ export function App() {
                 updatedAt: new Date().toISOString(),
               }
             : n,
-        ),
-      );
+        );
+        safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+        saveToAtelierDB("noticed_notes", nextNotes);
+        return nextNotes;
+      });
     },
     [],
   );
 
   const handlePinToggle = useCallback((noteId: string) => {
     triggerHaptic("light");
-    setNotes((prev) =>
-      prev.map((n) =>
+    setNotes((prev) => {
+      const nextNotes = prev.map((n) =>
         n.id === noteId
           ? {
               ...n,
@@ -2415,15 +2451,18 @@ export function App() {
               updatedAt: new Date().toISOString(),
             }
           : n,
-      ),
-    );
+      );
+      safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+      saveToAtelierDB("noticed_notes", nextNotes);
+      return nextNotes;
+    });
   }, []);
 
   const handleArchiveNoteToggle = useCallback(
     (noteId: string) => {
       triggerHaptic("medium");
-      setNotes((prev) =>
-        prev.map((n) => {
+      setNotes((prev) => {
+        const nextNotes = prev.map((n) => {
           if (n.id === noteId) {
             const isArchivedNow = !n.archived;
             showFlyout(
@@ -2444,8 +2483,11 @@ export function App() {
             };
           }
           return n;
-        }),
-      );
+        });
+        safeLocalStorageSet("noticed_notes", JSON.stringify(nextNotes));
+        saveToAtelierDB("noticed_notes", nextNotes);
+        return nextNotes;
+      });
     },
     [showFlyout],
   );

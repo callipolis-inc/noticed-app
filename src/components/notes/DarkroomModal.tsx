@@ -156,52 +156,56 @@ export function DarkroomModal({
           className="fixed inset-0 bg-black/60 backdrop-blur-md pointer-events-auto"
         />
 
-        {/* Modal Window */}
+        {/* Modal Window Container */}
         <motion.div
           initial={{ opacity: 0, scale: 0.94, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 16 }}
           transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-lg rounded-3xl apple-card shadow-2xl border border-[var(--glass-border)] overflow-hidden flex flex-col z-10 my-auto pointer-events-auto"
-          style={{
-            maxHeight: "min(92dvh, 740px)",
-          }}
+          className="relative w-full max-w-lg flex flex-col z-10 my-auto pointer-events-auto"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--glass-border)] shrink-0 bg-[var(--bg-elevated)]/80 backdrop-blur-sm">
-            <div className="flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-[var(--text-secondary)] stroke-[2.2]" />
-              <span className="text-[14px] font-semibold tracking-tight text-[var(--text-primary)]">
-                Analog Darkroom
-              </span>
-              <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] ml-1">
-                Plate #{photoIndex + 1}
-              </span>
+          {/* Main Card */}
+          <div
+            className="w-full rounded-[32px] bg-[var(--bg-card)] shadow-2xl border border-[var(--glass-border)] overflow-hidden flex flex-col"
+            style={{
+              maxHeight: "min(78dvh, 640px)",
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--glass-border)] shrink-0 bg-[var(--bg-card)]">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-[var(--text-secondary)] stroke-[2.2]" />
+                <span className="text-[14px] font-semibold tracking-tight text-[var(--text-primary)]">
+                  Analog Darkroom
+                </span>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] ml-1">
+                  Plate #{photoIndex + 1}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-90 transition-all cursor-pointer"
+                  title="Reset to natural"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleReset}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] active:scale-90 transition-all cursor-pointer"
-                title="Reset to natural"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-8 h-8 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
-                title="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Content Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 pb-28 space-y-4 sm:space-y-5 no-scrollbar">
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 sm:space-y-5 no-scrollbar">
             {/* Live Preview Display Stage */}
             <div className="flex justify-center items-center py-2 bg-black/[0.03] dark:bg-white/[0.02] rounded-2xl p-2.5 sm:p-3 border border-[var(--glass-border)]/50 min-h-[180px] sm:min-h-[220px]">
               {frameMode === "polaroid" ? (
@@ -458,30 +462,28 @@ export function DarkroomModal({
               </button>
             </div>
           </div>
+          {/* End Main Card */}
+          </div>
 
-          {/* Minimalist Apple Footer Action */}
-          <div
-            className="px-4 py-3 border-t border-[var(--glass-border)]/50 bg-[var(--bg-elevated)]/95 backdrop-blur-md flex items-center justify-between gap-3 shrink-0"
-            style={{
-              paddingBottom:
-                "max(calc(env(safe-area-inset-bottom, 0px) + 10px), 12px)",
-            }}
-          >
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-full text-xs font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleApply}
-              className="px-4.5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-base)] text-xs font-semibold flex items-center gap-1.5 hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-xs"
-            >
-              <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>Apply to Photo</span>
-            </button>
+          {/* External Floating Action Pill Bar Centered Below Card */}
+          <div className="flex items-center justify-center pt-3 pb-1 shrink-0 z-20">
+            <div className="flex items-center gap-2 px-2 py-1.5 rounded-full bg-[var(--bg-card)]/90 backdrop-blur-xl border border-[var(--glass-border)] shadow-xl">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-full text-xs font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleApply}
+                className="px-5 py-2 rounded-full bg-[var(--text-primary)] text-[var(--bg-base)] text-xs font-semibold flex items-center gap-1.5 hover:opacity-90 active:scale-95 transition-all cursor-pointer shadow-sm"
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Apply to Photo</span>
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>

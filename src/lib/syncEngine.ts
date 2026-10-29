@@ -568,15 +568,8 @@ export async function syncWithCloud(
       }
       const remote = remoteSpacesLookup.get(s.id);
       if (!remote) {
-        const localSpaceTime = new Date(
-          s.updatedAt || s.createdAt || 0,
-        ).getTime();
-        // Ghost resurrection check:
-        // If space was already synced in a prior session, but no longer exists on remote,
-        // it was deleted on the cloud. Do NOT push back to cloud.
-        if (lastSyncTime > 0 && localSpaceTime <= lastSyncTime) {
-          return;
-        }
+        // Safe offline-first persistence:
+        // Always preserve local space and push to cloud unless explicitly queued for deletion
         spacesToPush.push(s);
       } else {
         const localTime = new Date(s.updatedAt || s.createdAt || 0).getTime();
@@ -653,19 +646,8 @@ export async function syncWithCloud(
       const remoteNote = remoteNotesMap.get(localNote.id);
 
       if (!remoteNote) {
-        const localNoteTime = new Date(
-          localNote.updatedAt || localNote.createdAt || 0,
-        ).getTime();
-
-        // Ghost resurrection check:
-        // If note was already synced in a prior session (updatedAt <= lastSyncTime),
-        // but no longer exists on remote, it was deleted on the cloud or by a collaborator.
-        if (lastSyncTime > 0 && localNoteTime <= lastSyncTime) {
-          // Prune locally: do not push to cloud and do not include in finalNotesMap
-          continue;
-        }
-
-        // New note created locally or edited offline after last sync -> push to cloud
+        // Safe offline-first persistence:
+        // Always preserve local note and queue to push to cloud unless explicitly queued for deletion
         notesToPush.push(localNote);
         finalNotesMap.set(localNote.id, localNote);
       } else {
@@ -764,13 +746,6 @@ export async function syncWithCloud(
         // If it was a shared space owned by someone else, membership was revoked or space was deleted:
         if (localSpace.userId && localSpace.userId !== user.id) {
           return; // Prune zombie shared space
-        }
-        // If owned by current user, check if it was deleted on cloud:
-        const localSpaceTime = new Date(
-          localSpace.updatedAt || localSpace.createdAt || 0,
-        ).getTime();
-        if (lastSyncTime > 0 && localSpaceTime <= lastSyncTime) {
-          return; // Prune locally deleted space
         }
         mergedSpaces.push(localSpace);
         addedSpaceIds.add(localSpace.id);
