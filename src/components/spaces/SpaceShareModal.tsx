@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import QRCode from "qrcode";
 import { Space, SpaceMember } from "@/types";
@@ -120,13 +121,12 @@ export function SpaceShareModal({
       try {
         await navigator.share({
           title: `${currentSpace.name} - Noticed Space`,
-          text: shareText,
-          url: shareUrl,
+          text: `${shareText}\n${shareUrl}`,
         });
         return;
       } catch (err) {
         if ((err as Error)?.name !== "AbortError") {
-          handleCopyLink();
+          await handleCopyLink();
         }
         return;
       }
@@ -243,10 +243,12 @@ export function SpaceShareModal({
     }
   };
 
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-50 flex items-start justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
+        className="fixed inset-0 z-[90] flex items-start justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
         onClick={onClose}
       >
         <motion.div
@@ -675,6 +677,7 @@ export function SpaceShareModal({
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

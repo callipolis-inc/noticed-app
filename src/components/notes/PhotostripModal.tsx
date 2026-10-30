@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { resolveMediaUrl } from "@/lib/mediaStorage";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldNote, Space, ThemePalette } from "@/types";
@@ -154,6 +155,40 @@ export function PhotostripModal({
   const [layoutMode, setLayoutMode] = useState<CardLayoutMode>("excerpt");
   const [isExporting, setIsExporting] = useState(false);
   const [exportedStatus, setExportedStatus] = useState<string | null>(null);
+  const preloadedImagesRef = useRef<Record<string, HTMLImageElement>>({});
+
+  // Preload & decode note photos as soon as modal opens so Save/Share is synchronous on tap
+  useEffect(() => {
+    if (!isOpen || !note?.photos?.length) return;
+    let cancelled = false;
+    note.photos.forEach(async (rawSrc) => {
+      try {
+        let resolvedSrc = await resolveMediaUrl(rawSrc);
+        if (resolvedSrc.startsWith("http://") || resolvedSrc.startsWith("https://")) {
+          try {
+            const resp = await fetch(resolvedSrc, { mode: "cors" });
+            if (resp.ok) {
+              const b = await resp.blob();
+              resolvedSrc = URL.createObjectURL(b);
+            }
+          } catch {}
+        }
+        const img = new Image();
+        if (resolvedSrc.startsWith("http")) {
+          img.crossOrigin = "anonymous";
+        }
+        img.onload = () => {
+          if (!cancelled) {
+            preloadedImagesRef.current[rawSrc] = img;
+          }
+        };
+        img.src = resolvedSrc;
+      } catch {}
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, note?.photos]);
 
   useEffect(() => {
     if (isOpen && note) {
@@ -321,38 +356,37 @@ export function PhotostripModal({
       ctx.stroke();
       currentY += isStory ? 54 : 38;
 
-      // Photos
+      // Photos (synchronously use preloaded HTMLImageElement if available so user gesture stays active on iOS)
       for (let i = 0; i < photosToDraw.length; i++) {
         const rawPhoto = photosToDraw[i];
-        let resolvedSrc = rawPhoto;
-        let blobUrlToRevoke: string | null = null;
+        let img = preloadedImagesRef.current[rawPhoto];
 
-        // If remote URL, pre-fetch as blob to guarantee no canvas tainting on export
-        if (rawPhoto.startsWith("http://") || rawPhoto.startsWith("https://")) {
-          try {
-            const resp = await fetch(rawPhoto, { mode: "cors" });
-            if (resp.ok) {
-              const b = await resp.blob();
-              resolvedSrc = URL.createObjectURL(b);
-              blobUrlToRevoke = resolvedSrc;
-            }
-          } catch {
-            // Keep original src if fetch fails
+        if (!img || !img.complete || img.naturalWidth === 0) {
+          let resolvedSrc = await resolveMediaUrl(rawPhoto);
+          let blobUrlToRevoke: string | null = null;
+          if (resolvedSrc.startsWith("http://") || resolvedSrc.startsWith("https://")) {
+            try {
+              const resp = await fetch(resolvedSrc, { mode: "cors" });
+              if (resp.ok) {
+                const b = await resp.blob();
+                resolvedSrc = URL.createObjectURL(b);
+                blobUrlToRevoke = resolvedSrc;
+              }
+            } catch {}
           }
-        }
-
-        const img = new Image();
-        if (resolvedSrc.startsWith("http")) {
-          img.crossOrigin = "anonymous";
-        }
-        await new Promise((resolve) => {
-          img.onload = resolve;
-          img.onerror = resolve;
-          img.src = resolvedSrc;
-        });
-
-        if (blobUrlToRevoke) {
-          URL.revokeObjectURL(blobUrlToRevoke);
+          img = new Image();
+          if (resolvedSrc.startsWith("http")) {
+            img.crossOrigin = "anonymous";
+          }
+          await new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+            img.src = resolvedSrc;
+          });
+          preloadedImagesRef.current[rawPhoto] = img;
+          if (blobUrlToRevoke) {
+            URL.revokeObjectURL(blobUrlToRevoke);
+          }
         }
 
         ctx.fillStyle = activePalette.cardBg;
@@ -501,12 +535,16 @@ export function PhotostripModal({
         height - 64,
       );
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setExportedStatus("Export failed");
-          setTimeout(() => setExportedStatus(null), 2500);
-          return;
-        }
+      // Synchronously encode PNG from canvas so iOS WKWebView user gesture activation is preserved
+      const dataUrl = canvas.toDataURL("image/png");
+      const base64Data = dataUrl.split(",")[1] || "";
+      const binaryStr = atob(base64Data);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let bIdx = 0; bIdx < binaryStr.length; bIdx++) {
+        bytes[bIdx] = binaryStr.charCodeAt(bIdx);
+      }
+      const blob = new Blob([bytes], { type: "image/png" });
+      {
 
         const fileName = `noticed-${aspectRatio.replace(":", "x")}-${note.id.substring(0, 6)}.png`;
         const file = new File([blob], fileName, { type: "image/png" });
@@ -529,7 +567,6 @@ export function PhotostripModal({
           ) {
             try {
               await navigator.share({
-                title: space?.name || "Noticed Excerpt",
                 files: [file],
               });
               triggerSuccessHaptic();
@@ -574,8 +611,6 @@ export function PhotostripModal({
           ) {
             try {
               await navigator.share({
-                title: space?.name || "Noticed Excerpt",
-                text: note.content || "for things you don't want to forget",
                 files: [file],
               });
               triggerSuccessHaptic();
@@ -652,7 +687,7 @@ export function PhotostripModal({
           setExportedStatus("Saved to device");
           setTimeout(() => setExportedStatus(null), 2500);
         }
-      }, "image/png");
+      }
     } catch (err) {
       console.error("Export error:", err);
       setExportedStatus("Export failed");

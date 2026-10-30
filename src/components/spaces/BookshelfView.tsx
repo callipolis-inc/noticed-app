@@ -505,7 +505,7 @@ export function BookshelfView({
         fontChoice: editFont,
         customColor: editCustomColor,
         foilColor: editFoilColor,
-        isShared: false,
+        isShared: Boolean(activeSelected.isShared),
       });
     }
 

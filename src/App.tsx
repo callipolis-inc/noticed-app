@@ -1556,23 +1556,26 @@ export function App() {
       (/iPad|iPhone|iPod|Android/i.test(navigator.userAgent) ||
         (navigator.maxTouchPoints && navigator.maxTouchPoints > 2));
 
-    if (isMobileDevice && navigator.share && navigator.canShare) {
+    if (isMobileDevice && navigator.share) {
+      const jsonStr = JSON.stringify(archive, null, 2);
       const file = new File([blob], fileName, { type: "application/json" });
-      if (navigator.canShare({ files: [file] })) {
-        try {
+      try {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file] });
+        } else {
           await navigator.share({
-            title: "Noticed Archive Backup",
-            files: [file],
+            title: fileName,
+            text: jsonStr,
           });
-          showFlyout(
-            language === "id" ? "Arsip berhasil diekspor" : "Archive exported",
-            2500,
-          );
+        }
+        showFlyout(
+          language === "id" ? "Arsip berhasil diekspor" : "Archive exported",
+          2500,
+        );
+        return;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.name === "AbortError") {
           return;
-        } catch (err: unknown) {
-          if (err instanceof Error && err.name === "AbortError") {
-            return;
-          }
         }
       }
     }

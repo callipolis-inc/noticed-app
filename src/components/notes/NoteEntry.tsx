@@ -4,15 +4,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   FieldNote,
   TextHighlight,
-  HighlightStyle,
   TextAlign,
   ImageFrameSize,
   ImagePosition,
   LineSpacing,
   PhotoMeta,
 } from "@/types";
-import { formatTimeOnly, generateId } from "@/lib/utils";
-import { triggerHaptic, triggerSuccessHaptic } from "@/lib/haptics";
+import { formatTimeOnly } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptics";
 import { AppLanguage } from "@/lib/i18n";
 import { TextHighlighter, toSuperscriptNumber } from "./TextHighlighter";
 import { InlineVideoPlayer } from "./InlineVideoPlayer";
@@ -33,7 +32,6 @@ import {
   Copy,
   Archive,
   GitFork,
-  X,
 } from "lucide-react";
 
 interface NoteEntryProps {
@@ -102,9 +100,9 @@ export const NoteEntry = memo(function NoteEntry({
     const rect = menuButtonRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const rightOffset = Math.max(12, Math.min(vw - 248, vw - rect.right));
+    const rightOffset = Math.max(12, Math.min(vw - 236, vw - rect.right));
     const spaceBelow = vh - rect.bottom;
-    const placeUp = spaceBelow < 340 && rect.top > 300;
+    const placeUp = spaceBelow < 310 && rect.top > 280;
 
     if (placeUp) {
       setMenuCoords({
@@ -222,40 +220,6 @@ export const NoteEntry = memo(function NoteEntry({
     onUpdateHighlights?.(note.id, updated);
   };
 
-  // Quick highlight from the "..." menu (applies to existing highlights or full note passage)
-  const handleQuickHighlightFromMenu = (style: HighlightStyle) => {
-    if (!note.content || !onUpdateHighlights) return;
-    triggerSuccessHaptic();
-    const existing = note.highlights || [];
-    if (existing.length > 0) {
-      // Update style of existing highlights on this note
-      const updated = existing.map((h) => ({ ...h, style }));
-      onUpdateHighlights(note.id, updated);
-    } else {
-      // Highlight the full note text
-      const trimmed = note.content.trim();
-      if (!trimmed) return;
-      const startIdx = note.content.indexOf(trimmed);
-      const newHl: TextHighlight = {
-        id: generateId(),
-        startIndex: Math.max(0, startIdx),
-        endIndex: Math.max(0, startIdx) + trimmed.length,
-        selectedText: trimmed,
-        style,
-        createdAt: new Date().toISOString(),
-      };
-      onUpdateHighlights(note.id, [newHl]);
-    }
-    toggleMenu(false);
-  };
-
-  const handleClearAllHighlightsFromMenu = () => {
-    if (!onUpdateHighlights) return;
-    triggerHaptic("medium");
-    onUpdateHighlights(note.id, []);
-    toggleMenu(false);
-  };
-
   // Action triggers (" and ...) positioned cleanly at bottom right of the note
   const renderInlineEndControls = () => {
     if (isReadingMode) return null;
@@ -311,7 +275,7 @@ export const NoteEntry = memo(function NoteEntry({
           <MoreHorizontal className="w-4 h-4 stroke-[1.95]" />
         </button>
 
-        {/* Portaled High-Density Context Menu (Immune to content-visibility & transform stacking contexts) */}
+        {/* Portaled High-Density Context Menu */}
         {typeof document !== "undefined" &&
           createPortal(
             <AnimatePresence>
@@ -340,7 +304,8 @@ export const NoteEntry = memo(function NoteEntry({
                     }}
                     transition={{ duration: 0.15, ease: "easeOut" }}
                     onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onTouchStart={(e) => e.stopPropagation()}
                     style={{
                       top:
                         menuCoords.top !== undefined
@@ -353,12 +318,12 @@ export const NoteEntry = memo(function NoteEntry({
                       right: `${menuCoords.right}px`,
                     }}
                     className="
-                      fixed z-[9995] min-w-[232px] py-1.5 rounded-2xl
+                      fixed z-[9995] min-w-[216px] py-1.5 rounded-2xl
                       bg-[var(--bg-elevated)]/98 backdrop-blur-[36px] saturate-[190%]
                       border border-[var(--glass-border)]
                       shadow-[0_20px_45px_-8px_rgba(0,0,0,0.32),0_4px_12px_rgba(0,0,0,0.12)]
                       text-xs font-sans overflow-hidden text-left normal-case tracking-normal
-                      max-h-[min(420px,calc(100dvh-100px))] overflow-y-auto no-scrollbar select-none
+                      max-h-[min(390px,calc(100dvh-100px))] overflow-y-auto no-scrollbar select-none
                     "
                   >
                     {/* Paragraph Alignment Segmented Control */}
@@ -408,80 +373,6 @@ export const NoteEntry = memo(function NoteEntry({
                                 title={opt.label}
                               >
                                 <Icon className="w-3.5 h-3.5 stroke-[2]" />
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Quick Highlight Bar (Pencil / Sepia / Cobalt) directly accessible from ... menu */}
-                    {!isReadOnly && note.content && onUpdateHighlights && (
-                      <div className="px-3.5 py-2 border-b border-[var(--glass-border)]/50 space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">
-                            {isId ? "Stabilo Cepat" : "Quick Highlight"}
-                          </span>
-                          {note.highlights && note.highlights.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleClearAllHighlightsFromMenu();
-                              }}
-                              className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] flex items-center gap-0.5 cursor-pointer touch-manipulation"
-                              title={
-                                isId ? "Hapus stabilo" : "Clear highlights"
-                              }
-                            >
-                              <X className="w-2.5 h-2.5" />
-                              <span>{isId ? "Reset" : "Clear"}</span>
-                            </button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-3 gap-1">
-                          {(
-                            [
-                              {
-                                id: "graphite" as HighlightStyle,
-                                label: isId ? "Pensil" : "Pencil",
-                                color: "#78716c",
-                              },
-                              {
-                                id: "sepia" as HighlightStyle,
-                                label: "Sepia",
-                                color: "#a86432",
-                              },
-                              {
-                                id: "cobalt" as HighlightStyle,
-                                label: isId ? "Kobalt" : "Cobalt",
-                                color: "#3b6291",
-                              },
-                            ]
-                          ).map((sw) => {
-                            const isCurrentStyle =
-                              note.highlights &&
-                              note.highlights.length > 0 &&
-                              note.highlights.every((h) => h.style === sw.id);
-                            return (
-                              <button
-                                key={sw.id}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleQuickHighlightFromMenu(sw.id);
-                                }}
-                                className={`py-1.5 px-2 rounded-xl text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer touch-manipulation ${
-                                  isCurrentStyle
-                                    ? "bg-[var(--text-primary)] text-[var(--accent-ink)] shadow-xs"
-                                    : "inner-pseudo-glass text-[var(--text-primary)]"
-                                }`}
-                              >
-                                <span
-                                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: sw.color }}
-                                />
-                                <span>{sw.label}</span>
                               </button>
                             );
                           })}
@@ -637,8 +528,7 @@ export const NoteEntry = memo(function NoteEntry({
                             toggleMenu(false);
                             onDeleteNote(note.id);
                           }}
-                          style={{ color: "#9e3b33" }}
-                          className="w-full px-3.5 py-2.5 flex items-center gap-2.5 text-left hover:opacity-85 active:opacity-75 transition-opacity cursor-pointer font-medium touch-manipulation"
+                          className="w-full px-3.5 py-2.5 flex items-center gap-2.5 text-left text-archival-carmine hover:bg-archival-carmine-soft transition-colors cursor-pointer font-medium touch-manipulation"
                         >
                           <Trash2 className="w-3.5 h-3.5 shrink-0" />
                           <span>

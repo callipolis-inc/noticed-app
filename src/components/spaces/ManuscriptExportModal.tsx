@@ -111,7 +111,7 @@ export function ManuscriptExportModal({
 
   if (!isOpen) return null;
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     triggerSuccessHaptic();
     if (typeof window !== "undefined" && window.AndroidPrintBridge?.print) {
       try {
@@ -120,6 +120,14 @@ export function ManuscriptExportModal({
       } catch (err) {
         console.warn("AndroidPrintBridge failed, falling back to window.print", err);
       }
+    }
+    const isMobile =
+      typeof navigator !== "undefined" &&
+      (/iPad|iPhone|iPod|Android/i.test(navigator.userAgent) ||
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 2));
+    if (isMobile && typeof navigator !== "undefined" && navigator.share) {
+      await handleShareDocument();
+      return;
     }
     window.print();
   };
@@ -315,7 +323,7 @@ export function ManuscriptExportModal({
               <button
                 type="button"
                 onClick={handleCopyMarkdown}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full inner-pseudo-glass text-xs font-medium text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-all cursor-pointer border border-[var(--glass-border)]"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full inner-pseudo-glass text-xs font-medium text-[var(--text-primary)] hover:opacity-90 active:scale-95 transition-all cursor-pointer border border-[var(--glass-border)]"
                 title="Copy Markdown"
               >
                 {copied ? (
