@@ -31,3 +31,12 @@ Progress — 31 October 2026:
 - All 22 targeted Node tests and production disposable-fixture HTTP integration passed, including physical storage deletion and collaborative media copy.
 - Reviewer account stored privately outside Git and in App Store Connect. Free base app and global availability configured.
 - Final device gate remains: test the new candidate in TestFlight (Apple login/cancel/revoke/deletion, capture/media, collaboration, purchases/restore). Do not reuse the earlier TTS test confirmation.
+
+Final validation — 31 October 2026:
+- Candidate build 1.0 (55), tag v1.0.2-ios, source 89ddf55: GitHub Actions run 41103706130 passed archive/export/upload. Apple processing VALID; internal TestFlight IN_BETA_TESTING.
+- Owner explicitly reported every requested physical-device test passed for Noticed build55, including Apple cancellation/revocation/deletion, media/sharing, purchases and restore.
+- App Store draft a86b0086-4475-416e-868c-99cfa5df282f contains five READY_FOR_REVIEW items: app1.0(55), lifetime, subscription group, monthly, annual. Submit for Review is enabled; submittedDate remains null. No submission performed.
+- Free base price verified as0.0; all175regions selected; Mac/Vision distribution disabled pending platform testing. Paid/free agreements and DSA are active.
+- Removed misleading100%-local screenshot from version; seven complete screenshots remain. Original archived outside Git.
+- Revoked exposed legacy ASC key RFD9S3H8RW with explicit owner approval; X4SX9VQZ44 remains active. CI cleanup f99d2dc requires GitHub Secrets and does not change build55 application code.
+- Website legal deployment81e3c8f verified live. Follow-up marketing correction93776f2 pushed to main; verify its Cloudflare deployment before final handoff.
