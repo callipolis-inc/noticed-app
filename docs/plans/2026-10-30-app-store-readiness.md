@@ -39,4 +39,4 @@ Final validation — 31 October 2026:
 - Free base price verified as0.0; all175regions selected; Mac/Vision distribution disabled pending platform testing. Paid/free agreements and DSA are active.
 - Removed misleading100%-local screenshot from version; seven complete screenshots remain. Original archived outside Git.
 - Revoked exposed legacy ASC key RFD9S3H8RW with explicit owner approval; X4SX9VQZ44 remains active. CI cleanup f99d2dc requires GitHub Secrets and does not change build55 application code.
-- Website legal deployment81e3c8f verified live. Follow-up marketing correction93776f2 pushed to main; verify its Cloudflare deployment before final handoff.
+- Website legal deployment81e3c8f verified live. Follow-up marketing correction93776f2 deployed successfully from main through Cloudflare Workers; production HTTP200 and browser visual check confirm accurate offline/cloud copy.
