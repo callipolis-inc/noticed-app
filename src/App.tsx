@@ -1556,11 +1556,11 @@ export function App() {
       (/iPad|iPhone|iPod|Android/i.test(navigator.userAgent) ||
         (navigator.maxTouchPoints && navigator.maxTouchPoints > 2));
 
-    if (isMobileDevice && navigator.share) {
+    if (isMobileDevice && typeof navigator.share === "function") {
       const jsonStr = JSON.stringify(archive, null, 2);
       const file = new File([blob], fileName, { type: "application/json" });
       try {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        if (typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
           await navigator.share({ files: [file] });
         } else {
           await navigator.share({

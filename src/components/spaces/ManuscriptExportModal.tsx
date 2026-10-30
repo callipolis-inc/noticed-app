@@ -125,7 +125,7 @@ export function ManuscriptExportModal({
       typeof navigator !== "undefined" &&
       (/iPad|iPhone|iPod|Android/i.test(navigator.userAgent) ||
         (navigator.maxTouchPoints && navigator.maxTouchPoints > 2));
-    if (isMobile && typeof navigator !== "undefined" && navigator.share) {
+    if (isMobile && typeof navigator !== "undefined" && typeof navigator.share === "function") {
       await handleShareDocument();
       return;
     }

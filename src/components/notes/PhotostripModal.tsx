@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { resolveMediaUrl } from "@/lib/mediaStorage";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FieldNote, Space, ThemePalette } from "@/types";
@@ -163,7 +162,7 @@ export function PhotostripModal({
     let cancelled = false;
     note.photos.forEach(async (rawSrc) => {
       try {
-        let resolvedSrc = await resolveMediaUrl(rawSrc);
+        let resolvedSrc = rawSrc;
         if (resolvedSrc.startsWith("http://") || resolvedSrc.startsWith("https://")) {
           try {
             const resp = await fetch(resolvedSrc, { mode: "cors" });
@@ -362,7 +361,7 @@ export function PhotostripModal({
         let img = preloadedImagesRef.current[rawPhoto];
 
         if (!img || !img.complete || img.naturalWidth === 0) {
-          let resolvedSrc = await resolveMediaUrl(rawPhoto);
+          let resolvedSrc = rawPhoto;
           let blobUrlToRevoke: string | null = null;
           if (resolvedSrc.startsWith("http://") || resolvedSrc.startsWith("https://")) {
             try {
