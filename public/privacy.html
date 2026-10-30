@@ -104,7 +104,7 @@
   <div class="container">
     <div class="brand">Official Policy &bull; Callipolis Inc.</div>
     <h1>Privacy Policy</h1>
-    <div class="meta">Effective Date: October 13, 2026 &bull; Sovereign Offline-First Architecture</div>
+    <div class="meta">Updated: October 30, 2026 &bull; Sovereign Offline-First Architecture</div>
 
     <p>
       <strong>Noticed: Private Field Notes</strong> (&ldquo;Noticed&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;) is built on a core principle: your personal thoughts, journals, and marginalia belong exclusively to you.
@@ -112,7 +112,7 @@
 
     <h2>1. Local-First &amp; Offline by Default</h2>
     <p>
-      By default, all notebooks, field notes, photos, and voice memos created in Noticed are stored locally on your physical device using encrypted browser/native storage (IndexedDB &amp; local storage). You can use Noticed indefinitely without ever creating an account or transmitting data to our servers.
+      By default, all notebooks, field notes, photos, and voice memos created in Noticed are stored locally on your physical device using IndexedDB and local storage. Noticed does not add application-level encryption to this local database. Core notebook features work without a cloud account. Optional purchases, sign-in, speech recognition, and online features contact their respective providers.
     </p>
 
     <h2>2. Optional Cloud Synchronization</h2>
@@ -121,9 +121,10 @@
     </p>
     <ul>
       <li><strong>Email Address:</strong> Used strictly for account authentication, password recovery, and security notifications.</li>
-      <li><strong>Synchronized Notebooks &amp; Notes:</strong> Stored securely in our cloud database (powered by Supabase with Row-Level Security) so only your authenticated session can read or modify your records.</li>
+      <li><strong>Synchronized Notebooks &amp; Notes:</strong> Stored securely in our cloud database (powered by Supabase with Row-Level Security) for synchronization. Invited notebook members can access shared content according to their role. Cloud sync uses HTTPS; it is not end-to-end encrypted. When signed in and online, attachments may upload automatically, including before a notebook text sync.</li>
     </ul>
 
+    <h2>Service Providers and Purchases</h2><p>Supabase processes your account identifier, email, display name, avatar, synchronized notes, photos, videos, and voice recordings to provide authentication, sync, storage, and collaboration. RevenueCat processes an app user identifier, receipts or transaction information, subscription status, and technical information to validate purchases, restore Atelier Pro access, and provide purchase analytics. Apple or Google handles payment; we do not receive full payment-card details. Cloudflare hosts this website. These providers may process data outside your country.</p>
     <h2>3. Zero Tracking &amp; Zero Third-Party Advertising</h2>
     <p>
       We do not use third-party advertising SDKs, behavioral tracking pixels, or data brokers. We never sell, rent, or monetize your personal notes or metadata.
@@ -131,8 +132,8 @@
 
     <h2>4. Device Permissions</h2>
     <ul>
-      <li><strong>Camera &amp; Photo Library:</strong> Requested only when you explicitly attach a polaroid photo to a field note.</li>
-      <li><strong>Microphone:</strong> Requested only when you record an audio voice memo inside a note.</li>
+      <li><strong>Camera &amp; Photo Library:</strong> Used when you capture or select photos or videos, update your avatar, or scan an invitation QR code.</li>
+      <li><strong>Microphone:</strong> Used for voice memos or dictation. Speech recognition may use your device or platform speech service according to its settings. Voice memos are uploaded when cloud synchronization is used.</li>
     </ul>
 
     <h2 id="data-deletion">5. Account &amp; Data Deletion</h2>
@@ -140,10 +141,11 @@
       You have complete control over your data at all times:
     </p>
     <ul>
-      <li><strong>In-App Instant Deletion:</strong> Open Noticed &rarr; tap your <em>Profile</em> icon &rarr; scroll to <em>Account &amp; Data Privacy</em> &rarr; tap <strong>Delete Account &amp; Data</strong>. This permanently purges your cloud profile, all synchronized notebooks, notes, and local caches immediately.</li>
+      <li><strong>In-App Deletion:</strong> Open Noticed &rarr; tap your <em>Profile</em> icon &rarr; scroll to <em>Account &amp; Data Privacy</em> &rarr; tap <strong>Delete Account &amp; Data</strong>. Confirm only when ready to permanently remove your account and associated cloud data. Local data on that device is cleared after the server confirms success. Copies previously exported or saved by collaborators are outside this process.</li>
       <li><strong>Web Deletion Portal:</strong> You may also review instructions or submit a deletion request via our <a href="/account-deletion.html">Account Deletion Portal</a>.</li>
     </ul>
 
+    <h2>Retention and Your Choices</h2><p>Local data remains until you delete it or clear application storage. Cloud data remains while your account is active unless you remove it. Provider backups and transaction records may remain for backup cycles, fraud prevention, or legal obligations. Account deletion does not cancel a store subscription: cancel separately in Apple or Google account settings.</p><p>Contact us to request access, correction, export, or deletion. We verify account ownership before handling email requests. Do not email passwords. Children under 13 should not create a cloud account; contact us if such an account was created.</p>
     <h2>6. Contact Us</h2>
     <p>
       For privacy inquiries or support requests, contact us at <a href="mailto:sidenotes.inc@gmail.com?subject=[Noticed%20Privacy]%20Inquiry">sidenotes.inc@gmail.com</a>.

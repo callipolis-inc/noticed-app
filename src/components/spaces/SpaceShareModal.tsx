@@ -1,3 +1,4 @@
+import { resolveMediaAccess } from "@/lib/mediaStorage";
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -78,8 +79,8 @@ export function SpaceShareModal({
     currentSpace?.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8).toUpperCase() ||
     "";
 
-  const shareUrl = `https://noticed.app/join/${inviteCode}`;
-  const deepLink = `noticed://space/join?code=${inviteCode}`;
+  const deepLink = `noticed://space/join?code=${encodeURIComponent(inviteCode)}`;
+  const shareUrl = deepLink;
 
   useEffect(() => {
     if (!shareUrl) return;
@@ -94,6 +95,41 @@ export function SpaceShareModal({
       .then(setQrDataUrl)
       .catch((err) => console.warn("[SpaceShareModal] QR generation failed:", err));
   }, [shareUrl]);
+
+  const loadMembers = useCallback(async () => {
+    if (!currentSpace?.id || !isSupabaseConfigured) return;
+    setIsLoadingMembers(true);
+    try {
+      const { data, error } = await supabase.rpc("get_space_members", {
+        p_space_id: currentSpace.id,
+      });
+      if (!error && Array.isArray(data)) {
+        setMembers(
+          await resolveMediaAccess(data.map((m: any) => ({
+            id: m.id,
+            spaceId: m.space_id,
+            userId: m.user_id,
+            role: m.role,
+            createdAt: m.created_at,
+            displayName: m.display_name,
+            avatarUrl: m.avatar_url,
+          }))),
+        );
+      }
+    } catch (err) {
+      console.warn("[SpaceShareModal] Failed to fetch members:", err);
+    } finally {
+      setIsLoadingMembers(false);
+    }
+  }, [currentSpace?.id]);
+
+  useEffect(() => {
+    if (isOpen && currentSpace?.isShared) {
+      loadMembers();
+      const timer = window.setInterval(loadMembers, 120000);
+      return () => window.clearInterval(timer);
+    }
+  }, [isOpen, currentSpace?.isShared, loadMembers]);
 
   if (!isOpen || !currentSpace) return null;
 
@@ -133,39 +169,6 @@ export function SpaceShareModal({
     }
     handleCopyLink();
   };
-
-  const loadMembers = useCallback(async () => {
-    if (!currentSpace?.id || !isSupabaseConfigured) return;
-    setIsLoadingMembers(true);
-    try {
-      const { data, error } = await supabase.rpc("get_space_members", {
-        p_space_id: currentSpace.id,
-      });
-      if (!error && Array.isArray(data)) {
-        setMembers(
-          data.map((m: any) => ({
-            id: m.id,
-            spaceId: m.space_id,
-            userId: m.user_id,
-            role: m.role,
-            createdAt: m.created_at,
-            displayName: m.display_name,
-            avatarUrl: m.avatar_url,
-          })),
-        );
-      }
-    } catch (err) {
-      console.warn("[SpaceShareModal] Failed to fetch members:", err);
-    } finally {
-      setIsLoadingMembers(false);
-    }
-  }, [currentSpace?.id]);
-
-  useEffect(() => {
-    if (isOpen && currentSpace?.isShared) {
-      loadMembers();
-    }
-  }, [isOpen, currentSpace?.isShared, loadMembers]);
 
   const handleRevokeMember = async (targetUserId: string) => {
     triggerHaptic("heavy");

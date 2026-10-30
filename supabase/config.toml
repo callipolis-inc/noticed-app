@@ -1,0 +1,4 @@
+# JWTs are verified on every request by Supabase Auth /auth/v1/user in the handler.
+# The legacy-only gateway check does not support modern signing keys.
+[functions.delete-account]
+verify_jwt = false

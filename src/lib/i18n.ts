@@ -40,6 +40,7 @@ export function setSavedAppLanguage(lang: AppLanguage): void {
 }
 
 export interface TranslationDictionary {
+  legal: { cloud: string; providers: string; microphone: string; hapticsLabel: string; haptics: string; retention: string; };
   app: {
     name: string;
     tagline: string;
@@ -280,6 +281,8 @@ export interface TranslationDictionary {
     profile: string;
   };
   sync: {
+    deletionFailed: string;
+    deletionComplete: string;
     offlineNotice: string;
     cloudSynced: string;
     cloudSyncRequiresPro: string;
@@ -292,6 +295,14 @@ export interface TranslationDictionary {
 
 export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
   id: {
+    legal: {
+  "cloud": "Sinkronisasi cloud memakai HTTPS melalui Supabase dan bukan enkripsi end-to-end. Data akun, profil, catatan, foto, video, dan audio dikirim saat fitur cloud dipakai. Saat masuk dan online, lampiran dapat diunggah otomatis sebelum teks notebook disinkronkan. Anggota notebook yang Anda bagikan dapat mengakses konten bersama sesuai perannya.",
+  "providers": "RevenueCat memproses ID pengguna, transaksi, status langganan, dan informasi teknis untuk validasi, pemulihan pembelian, serta analitik pembelian. Apple atau Google memproses pembayaran; kami tidak menerima nomor kartu lengkap. Cloudflare menghosting website. Penyedia dapat memproses data di luar negara Anda.",
+  "microphone": "Digunakan untuk memo suara atau dikte. Pengenalan ucapan dapat memakai layanan platform sesuai pengaturan perangkat. Memo diunggah saat sinkronisasi cloud digunakan.",
+  "hapticsLabel": "Haptik:",
+  "haptics": "Memberikan umpan balik taktil. Noticed tidak menyediakan kunci aplikasi Face ID atau Touch ID.",
+  "retention": "Data lokal tidak diberi enkripsi tambahan oleh Noticed. Data cloud disimpan selama akun aktif kecuali dihapus. Data lokal dibersihkan setelah server mengonfirmasi hapus akun. Cadangan penyedia dan catatan transaksi dapat tetap tersimpan sesuai siklus cadangan atau kewajiban hukum. Salinan yang diekspor atau disimpan anggota lain berada di luar proses ini. Hapus akun tidak membatalkan langganan toko; batalkan melalui pengaturan Apple atau Google."
+},
     app: {
       name: "Noticed",
       tagline: "Pengamatan hening & catatan harian",
@@ -559,6 +570,8 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       profile: "Profil",
     },
     sync: {
+      deletionFailed: "Penghapusan belum dikonfirmasi. Akun tetap tersedia; coba lagi atau hubungi dukungan.",
+      deletionComplete: "Akun dan data pribadi berhasil dihapus",
       offlineNotice: "Sedang offline — perubahan tersimpan di perangkat",
       cloudSynced: "Tersinkronisasi dengan cloud",
       cloudSyncRequiresPro: "Sinkronisasi cloud membutuhkan Atelier Pro",
@@ -569,6 +582,14 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
     },
   },
   en: {
+    legal: {
+  "cloud": "Cloud sync uses HTTPS through Supabase and is not end-to-end encrypted. Account and profile data, notes, photos, videos, and audio are sent when cloud features are used. When signed in and online, attachments may upload automatically before notebook text is synchronized. Members of notebooks you share can access shared content according to their role.",
+  "providers": "RevenueCat processes user IDs, transactions, subscription status, and technical information for purchase validation, restoration, and purchase analytics. Apple or Google processes payments; we do not receive full card numbers. Cloudflare hosts the website. Providers may process data outside your country.",
+  "microphone": "Used for voice memos or dictation. Speech recognition may use your platform service according to device settings. Memos are uploaded when cloud synchronization is used.",
+  "hapticsLabel": "Haptics:",
+  "haptics": "Provides tactile feedback. Noticed does not offer a Face ID or Touch ID app lock.",
+  "retention": "Noticed does not add encryption to its local database. Cloud data remains while your account is active unless deleted. Local data is cleared after the server confirms account deletion. Provider backups and transaction records may remain for backup cycles or legal obligations. Copies exported or saved by other members are outside this process. Deleting an account does not cancel store subscriptions; cancel through Apple or Google settings."
+},
     app: {
       name: "Noticed",
       tagline: "Notes on Noticing",
@@ -835,6 +856,8 @@ export const DICTIONARY: Record<AppLanguage, TranslationDictionary> = {
       profile: "Profile",
     },
     sync: {
+      deletionFailed: "Deletion was not confirmed. Your account remains available; retry or contact support.",
+      deletionComplete: "Account and personal data deleted",
       offlineNotice: "Offline — changes saved on device",
       cloudSynced: "Cloud synchronized",
       cloudSyncRequiresPro: "Cloud sync requires Atelier Pro",

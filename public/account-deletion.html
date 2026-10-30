@@ -147,7 +147,7 @@
       Users of <strong>Noticed: Private Field Notes</strong> (<code>com.syntheticae.noticed</code>) can permanently delete their cloud account and all associated personal data at any time.
     </p>
 
-    <h2>Method 1: Instant In-App Deletion (Recommended)</h2>
+    <h2>Method 1: In-App Deletion (Recommended)</h2>
     <ol>
       <li>Open the <strong>Noticed</strong> application.</li>
       <li>Tap the <strong>Author Profile</strong> button in the top navigation bar.</li>
@@ -155,7 +155,7 @@
       <li>Tap <strong>Delete Account &amp; Data</strong> and confirm by typing <code>DELETE</code>.</li>
     </ol>
     <p>
-      This triggers our automated database procedure (<code>delete_user_account</code>), which immediately and irreversibly purges your identity, email record, all synchronized spaces, field notes, and local device caches.
+      Confirm only when ready to permanently remove your account and its associated cloud data. Local data on that device is cleared after the server confirms deletion. If deletion fails, retry or contact support. Copies exported or previously saved by collaborators remain outside this process.
     </p>
 
     <div class="box">
@@ -172,7 +172,7 @@
     <ul>
       <li><strong>Authentication Identity:</strong> Your email address, password hash, and active session tokens in <code>auth.users</code>.</li>
       <li><strong>Cloud Content:</strong> All notebooks (<code>public.spaces</code>), field notes, media attachments (<code>public.field_notes</code>), and author profiles (<code>public.profiles</code>).</li>
-      <li><strong>Retention Period:</strong> <strong>0 days</strong> for in-app deletion (immediate cryptographic erasure); within <strong>48 hours</strong> for manual email requests.</li>
+      <li><strong>Retention Period:</strong> Active account data is removed through deletion. Provider backups and purchase records may remain for backup cycles or legal and fraud-prevention obligations. Email requests require ownership verification; we confirm the outcome by email. Account deletion does not cancel a store subscription: cancel separately in your store settings.</li>
     </ul>
 
     <div class="footer">

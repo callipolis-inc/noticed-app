@@ -1,3 +1,4 @@
+import { resolveMediaAccess } from "@/lib/mediaStorage";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import jsQR from "jsqr";
@@ -405,7 +406,7 @@ export function JoinSpaceModal({
         console.warn("[JoinSpaceModal] Note fetch warning:", notesError);
       }
 
-      const convertedNotes = (notesData || []).map((row) => dbToNote(row));
+      const convertedNotes = await resolveMediaAccess((notesData || []).map((row) => dbToNote(row)));
 
       // 4. Mark space as joined collaborator with assigned role
       const spaceToJoin: Space = {

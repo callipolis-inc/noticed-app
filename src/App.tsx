@@ -103,6 +103,7 @@ import {
   loadFromAtelierDB,
   saveToAtelierDB,
   clearAtelierDB,
+  clearAppLocalStorage,
   safeLocalStorageSet,
   safeLocalStorageGet,
   safeLocalStorageRemove,
@@ -127,6 +128,7 @@ import {
 } from "@/lib/syncEngine";
 import {
   subscribeToMediaUploadState,
+  resolveMediaAccess,
   processPendingMediaUploads,
 } from "@/lib/mediaStorage";
 import { Capacitor } from "@capacitor/core";
@@ -1094,6 +1096,9 @@ export function App() {
 
   const isApplyingRemoteSyncRef = useRef(false);
   const isSyncingRef = useRef(false);
+  const isDeletingAccountRef = useRef(false);
+  const activeSyncRef = useRef<ReturnType<typeof syncWithCloud> | null>(null);
+  const activeUploadRef = useRef<ReturnType<typeof processPendingMediaUploads> | null>(null);
   const autoSyncTimerRef = useRef<number | null>(null);
 
   // Two-way synchronization handler (supports silent background mode or manual user trigger)
@@ -1111,17 +1116,20 @@ export function App() {
       }
       return;
     }
-    if (isSyncingRef.current || isSyncing) return;
+    if (isDeletingAccountRef.current || isSyncingRef.current || isSyncing) return;
     isSyncingRef.current = true;
     setIsSyncing(true);
     try {
-      const result = await syncWithCloud(
+      const syncTask = syncWithCloud(
         spaces,
         notes,
         userName,
         avatarPhoto,
         language,
       );
+      activeSyncRef.current = syncTask;
+      const result = await syncTask;
+      if (isDeletingAccountRef.current) return;
       if (result.synced) {
         const spacesChanged =
           JSON.stringify(result.spaces) !== JSON.stringify(spaces);
@@ -1169,6 +1177,7 @@ export function App() {
     } catch (err: any) {
       console.error("[Noticed] Sync error:", err);
     } finally {
+      activeSyncRef.current = null;
       isSyncingRef.current = false;
       setIsSyncing(false);
     }
@@ -1204,6 +1213,7 @@ export function App() {
   useEffect(() => {
     const onForeground = () => {
       setIsAppConcealed(false);
+      window.dispatchEvent(new CustomEvent("noticed:app-foreground"));
       supabase.auth.getSession().catch(() => {});
       if (userEmail) {
         handleCloudSync({ silent: true });
@@ -1256,13 +1266,45 @@ export function App() {
     };
   }, [userEmail, spaces, notes, userName, avatarPhoto]);
 
+  const latestMediaRef = useRef({ notes, avatarPhoto });
+  if (latestMediaRef.current.notes !== notes || latestMediaRef.current.avatarPhoto !== avatarPhoto) {
+    latestMediaRef.current = { notes, avatarPhoto };
+  }
+  useEffect(() => {
+    if (!currentUserId || !isHydrated) return;
+    let active = true;
+    const refresh = async () => {
+      if (document.visibilityState === "hidden" || isDeletingAccountRef.current) return;
+      const snapshot = latestMediaRef.current;
+      const resolved = await resolveMediaAccess(snapshot);
+      if (!active || latestMediaRef.current !== snapshot || isDeletingAccountRef.current) return;
+      if (JSON.stringify(resolved.notes) !== JSON.stringify(snapshot.notes)) setNotes(resolved.notes);
+      if (resolved.avatarPhoto !== snapshot.avatarPhoto) setAvatarPhoto(resolved.avatarPhoto);
+    };
+    const run = () => { refresh().catch(error => console.warn("[Noticed] Media refresh failed:", error)); };
+    run();
+    const timer = window.setInterval(run, 120000);
+    window.addEventListener("online", run);
+    window.addEventListener("noticed:app-foreground", run);
+    document.addEventListener("visibilitychange", run);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("online", run);
+      window.removeEventListener("noticed:app-foreground", run);
+      document.removeEventListener("visibilitychange", run);
+    };
+  }, [currentUserId, isHydrated]);
+
   // Background Worker: offload offline Base64/Blob media to Supabase Storage whenever online
   useEffect(() => {
     if (!userEmail || !isHydrated) return;
 
     const runBackgroundMediaUpload = () => {
-      if (typeof navigator !== "undefined" && navigator.onLine) {
-        processPendingMediaUploads(notes, async (updatedNote) => {
+      if (!isDeletingAccountRef.current && typeof navigator !== "undefined" && navigator.onLine) {
+        if (activeUploadRef.current) return;
+        const uploadTask = processPendingMediaUploads(notes, async (updatedNote) => {
+          if (isDeletingAccountRef.current) return;
           setNotes((prev) =>
             prev.map((n) => (n.id === updatedNote.id ? updatedNote : n))
           );
@@ -1275,6 +1317,11 @@ export function App() {
             }
           }
         });
+        activeUploadRef.current = uploadTask;
+        uploadTask.then(
+          () => { activeUploadRef.current = null; },
+          error => { activeUploadRef.current = null; console.warn("[Noticed] Background media upload failed:", error); },
+        );
       }
     };
 
@@ -1388,14 +1435,17 @@ export function App() {
   };
 
   const handleDeleteAccount = async () => {
+    if (isDeletingAccountRef.current) return;
+    isDeletingAccountRef.current = true;
+    if (autoSyncTimerRef.current) window.clearTimeout(autoSyncTimerRef.current);
     try {
-      await deleteUserAccount();
+      await Promise.all([activeSyncRef.current, activeUploadRef.current]);
+    try {
+      await deleteUserAccount(currentUserId || "");
     } catch (err) {
       console.error("[Noticed] Error deleting account:", err);
       showFlyout(
-        language === "id"
-          ? "Gagal menghapus akun di server. Periksa koneksi Anda."
-          : "Failed to delete account on server. Please check your connection.",
+        t.sync.deletionFailed,
         3500
       );
       throw err;
@@ -1421,30 +1471,24 @@ export function App() {
     setActiveSpaceId(DEFAULT_STARTER_SPACE.id);
     setCurrentView("bookshelf");
 
-    // Purge local persistent stores
-    safeLocalStorageRemove("noticed_spaces");
-    safeLocalStorageRemove("noticed_notes");
-    safeLocalStorageRemove("noticed_username");
-    safeLocalStorageRemove("noticed_avatar_photo");
-    safeLocalStorageRemove("noticed_author_bio");
-    safeLocalStorageRemove("noticed_is_pro");
-    safeLocalStorageRemove("noticed_pro_plan");
-    safeLocalStorageRemove("noticed_subscription_details");
-    safeLocalStorageRemove("noticed_user_email");
-    safeLocalStorageRemove("noticed_pending_mutations");
-    safeLocalStorageRemove("noticed_pending_deletes");
-    safeLocalStorageRemove("noticed_last_synced_at");
-    safeLocalStorageRemove("sidenotes_last_synced_at");
+    // Clear every application key, including legacy and future feature caches.
+    clearAppLocalStorage();
     await clearAtelierDB();
+    const emptySnapshot = buildWidgetSnapshot(
+      [DEFAULT_STARTER_SPACE], [], DEFAULT_STARTER_SPACE.id,
+      language as "en" | "id", "dark", "Author"
+    );
+    await syncWidgetSnapshot(emptySnapshot).catch(() => {});
 
     setIsProfileOpen(false);
     setIsSettingsOpen(false);
     showFlyout(
-      language === "id"
-        ? "Akun dan seluruh data berhasil dihapus permanen"
-        : "Account and personal data deleted permanently",
+      t.sync.deletionComplete,
       3500
     );
+    } finally {
+      isDeletingAccountRef.current = false;
+    }
   };
 
   // Hydrate spaces & notes from IndexedDB and purge any legacy dummy records

@@ -4,9 +4,10 @@
  * and automatic Supabase Storage ('noticed-media' bucket) uploads with offline fallback.
  */
 
-import { supabase, isSupabaseConfigured, getCurrentUser } from "./supabase";
+import { supabase, isSupabaseConfigured, getCurrentUser, supabaseUrl } from "./supabase";
 import { compressImageFile } from "./storage";
 import { FieldNote } from "@/types";
+import { mediaPath, mapMediaStrings, canonicalizeMedia } from "./mediaUrls";
 
 export interface VideoMetadata {
   duration: number;
@@ -70,21 +71,8 @@ export function dataUrlToBlob(dataUrl: string): {
 
 /**
  * Uploads a binary Blob or File to Supabase Storage ('noticed-media' bucket)
- * and returns its permanent public URL. Returns null if offline or bucket unavailable.
+ * and returns a short-lived URL authorized for the current user. Returns null if offline or bucket unavailable.
  */
-let cachedUserId: { id: string | null; expiresAt: number } | null = null;
-
-async function getCachedUserId(): Promise<string | null> {
-  const now = Date.now();
-  if (cachedUserId && cachedUserId.expiresAt > now) {
-    return cachedUserId.id;
-  }
-  const user = await getCurrentUser();
-  const id = user?.id || null;
-  cachedUserId = { id, expiresAt: now + 30000 };
-  return id;
-}
-
 export async function uploadMediaToSupabase(
   blobOrFile: Blob | File,
   folder: MediaFolder,
@@ -97,7 +85,7 @@ export async function uploadMediaToSupabase(
 
   // Guest users keep media 100% local (IndexedDB / Base64).
   // Only authenticated users upload media to Supabase Storage.
-  const ownerFolder = await getCachedUserId();
+  const ownerFolder = (await getCurrentUser())?.id;
   if (!ownerFolder) {
     return null;
   }
@@ -110,8 +98,8 @@ export async function uploadMediaToSupabase(
       .from(STORAGE_BUCKET)
       .upload(filePath, blobOrFile, {
         contentType,
-        cacheControl: "31536000",
-        upsert: true,
+        cacheControl: "300",
+        upsert: false,
       });
 
     if (error) {
@@ -119,8 +107,8 @@ export async function uploadMediaToSupabase(
       return null;
     }
 
-    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
-    return data?.publicUrl || null;
+    const { data, error: signingError } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(filePath, 300);
+    return signingError ? null : data?.signedUrl || null;
   } catch (err) {
     console.warn("[MediaStorage] Cloud upload failed, using offline fallback:", err);
     return null;
@@ -131,12 +119,30 @@ export async function uploadMediaToSupabase(
  * Extracts the internal bucket path from a Supabase Storage public URL.
  */
 export function extractStoragePathFromUrl(url: string): string | null {
-  if (!url || !url.startsWith("http")) return null;
-  const marker = `/${STORAGE_BUCKET}/`;
-  const idx = url.indexOf(marker);
-  if (idx === -1) return null;
-  const rawPath = url.slice(idx + marker.length).split("?")[0];
-  return rawPath ? decodeURIComponent(rawPath) : null;
+  return mediaPath(url, supabaseUrl);
+}
+
+const signedMediaCache = new Map<string, { url: string; expiresAt: number }>();
+
+/** Authorize private media for display; cloud records keep stable paths without tokens. */
+export async function resolveMediaAccess<T>(value: T): Promise<T> {
+  const paths = new Set<string>();
+  mapMediaStrings(value, url => { const path = mediaPath(url, supabaseUrl); if (path) paths.add(path); return url; });
+  if (!paths.size || !isSupabaseConfigured || (typeof navigator !== "undefined" && !navigator.onLine)) return value;
+  const user = await getCurrentUser();
+  if (!user) return canonicalizeMedia(value, supabaseUrl);
+  const missing = [...paths].filter(path => (signedMediaCache.get(user.id + ':' + path)?.expiresAt ?? 0) <= Date.now());
+  for (let offset = 0; offset < missing.length; offset += 100) {
+    const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrls(missing.slice(offset, offset + 100), 300);
+    if (!error && data) for (const item of data) {
+      if (item.path && item.signedUrl && !item.error) signedMediaCache.set(user.id + ':' + item.path, { url: item.signedUrl, expiresAt: Date.now() + 180000 });
+    }
+  }
+  if ((await getCurrentUser())?.id !== user.id) return canonicalizeMedia(value, supabaseUrl);
+  return mapMediaStrings(value, url => {
+    const path = mediaPath(url, supabaseUrl);
+    return path ? signedMediaCache.get(user.id + ':' + path)?.url ?? canonicalizeMedia(url, supabaseUrl) : url;
+  });
 }
 
 /**
@@ -227,7 +233,7 @@ export async function processAudioBlob(blob: Blob, fallbackDataUrl?: string): Pr
 
 /**
  * Ensures any local base64 DataURLs in an array are uploaded to Supabase Storage
- * and replaced with lightweight public URLs before syncing to PostgreSQL.
+ * and replaced with authorized media URLs before syncing to PostgreSQL.
  */
 export async function ensureRemoteMediaUrls(
   items: string[],
@@ -713,3 +719,18 @@ export async function processAudioFile(file: File): Promise<{
 }
 
 
+
+/** Fork attachments through Storage authorization into the new author's ownership. */
+export async function copyNoteMediaForUser(note: FieldNote, userId: string): Promise<FieldNote> {
+  const replacements = new Map<string, string>();
+  mapMediaStrings(note, url => { const path = mediaPath(url, supabaseUrl); if (path) replacements.set(path, ''); return url; });
+  for (const source of replacements.keys()) {
+    const folder = source.split('/')[0];
+    const filename = source.split('/').at(-1)!.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const destination = `${folder}/${userId}/${crypto.randomUUID()}-${filename}`;
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).copy(source, destination);
+    if (error) throw new Error("Conflict attachment copy could not be authorized.");
+    replacements.set(source, `${supabaseUrl}/storage/v1/object/authenticated/${STORAGE_BUCKET}/${destination.split('/').map(encodeURIComponent).join('/')}`);
+  }
+  return mapMediaStrings(note, url => { const path = mediaPath(url, supabaseUrl); return path ? replacements.get(path) || url : url; });
+}

@@ -23,3 +23,11 @@ Execution and verification:
 7. Run Add for Review and verify selected build, all draft items ready, Submit for Review enabled, and submittedDate null. Save proof and hand off the final button to the owner.
 
 Security-sensitive prerequisites: ask at action time before creating new Apple signing credentials or transmitting private keys to backend secrets. Do not print or commit .env files, signing keys, auth tokens, or reviewer passwords. Legal agreements require their own informed action-time confirmation.
+
+Progress — 31 October 2026:
+- Published accurate App Privacy and legal website pages; website main deployed at 81e3c8f.
+- Applied migrations 20261030102446 and 20261030103608 manually through the Supabase SQL editor to project ienbkpjldpzaewzewxfz. CLI migration history was not bootstrapped.
+- Deployed delete-account with mandatory caller verification and encrypted Apple configuration. Private media now requires authorized signed URLs.
+- All 22 targeted Node tests and production disposable-fixture HTTP integration passed, including physical storage deletion and collaborative media copy.
+- Reviewer account stored privately outside Git and in App Store Connect. Free base app and global availability configured.
+- Final device gate remains: test the new candidate in TestFlight (Apple login/cancel/revoke/deletion, capture/media, collaboration, purchases/restore). Do not reuse the earlier TTS test confirmation.

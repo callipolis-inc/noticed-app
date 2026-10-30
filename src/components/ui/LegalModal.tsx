@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { triggerHaptic } from "@/lib/haptics";
 import { useLockBodyScroll } from "@/hooks/useLockBodyScroll";
-import { useAppLanguage } from "@/lib/i18n";
+import { useAppLanguage, getTranslation } from "@/lib/i18n";
 import {
   X,
   ShieldCheck,
@@ -31,6 +31,7 @@ export function LegalModal({
   useLockBodyScroll(isOpen);
   const [currentLang] = useAppLanguage();
   const isId = currentLang === "id";
+  const t = getTranslation(currentLang);
 
   const [activeTab, setActiveTab] = useState<LegalTab>(initialTab);
 
@@ -50,8 +51,8 @@ export function LegalModal({
     const isOnline = typeof navigator !== "undefined" && navigator.onLine;
     const url = isOnline
       ? activeTab === "privacy"
-        ? "https://noticed.app/privacy"
-        : "https://noticed.app/terms"
+        ? "https://noticed-web.callipolis-inc.workers.dev/privacy"
+        : "https://noticed-web.callipolis-inc.workers.dev/terms"
       : activeTab === "privacy"
         ? "/privacy.html"
         : "/terms.html";
@@ -266,9 +267,10 @@ export function LegalModal({
                       )}
                     </p>
                     <p>
-                      {isId
-                        ? "Jika Anda mengaktifkan Sinkronisasi Cloud secara opsional, data yang dikirimkan dienkripsi menggunakan TLS 1.3 dan dilindungi dengan enkripsi AES-256 di server."
-                        : "If you optionally enable Cloud Sync via Supabase, synchronized data in transit is encrypted using TLS 1.3, and data at rest is protected with AES-256 encryption."}
+                      {t.legal.cloud}
+                    </p>
+                    <p>{t.legal.providers}</p>
+                    <p>{t.legal.retention}
                     </p>
                   </div>
 
@@ -279,9 +281,7 @@ export function LegalModal({
                     <ul className="list-disc pl-4 space-y-1 text-[var(--text-secondary)]">
                       <li>
                         <strong>{isId ? "Mikrofon:" : "Microphone:"}</strong>{" "}
-                        {isId
-                          ? "Diminta hanya saat Anda merekam Memo Suara atau mengaktifkan Dikte Suara."
-                          : "Requested only when you record a Voice Memo or activate Voice Dictation."}
+                        {t.legal.microphone}
                       </li>
                       <li>
                         <strong>
@@ -293,11 +293,9 @@ export function LegalModal({
                       </li>
                       <li>
                         <strong>
-                          {isId ? "Biometrik & Haptik:" : "Biometrics & Haptics:"}
+                          {t.legal.hapticsLabel}
                         </strong>{" "}
-                        {isId
-                          ? "Digunakan secara lokal untuk Kunci Privasi Face ID / Touch ID dan umpan balik taktil."
-                          : "Powers optional local Face ID / Touch ID App Lock and subtle tactile feedback."}
+                        {t.legal.haptics}
                       </li>
                     </ul>
                   </div>

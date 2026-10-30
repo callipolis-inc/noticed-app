@@ -1,8 +1,17 @@
 -- ============================================================================
 -- SIDENOTES ATELIER — IDEMPOTENT SUPABASE SQL SCHEMA
 -- Run this script manually in the Supabase SQL Editor when enabling cloud sync.
--- Safe to run multiple times (idempotent).
+-- Legacy bootstrap only. Apply all supabase/migrations afterward.
+-- Do not rerun after the private-media migration; the guard below prevents rollback of its policies.
 -- ============================================================================
+
+do $$
+begin
+  if to_regprocedure('noticed_private.can_read_media(uuid)') is not null then
+    raise exception 'Private-media migrations are already installed. Use new migrations instead of rerunning schema.sql.';
+  end if;
+end;
+$$;
 
 create extension if not exists "pgcrypto";
 
@@ -468,7 +477,7 @@ end;
 $$;
 
 revoke all on function public.delete_user_account() from public;
-grant execute on function public.delete_user_account() to authenticated;
+revoke all on function public.delete_user_account() from anon, authenticated;
 
 -- ============================================================================
 -- 7. ZERO-LEAK ROW LEVEL SECURITY (RLS) POLICIES
@@ -573,7 +582,7 @@ insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 values (
   'noticed-media',
   'noticed-media',
-  true,
+  false,
   26214400, -- 25 MB max per file
   ARRAY[
     'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -676,4 +685,4 @@ REVOKE ALL ON FUNCTION public.get_space_members(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_space_members(TEXT) TO authenticated;
 
 REVOKE ALL ON FUNCTION public.delete_user_account() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.delete_user_account() TO authenticated;
+revoke all on function public.delete_user_account() from anon, authenticated;

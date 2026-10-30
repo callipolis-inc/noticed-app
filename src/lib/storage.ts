@@ -251,3 +251,13 @@ export function compressImageFile(
     reader.readAsDataURL(file);
   });
 }
+
+/** Clear application data without touching unrelated browser storage. */
+export function clearAppLocalStorage(): void {
+  if (typeof window === "undefined") return;
+  for (const key of Object.keys(localStorage)) {
+    if (key.startsWith("noticed_") || key.startsWith("sidenotes_")) {
+      localStorage.removeItem(key);
+    }
+  }
+}

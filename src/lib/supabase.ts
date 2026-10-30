@@ -83,7 +83,7 @@ export function getAuthRedirectUrl(): string {
   return window.location.origin.replace(/\/+$/, "");
 }
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -579,44 +579,50 @@ export async function updateUserPassword(newPassword: string) {
  * Permanently deletes the current authenticated user and all associated cloud data
  * Required for Apple App Store (Guideline 5.1.1(v)) and Google Play Data Safety Compliance.
  */
-export async function deleteUserAccount(): Promise<void> {
+export async function deleteUserAccount(expectedUserId: string): Promise<void> {
   if (!isSupabaseConfigured) {
-    return;
+    throw new Error("Supabase is not configured.");
+  }
+  const { data, error } = await withTimeout(supabase.auth.getUser(), 18000);
+  if (error || !expectedUserId || data.user?.id !== expectedUserId) {
+    throw new Error("Account identity changed. Sign in again before deleting.");
   }
 
-  try {
-    // Invoke hardened PostgreSQL RPC function on server with auto-retry
-    const rpcRes = await withRetryTimeout(
-      () => Promise.resolve(supabase.rpc("delete_user_account")),
-      18000,
-      1,
-      "Account deletion request timed out.",
-    );
-    if (
-      rpcRes &&
-      typeof rpcRes === "object" &&
-      "error" in rpcRes &&
-      rpcRes.error
-    ) {
-      console.error(
-        "[Noticed] Remote RPC delete_user_account failed:",
-        rpcRes.error,
-      );
-      throw new Error(
-        rpcRes.error.message || "Failed to delete account on server.",
-      );
+  let authorizationCode: string | undefined;
+  if (data.user.identities?.some(identity => identity.provider === "apple")) {
+    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "ios") {
+      throw new Error("Apple account deletion requires reauthorization in the iOS app.");
     }
-  } finally {
-    if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
-      try {
-        await GoogleSignIn.signOut();
-      } catch {}
-    }
-    // Always sign out the session cleanly
+    const apple = await SignInWithApple.authorize({
+      clientId: "com.syntheticae.noticed",
+      redirectURI: "https://ienbkpjldpzaewzewxfz.supabase.co/auth/v1/callback",
+      scopes: "email name",
+    });
+    authorizationCode = apple.response?.authorizationCode;
+    if (!authorizationCode) throw new Error("Apple authorization was not completed.");
+  }
+  // The backend binds expectedUserId to its verified caller, even if a session
+  // changes during Apple's sheet. Never retry a destructive single-use code.
+  const result = await withTimeout(
+    supabase.functions.invoke("delete-account", {
+      body: { expectedUserId, authorizationCode },
+    }),
+    120000,
+    "Account deletion request timed out.",
+  );
+  if (result.error || result.data?.deleted !== true) {
+    throw new Error("Account deletion was not confirmed by the server.");
+  }
+
+  // Preserve the session on any server failure so the user can retry.
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios") {
     try {
-      await withTimeout(supabase.auth.signOut(), 8000);
-    } catch (e) {
-      console.error("[Noticed] Error signing out during account deletion:", e);
-    }
+      await GoogleSignIn.signOut();
+    } catch {}
+  }
+  try {
+    await withTimeout(supabase.auth.signOut({ scope: "local" }), 8000);
+  } catch (error) {
+    console.error("[Noticed] Local sign-out after confirmed account deletion failed:", error);
   }
 }

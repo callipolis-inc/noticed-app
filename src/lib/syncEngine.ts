@@ -1,10 +1,13 @@
-import { supabase, isSupabaseConfigured, getCurrentUser } from "./supabase";
+import { supabase, isSupabaseConfigured, getCurrentUser, supabaseUrl } from "./supabase";
 import { Space, FieldNote } from "@/types";
+import { canonicalizeMedia } from "./mediaUrls";
 import { Capacitor } from "@capacitor/core";
 import { isProUser, setProUser } from "./proManager";
 import { getNativeCustomerProStatus } from "./purchases";
 import { saveToAtelierDB, safeLocalStorageSet } from "./storage";
 import {
+  copyNoteMediaForUser,
+  resolveMediaAccess,
   ensureRemoteMediaUrls,
   deleteMediaUrlsFromSupabase,
 } from "./mediaStorage";
@@ -316,7 +319,7 @@ export function dbToSpace(
 }
 
 export function noteToDb(note: FieldNote, userId: string) {
-  return {
+  return canonicalizeMedia({
     id: note.id,
     space_id: note.spaceId,
     user_id: note.userId || note.author?.userId || userId,
@@ -340,11 +343,11 @@ export function noteToDb(note: FieldNote, userId: string) {
     author: note.author || null,
     created_at: note.createdAt || new Date().toISOString(),
     updated_at: note.updatedAt || note.createdAt || new Date().toISOString(),
-  };
+  }, supabaseUrl);
 }
 
 export function dbToNote(row: any): FieldNote {
-  return {
+  return canonicalizeMedia({
     id: row.id,
     spaceId: row.space_id,
     userId: row.user_id || row.author?.userId || undefined,
@@ -370,7 +373,7 @@ export function dbToNote(row: any): FieldNote {
     author: row.author || undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at || row.created_at,
-  };
+  }, supabaseUrl);
 }
 
 // ============================================================================
@@ -384,6 +387,8 @@ export async function syncWithCloud(
   avatarPhoto?: string | null,
   language: "en" | "id" = "en",
 ): Promise<SyncResult> {
+  localNotes = canonicalizeMedia(localNotes, supabaseUrl);
+  avatarPhoto = canonicalizeMedia(avatarPhoto, supabaseUrl);
   const user = await getCurrentUser();
   if (!user) {
     return {
@@ -444,7 +449,7 @@ export async function syncWithCloud(
       {
         id: user.id,
         display_name: resolvedUserName,
-        avatar_url: resolvedAvatarUrl,
+        avatar_url: canonicalizeMedia(resolvedAvatarUrl, supabaseUrl),
         is_pro: finalIsPro,
         updated_at: new Date().toISOString(),
       },
@@ -683,7 +688,8 @@ export async function syncWithCloud(
             const untitledFallback = isId ? "Catatan Tanpa Judul" : "Untitled Note";
 
             const conflictCopy: FieldNote = {
-              ...localNote,
+              ...await copyNoteMediaForUser(localNote, user.id),
+              userId: user.id,
               id: `${localNote.id}-conflict-${Date.now()}`,
               title: localNote.title
                 ? `${localNote.title}${conflictSuffix}`
@@ -776,14 +782,15 @@ export async function syncWithCloud(
       mergedSpaces.push(DEFAULT_STARTER_SPACE);
     }
 
-    const mergedNotes = Array.from(finalNotesMap.values()).map((n) => {
+    const mergedNotes = await resolveMediaAccess(Array.from(finalNotesMap.values()).map((n) => {
       if (n._isDirty) {
         const clean = { ...n };
         delete clean._isDirty;
         return clean;
       }
       return n;
-    });
+    }));
+    resolvedAvatarUrl = await resolveMediaAccess(resolvedAvatarUrl);
 
     // 8. Persist Merged Dataset into Offline Storage (IndexedDB + localStorage safe mirror)
     await saveToAtelierDB("noticed_spaces", mergedSpaces);
