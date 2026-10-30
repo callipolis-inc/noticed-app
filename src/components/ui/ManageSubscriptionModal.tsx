@@ -41,16 +41,23 @@ export function ManageSubscriptionModal({
   const [restoreFeedback, setRestoreFeedback] = useState<string | null>(null);
 
   const planId = details?.planId ?? "lifetime";
-  const isLifetime = details?.isLifetime || planId === "lifetime" || !details?.expiresAt;
+  const isLifetime =
+    details?.isLifetime || planId === "lifetime" || !details?.expiresAt;
 
   const planName = useMemo(() => {
     if (planId === "monthly") {
-      return currentLang === "id" ? "Edisi Bulanan (Monthly)" : "Monthly Edition";
+      return currentLang === "id"
+        ? "Edisi Bulanan (Monthly)"
+        : "Monthly Edition";
     }
     if (planId === "annual") {
-      return currentLang === "id" ? "Edisi Tahunan (Annual Folio)" : "Annual Folio";
+      return currentLang === "id"
+        ? "Edisi Tahunan (Annual Folio)"
+        : "Annual Folio";
     }
-    return currentLang === "id" ? "Patron (Akses Seumur Hidup)" : "Patron (Lifetime Access)";
+    return currentLang === "id"
+      ? "Patron (Akses Seumur Hidup)"
+      : "Patron (Lifetime Access)";
   }, [planId, currentLang]);
 
   // Format expiration / renewal date
@@ -60,14 +67,11 @@ export function ManageSubscriptionModal({
     }
     try {
       const date = new Date(details.expiresAt);
-      return date.toLocaleDateString(
-        currentLang === "id" ? "id-ID" : "en-US",
-        {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }
-      );
+      return date.toLocaleDateString(currentLang === "id" ? "id-ID" : "en-US", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
     } catch {
       return details.expiresAt;
     }
@@ -84,7 +88,7 @@ export function ManageSubscriptionModal({
         setRestoreFeedback(
           currentLang === "id"
             ? "Keanggotaan berhasil disinkronkan dari Apple ID."
-            : "Membership successfully resynced from Apple ID."
+            : "Membership successfully resynced from Apple ID.",
         );
         onRestoreSuccess?.(res.details || null);
       } else {
@@ -92,7 +96,7 @@ export function ManageSubscriptionModal({
         setRestoreFeedback(
           currentLang === "id"
             ? "Tidak ditemukan langganan aktif pada Apple ID ini."
-            : "No active subscription found on this Apple ID."
+            : "No active subscription found on this Apple ID.",
         );
       }
     } catch (err: any) {
@@ -100,7 +104,7 @@ export function ManageSubscriptionModal({
       setRestoreFeedback(
         currentLang === "id"
           ? "Gagal memulihkan. Periksa koneksi internet Anda."
-          : "Failed to restore. Please check your connection."
+          : "Failed to restore. Please check your connection.",
       );
     } finally {
       setIsRestoring(false);
@@ -121,7 +125,7 @@ export function ManageSubscriptionModal({
             triggerHaptic("light");
             onClose();
           }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-[10px]"
+          className="fixed inset-0 backdrop-blur-[10px]"
         />
 
         {/* Modal Window */}
@@ -130,16 +134,15 @@ export function ManageSubscriptionModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 16 }}
           transition={{ type: "spring", stiffness: 380, damping: 28 }}
-          className="relative w-full max-w-sm rounded-3xl dynamic-island-shell border border-[var(--glass-border)] shadow-2xl z-10 flex flex-col overflow-hidden text-left"
-          style={{ backgroundColor: "var(--sheet-bg)" }}
+          className="relative w-full max-w-sm rounded-4xl bg-[var(--sheet-bg)]/90 backdrop-blur-3xl saturate-[190%] border border-[var(--glass-border)] shadow-[0_16px_40px_-10px_rgba(0,0,0,0.14),0_0_1px_1px_rgba(255,255,255,0.15)] z-10 flex flex-col overflow-hidden text-[var(--text-primary)]"
         >
-          {/* Top Specular Rim */}
-          <div className="dynamic-island-specular-rim" />
+          {/* Subtle Glass Rim Reflection - sama kayak Pro */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[var(--text-primary)]/20 to-transparent pointer-events-none" />
 
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--glass-border)]/40 shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-primary)]">
+              <div className="w-7 h-7 rounded-full bg-[var(--text-primary)]/[0.06] hover:bg-[var(--text-primary)]/10 border border-[var(--glass-border)]/60 flex items-center justify-center text-[var(--text-primary)]">
                 <RotateCw className="w-3.5 h-3.5 stroke-[2]" />
               </div>
               <h2 className="text-[14.5px] font-semibold text-[var(--text-primary)] tracking-tight">
@@ -152,7 +155,7 @@ export function ManageSubscriptionModal({
                 triggerHaptic("light");
                 onClose();
               }}
-              className="w-7 h-7 rounded-full inner-pseudo-glass flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
+              className="w-7 h-7 rounded-full bg-[var(--text-primary)]/[0.06] hover:bg-[var(--text-primary)]/10 border border-[var(--glass-border)]/60 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-transform cursor-pointer"
               title="Close"
             >
               <X className="w-3.5 h-3.5 stroke-[2.2]" />
@@ -272,20 +275,6 @@ export function ManageSubscriptionModal({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Footer Dismiss Button */}
-          <div className="p-4 border-t border-[var(--glass-border)]/40 bg-[var(--sheet-bg)] shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                triggerHaptic("light");
-                onClose();
-              }}
-              className="w-full py-2.5 rounded-xl inner-pseudo-glass text-[var(--text-primary)] text-xs font-medium active:scale-[0.98] transition-transform cursor-pointer text-center"
-            >
-              {t.common.done}
-            </button>
           </div>
         </motion.div>
       </div>

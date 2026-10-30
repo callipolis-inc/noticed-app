@@ -1,0 +1,25 @@
+[35mCODEX.md[m[36m:[m  - `ManageSubscriptionModal.tsx`: Displays active plan details, Apple Subscriptions deep link (`itms-apps://apps.apple.com/account/subscriptions`) to cancel auto-renewal, and unified [1;31mRestore Purchases[m.
+[35mGEMINI.md[m[36m:[m  - `ManageSubscriptionModal.tsx`: Displays active plan details, Apple Subscriptions deep link (`itms-apps://apps.apple.com/account/subscriptions`) to cancel auto-renewal, and unified [1;31mRestore Purchases[m.
+[35mWHITEPAPER.md[m[36m:[m  - `ManageSubscriptionModal.tsx`: Menampilkan status masa aktif, tombol pemulihan transaksi (*[1;31mRestore Purchases[m*) terintegrasi, dan tombol **Buka Pengaturan Langganan Apple** (`itms-apps://apps.apple.com/account/subscriptions`) untuk pembatalan perpanjangan otomatis sesuai pedoman Apple.
+[35mscripts/run-e2e-tests.mjs[m[36m:[m    // TEST 3: Store Compliance ([1;31mRestore Purchases[m & Legal Links)
+[35mscripts/run-e2e-tests.mjs[m[36m:[m    logStep(3, "Apple Compliance: [1;31mRestore Purchases[m & Legal Links");
+[35mscripts/run-e2e-tests.mjs[m[36m:[m    // Click [1;31mRestore Purchases[m
+[35mscripts/run-e2e-tests.mjs[m[36m:[m    const restoreBtn = page.locator('button:has-text("[1;31mRestore Purchases[m")');
+[35mscripts/run-e2e-tests.mjs[m[36m:[m      logPass("[1;31mRestore Purchases[m returned compliant status response.");
+[35mscripts/test-monetization-and-routing.mjs[m[36m:[m// --- TEST 2: Monetization Entitlement & [1;31mRestore Purchases[m Logic ---
+[35mscripts/test-monetization-and-routing.mjs[m[36m:[m  // Fixed [1;31mrestore purchases[m logic
+[35mscripts/test-monetization-and-routing.mjs[m[36m:[m// Scenario B: User taps [1;31mRestore Purchases[m with NO active subscription
+[35mscripts/test-monetization-and-routing.mjs[m[36m:[mconsole.log("  ✓ Scenario B passed: [1;31mRestore purchases[m without receipts safely stays FREE.");
+[35mscripts/test-monetization-flow.mjs[m[36m:[m    // TEST 4: Apple Compliance Links ([1;31mRestore Purchases[m, EULA, Terms, Privacy)
+[35mscripts/test-monetization-flow.mjs[m[36m:[m    const restoreBtn = page.locator("button:has-text('[1;31mRestore Purchases[m')");
+[35mscripts/test-monetization-flow.mjs[m[36m:[m    if (!(await restoreBtn.isVisible())) logFail("[1;31mRestore Purchases[m link missing");
+[35mscripts/test-monetization-flow.mjs[m[36m:[m    // Click [1;31mRestore Purchases[m
+[35mscripts/test-monetization-flow.mjs[m[36m:[m    logPass("[1;31mRestore Purchases[m clicked and handled gracefully without errors");
+[35msrc/components/ui/ManageSubscriptionModal.tsx[m[36m:[m            {/* 3. [1;31mRestore Purchases[m Action (Unified into this same sheet) */}
+[35msrc/components/ui/SettingsSheet.tsx[m[36m:[m          : "Failed to connect to store services to [1;31mrestore purchases[m.",
+[35msrc/lib/i18n.ts[m[36m:[m      restorePurchases: "[1;31mRestore Purchases[m",
+[35msrc/lib/i18n.ts[m[36m:[m      restorePurchases: "[1;31mRestore Purchases[m",
+[35msrc/lib/i18n.ts[m[36m:[m      restoreApplePurchases: "[1;31mRestore Purchases[m from Apple ID",
+[35msrc/lib/i18n.ts[m[36m:[m      restorePurchases: "[1;31mRestore Purchases[m",
+[35msrc/lib/purchases.ts[m[36m:[m        : "Could not connect to the App Store to [1;31mrestore purchases[m. Please check your connection.",
+[35msrc/lib/purchases.ts[m[36m:[m          : "Failed to [1;31mrestore purchases[m.";

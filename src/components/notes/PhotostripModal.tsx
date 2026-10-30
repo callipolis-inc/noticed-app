@@ -163,7 +163,10 @@ export function PhotostripModal({
     note.photos.forEach(async (rawSrc) => {
       try {
         let resolvedSrc = rawSrc;
-        if (resolvedSrc.startsWith("http://") || resolvedSrc.startsWith("https://")) {
+        if (
+          resolvedSrc.startsWith("http://") ||
+          resolvedSrc.startsWith("https://")
+        ) {
           try {
             const resp = await fetch(resolvedSrc, { mode: "cors" });
             if (resp.ok) {
@@ -363,7 +366,10 @@ export function PhotostripModal({
         if (!img || !img.complete || img.naturalWidth === 0) {
           let resolvedSrc = rawPhoto;
           let blobUrlToRevoke: string | null = null;
-          if (resolvedSrc.startsWith("http://") || resolvedSrc.startsWith("https://")) {
+          if (
+            resolvedSrc.startsWith("http://") ||
+            resolvedSrc.startsWith("https://")
+          ) {
             try {
               const resp = await fetch(resolvedSrc, { mode: "cors" });
               if (resp.ok) {
@@ -529,7 +535,7 @@ export function PhotostripModal({
       ctx.font = "600 18px 'Urbanist', sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(
-        "NOTICED   ·   FOR THINGS YOU DON'T WANT TO FORGET",
+        "NOTICED · FOR THINGS YOU DON'T WANT TO FORGET",
         width / 2,
         height - 64,
       );
@@ -544,7 +550,6 @@ export function PhotostripModal({
       }
       const blob = new Blob([bytes], { type: "image/png" });
       {
-
         const fileName = `noticed-${aspectRatio.replace(":", "x")}-${note.id.substring(0, 6)}.png`;
         const file = new File([blob], fileName, { type: "image/png" });
         const isMobileDevice =
@@ -1032,16 +1037,14 @@ export function PhotostripModal({
                 )}
               </div>
 
-              {/* Colophon */}
               <div
-                className="pt-2.5 border-t flex items-center justify-between text-[9px] font-sans tracking-[0.18em] uppercase shrink-0"
+                className="pt-2.5 border-t text-center text-[8px] font-sans tracking-[0.18em] uppercase shrink-0"
                 style={{
                   borderColor: activePalette.border,
                   color: activePalette.muted,
                 }}
               >
-                <span>NOTICED</span>
-                <span>FOR THINGS YOU DON'T WANT TO FORGET</span>
+                <span>NOTICED FOR THINGS YOU DON'T WANT TO FORGET</span>
               </div>
             </motion.div>
           </div>
@@ -1093,6 +1096,6 @@ export function PhotostripModal({
         </motion.div>
       )}
     </AnimatePresence>,
-    document.body
+    document.body,
   );
 }
